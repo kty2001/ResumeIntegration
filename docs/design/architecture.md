@@ -71,6 +71,8 @@ tests/
 
 ## 5. 핵심 데이터 구조
 
+- 이력서 데이터 타입·스키마 키 정의: [resume_schema_v1.md](resume_schema_v1.md)
+
 ```ts
 // content script → background: 페이지에서 수집한 필드 정보 (값 미포함)
 interface PageDetails {

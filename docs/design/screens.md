@@ -3,7 +3,7 @@
 최종 갱신: 2026-10-07 · 관련 문서: [architecture.md](architecture.md)
 
 - 와이어프레임 수준 정적 HTML 목업, 로컬에서 파일을 직접 열어 확인 (외부 리소스 없음)
-- 입력 항목은 [04 보고서](../reports/04_target_sites_and_data_model.md) 3장 기준, 이력서 스키마 v1 확정 시 조정
+- 입력 항목은 [04 보고서](../reports/04_target_sites_and_data_model.md) 3장 기준으로 작성. 스키마 v1과의 차이는 [resume_schema_v1.md](resume_schema_v1.md) 10장
 - 표시 데이터는 모두 가상 값
 
 ## 1. 화면 목록
@@ -71,6 +71,6 @@
 - 문구는 초안, 개인정보처리방침 작성 시 확정 ([05 보고서](../reports/05_privacy_and_policy.md))
 
 ## 6. 미결 사항
-- UI 라이브러리 선택 후 실제 컴포넌트·디자인 적용
+- 실제 컴포넌트·디자인 적용 (React 구현 시)
 - 증명사진·첨부 파일 저장 용량 (`storage.local` 10MB 한도, `unlimitedStorage` 필요 여부)
 - 반복 항목 순서 변경 방식 (끌어 놓기 vs 위·아래 버튼)

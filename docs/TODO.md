@@ -10,12 +10,12 @@
 
 ## 결정
 - [x] 기술 스택: WXT + TypeScript → [tech_stack](design/tech_stack.md)
-- [ ] UI 라이브러리 (React / Vue / Svelte / 없음)
+- [x] UI 라이브러리: React → [tech_stack](design/tech_stack.md)
 - [ ] 링크드인 지원 범위 (자동 입력 제외, 복사 전용 모드 여부) 및 DOM 조사 진행 여부
 - [ ] BYOK 지원 LLM 제공자 범위
 
 ## 설계 (`docs/design/`)
-- [ ] 이력서 데이터 스키마 v1 (JSON Resume 기반 + 국내 특화 필드)
+- [x] 이력서 데이터 스키마 v1 → [resume_schema_v1](design/resume_schema_v1.md) (사이트별 선택지 대응은 DOM 조사 후 보완)
 - [ ] 필드 키워드·옵션 동의어 사전 v1 (한/영)
 - [x] 확장 프로그램 구조·메시지 흐름 설계 → [architecture](design/architecture.md)
 - [x] 화면 설계·와이어프레임 → [screens](design/screens.md), [mockups](design/mockups/)

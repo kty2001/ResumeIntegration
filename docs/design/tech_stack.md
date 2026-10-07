@@ -11,6 +11,7 @@
 | 언어 | **TypeScript** | 이력서 스키마·메시지 규격을 타입으로 관리, 위젯 전략 모듈 다수 → 규모 확대 대비 |
 | 저장소 | `chrome.storage.local` (WXT `storage.defineItem`) | 10MB, 로컬 저장 원칙. `version`·`migrations`로 스키마 변경 대응 — [WXT Storage](https://wxt.dev/storage.html) |
 | 테스트(E2E) | Playwright | unpacked 확장 로드 지원 — [01 보고서](../reports/01_extension_architecture.md) 7장 |
+| UI 라이브러리 | **React** | 생태계 최대, 반복 항목 폼 구현에 유리, WXT 공식 템플릿 제공 |
 
 ## 권장 (도입 시 확정)
 
@@ -24,7 +25,6 @@
 
 | 항목 | 후보 | 비고 |
 |---|---|---|
-| UI 라이브러리 (옵션·팝업·사이드 패널) | React / Vue / Svelte / 없음 | 옵션 페이지는 반복 항목이 많은 입력 폼 → 컴포넌트 라이브러리 사용 권장 |
 | BYOK 지원 LLM 제공자 | 미정 | 제공자별 호출부만 분리한 공통 인터페이스로 설계 ([architecture.md](architecture.md)) |
 
 ## 대상 브라우저
