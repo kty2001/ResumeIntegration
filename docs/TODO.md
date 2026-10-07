@@ -3,18 +3,21 @@
 ## 조사
 - [x] 확장 프로그램 구조·유사 앱 레퍼런스 조사 → [reports](reports/README.md)
 - [x] 범용 드롭다운·날짜 선택기 처리 전략 정리 → [06](reports/06_generic_widget_strategy.md)
-- [ ] 검증용 사이트 2~3곳 선정 (예: 사람인, 원티드, 그리팅)
-- [ ] 선정 사이트 이력서 작성 페이지 DOM 현장 조사 (React 여부, 위젯 종류, ARIA 준수 여부, iframe 여부)
-- [ ] 대상 사이트 이용약관의 자동화 도구 제한 여부 확인
+- [x] 검증용 사이트 선정: 사람인, 잡코리아, 링크드인 (링크드인은 약관 문제로 재결정 필요)
+- [ ] 선정 사이트 이력서 작성 페이지 DOM 현장 조사 (React 여부, 위젯 종류, ARIA 준수 여부, iframe 여부) — 사용자 로그인 필요
+- [x] 링크드인 이용약관 확인 → [05](reports/05_privacy_and_policy.md) 4.1 (확장 프로그램 명시적 금지)
+- [ ] 사람인·잡코리아 이용약관의 자동화 도구 제한 여부 확인
 
 ## 결정
-- [ ] 기술 스택: Vanilla JS vs WXT
+- [x] 기술 스택: WXT + TypeScript → [tech_stack](design/tech_stack.md)
+- [ ] UI 라이브러리 (React / Vue / Svelte / 없음)
+- [ ] 링크드인 지원 범위 (자동 입력 제외, 복사 전용 모드 여부) 및 DOM 조사 진행 여부
 - [ ] BYOK 지원 LLM 제공자 범위
 
 ## 설계 (`docs/design/`)
 - [ ] 이력서 데이터 스키마 v1 (JSON Resume 기반 + 국내 특화 필드)
 - [ ] 필드 키워드·옵션 동의어 사전 v1 (한/영)
-- [ ] 확장 프로그램 구조·메시지 흐름 설계
+- [x] 확장 프로그램 구조·메시지 흐름 설계 → [architecture](design/architecture.md)
 - [ ] 화면 설계: 옵션(데이터 입력), 팝업('작성' 버튼), 사이드 패널(결과 확인·직접 선택)
 
 ## 구현 (MVP)
