@@ -3,7 +3,7 @@
 최종 갱신: 2026-10-07
 
 ## 현재 단계
-**MVP 구현 시작 (프로젝트 초기 설정 완료)**
+**MVP 구현 중**
 
 ## 완료
 - 레퍼런스 조사 보고서 작성 ([docs/reports](reports/README.md))
@@ -14,6 +14,7 @@
 - 화면 설계·와이어프레임 목업 작성 ([design/screens.md](design/screens.md), 팝업·사이드 패널·옵션·동의 모달)
 - 이력서 데이터 스키마 v1 작성 ([design/resume_schema_v1.md](design/resume_schema_v1.md))
 - 프로젝트 초기 설정: WXT 0.21 + TypeScript + React 19, 빈 엔트리포인트(background·filler·popup·options·sidepanel), 스키마 타입(`src/core/schema/resume.ts`), 저장소 항목(`src/storage/items.ts`). 타입 검사·빌드 통과
+- 옵션 화면 이력서 입력·저장: 섹션 8개(기본 정보~희망 조건), 반복 항목 추가·삭제·순서 변경, 500ms 디바운스 자동 저장, 빈 값 키 생략. 타입 검사·빌드 통과, 브라우저 동작 확인 전
 
 ## 결정 사항
 | 항목 | 결정 | 근거 |
@@ -32,7 +33,8 @@
 - BYOK 지원 LLM 제공자 범위
 
 ## 다음 작업
-- 옵션 화면: 이력서 입력·저장 (스키마 v1 기준)
+- 옵션 화면 브라우저 동작 확인 (사용자 수동)
+- 입력란 수집 + 규칙 매핑 + 텍스트 자동 입력
 - 사람인·잡코리아 DOM 현장 조사 (사용자 로그인 필요)
 - 필드 키워드·옵션 동의어 사전 v1
 
