@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>목업 - 팝업</title>
+<style>
+  :root { --bg:#f3f3f3; --card:#fff; --line:#d0d0d0; --text:#222; --sub:#777; --accent:#2f6fed; --warn:#c77700; --ok:#2e8b57; }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:24px; background:var(--bg); color:var(--text); font:14px/1.5 system-ui, "Malgun Gothic", sans-serif; }
+  .note { font-size:12px; color:var(--sub); margin-bottom:12px; }
+  .states { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:16px; }
+  .states button { border:1px solid var(--line); background:#fff; padding:4px 10px; border-radius:14px; cursor:pointer; font-size:12px; }
+  .states button.on { background:var(--text); color:#fff; border-color:var(--text); }
+  .popup { width:360px; background:var(--card); border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+  .head { display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border-bottom:1px solid var(--line); }
+  .head b { font-size:15px; }
+  .icon-btn { border:none; background:none; color:var(--sub); cursor:pointer; font-size:13px; }
+  .body { padding:16px; }
+  .site { font-size:12px; color:var(--sub); margin-bottom:12px; }
+  .site span { display:inline-block; padding:1px 8px; border-radius:10px; font-size:11px; margin-left:4px; }
+  .badge-ok { background:#e5f4ec; color:var(--ok); }
+  .badge-warn { background:#fdf0dc; color:var(--warn); }
+  .profile { border:1px solid var(--line); border-radius:6px; padding:10px 12px; margin-bottom:12px; }
+  .profile small { color:var(--sub); }
+  .btn { display:block; width:100%; padding:10px; border-radius:6px; border:1px solid var(--line); background:#fff; font-size:14px; cursor:pointer; margin-top:8px; }
+  .btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600; }
+  .btn:disabled { opacity:.5; cursor:default; }
+  .msg { padding:10px 12px; border-radius:6px; font-size:13px; margin-bottom:8px; }
+  .msg.warn { background:#fdf0dc; }
+  .msg.info { background:#eef3fe; }
+  .bar { height:6px; background:#e6e6e6; border-radius:3px; overflow:hidden; margin:8px 0; }
+  .bar i { display:block; height:100%; width:60%; background:var(--accent); }
+  .foot { display:flex; justify-content:space-between; padding:10px 16px; border-top:1px solid var(--line); font-size:12px; }
+  .foot a { color:var(--sub); text-decoration:none; }
+  [data-state] { display:none; }
+  [data-state].show { display:block; }
+</style>
+</head>
+<body>
+<p class="note">와이어프레임 — 실제 디자인 아님. 상단 버튼으로 상태 전환. 표시 데이터는 모두 가상 값.</p>
+<div class="states" id="states">
+  <button data-target="ready" class="on">① 작성 가능</button>
+  <button data-target="empty">② 이력서 미입력</button>
+  <button data-target="excluded">③ 제외 사이트</button>
+  <button data-target="permission">④ 권한 필요</button>
+  <button data-target="running">⑤ 입력 중</button>
+</div>
+
+<div class="popup">
+  <div class="head"><b>이력서 자동 입력</b><button class="icon-btn" title="설정">⚙ 설정</button></div>
+
+  <!-- ① 작성 가능 -->
+  <div class="body show" data-state="ready">
+    <div class="site">현재 페이지: recruit.example.com <span class="badge-ok">입력 가능</span></div>
+    <div class="profile">
+      <b>홍길동</b> <small>· 마지막 수정 2026-10-01</small><br>
+      <small>학력 2 · 경력 1 · 자격증 3 · 자기소개서 답변 8</small>
+    </div>
+    <button class="btn primary">작성</button>
+    <button class="btn">사이드 패널 열기</button>
+  </div>
+
+  <!-- ② 이력서 미입력 -->
+  <div class="body" data-state="empty">
+    <div class="msg info">아직 저장된 이력서가 없습니다.<br>이력서를 한 번 입력해 두면 채용 사이트에서 자동으로 채울 수 있습니다.</div>
+    <button class="btn primary">이력서 입력하러 가기</button>
+    <button class="btn">JSON 파일 가져오기</button>
+  </div>
+
+  <!-- ③ 제외 사이트 -->
+  <div class="body" data-state="excluded">
+    <div class="site">현재 페이지: www.linkedin.com <span class="badge-warn">자동 입력 제외</span></div>
+    <div class="msg warn">이 사이트는 이용약관에서 확장 프로그램의 자동화를 금지합니다.<br>자동 입력 대신 사이드 패널에서 항목을 복사해 직접 붙여넣을 수 있습니다.</div>
+    <button class="btn primary">복사 전용 모드 열기</button>
+    <button class="btn" disabled>작성</button>
+  </div>
+
+  <!-- ④ 권한 필요 -->
+  <div class="body" data-state="permission">
+    <div class="site">현재 페이지: careers.example.co.kr <span class="badge-warn">추가 권한 필요</span></div>
+    <div class="msg warn">지원서 양식이 다른 주소(apply.example-ats.com)에서 불러와져 있습니다.<br>해당 주소에 대한 접근을 허용해야 입력할 수 있습니다.</div>
+    <button class="btn primary">apply.example-ats.com 접근 허용</button>
+    <button class="btn">이 페이지 부분만 입력</button>
+  </div>
+
+  <!-- ⑤ 입력 중 -->
+  <div class="body" data-state="running">
+    <div class="site">현재 페이지: recruit.example.com</div>
+    <div>입력란 분석·입력 중… (18 / 30)</div>
+    <div class="bar"><i></i></div>
+    <small style="color:var(--sub)">완료되면 사이드 패널에 결과가 표시됩니다.</small>
+    <button class="btn" disabled>작성</button>
+  </div>
+
+  <div class="foot"><a href="#">이력서 편집</a><a href="#">도움말</a></div>
+</div>
+
+<script>
+  document.getElementById('states').addEventListener('click', function (e) {
+    var t = e.target.getAttribute('data-target');
+    if (!t) return;
+    document.querySelectorAll('#states button').forEach(function (b) { b.classList.toggle('on', b === e.target); });
+    document.querySelectorAll('[data-state]').forEach(function (el) { el.classList.toggle('show', el.getAttribute('data-state') === t); });
+  });
+</script>
+</body>
+</html>

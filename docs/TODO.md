@@ -18,7 +18,7 @@
 - [ ] 이력서 데이터 스키마 v1 (JSON Resume 기반 + 국내 특화 필드)
 - [ ] 필드 키워드·옵션 동의어 사전 v1 (한/영)
 - [x] 확장 프로그램 구조·메시지 흐름 설계 → [architecture](design/architecture.md)
-- [ ] 화면 설계: 옵션(데이터 입력), 팝업('작성' 버튼), 사이드 패널(결과 확인·직접 선택)
+- [x] 화면 설계·와이어프레임 → [screens](design/screens.md), [mockups](design/mockups/)
 
 ## 구현 (MVP)
 - [ ] 프로젝트 초기 설정 (manifest, 빌드 환경)

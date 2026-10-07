@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>목업 - 옵션 (이력서 편집)</title>
+<style>
+  :root { --bg:#f3f3f3; --card:#fff; --line:#d0d0d0; --text:#222; --sub:#777; --accent:#2f6fed; --warn:#c77700; --err:#c0392b; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:14px/1.5 system-ui, "Malgun Gothic", sans-serif; }
+  .note { font-size:12px; color:var(--sub); padding:8px 24px; background:#fff; border-bottom:1px solid var(--line); margin:0; }
+  .top { display:flex; justify-content:space-between; align-items:center; padding:12px 24px; background:#fff; border-bottom:1px solid var(--line); }
+  .top b { font-size:16px; }
+  .top small { color:var(--sub); margin-right:12px; }
+  .wrap { display:flex; max-width:1100px; margin:0 auto; }
+  nav { width:200px; flex:none; padding:16px 0; }
+  nav .grp { font-size:11px; color:var(--sub); padding:12px 16px 4px; }
+  nav a { display:block; padding:6px 16px; color:var(--text); text-decoration:none; border-left:3px solid transparent; }
+  nav a.on { border-left-color:var(--accent); background:#fff; font-weight:600; }
+  main { flex:1; padding:24px; }
+  section { display:none; }
+  section.show { display:block; }
+  h2 { margin:0 0 4px; font-size:18px; }
+  .desc { color:var(--sub); font-size:13px; margin:0 0 16px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:16px; margin-bottom:12px; }
+  .card-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+  .grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; }
+  .grid.three { grid-template-columns:repeat(3, 1fr); }
+  .full { grid-column:1 / -1; }
+  label { display:block; font-size:12px; color:var(--sub); margin-bottom:2px; }
+  label .s { color:var(--warn); }
+  input, select, textarea { width:100%; padding:7px 8px; border:1px solid var(--line); border-radius:5px; font:inherit; background:#fff; }
+  textarea { min-height:90px; resize:vertical; }
+  .inline { display:flex; gap:6px; }
+  .btn { padding:6px 12px; border-radius:5px; border:1px solid var(--line); background:#fff; cursor:pointer; font-size:13px; }
+  .btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .btn.add { width:100%; border-style:dashed; color:var(--sub); padding:10px; }
+  .btn.danger { color:var(--err); }
+  .count { text-align:right; font-size:12px; color:var(--sub); }
+  .msg { padding:10px 12px; border-radius:6px; font-size:13px; background:#eef3fe; margin-bottom:12px; }
+  .msg.warn { background:#fdf0dc; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th, td { text-align:left; padding:8px; border-bottom:1px solid #eee; }
+  th { color:var(--sub); font-weight:600; }
+  .chk { display:flex; align-items:center; gap:6px; margin:6px 0; }
+  .chk input { width:auto; }
+</style>
+</head>
+<body>
+<p class="note">와이어프레임 — 실제 디자인 아님. 좌측 메뉴로 섹션 전환. 입력 항목은 보고서 04 3장 기준이며 스키마 v1 확정 시 조정. 표시 데이터는 모두 가상 값.</p>
+<div class="top">
+  <b>이력서 자동 입력 · 이력서 편집</b>
+  <div><small>자동 저장됨 · 방금 전</small><button class="btn">미리 보기</button></div>
+</div>
+
+<div class="wrap">
+  <nav id="nav">
+    <div class="grp">이력서</div>
+    <a href="#basic" class="on">기본 정보</a>
+    <a href="#edu">학력</a>
+    <a href="#career">경력</a>
+    <a href="#military">병역·취업우대</a>
+    <a href="#lang">어학·자격증</a>
+    <a href="#activity">활동·수상</a>
+    <a href="#wish">희망 조건</a>
+    <a href="#cover">자기소개서</a>
+    <a href="#files">첨부 파일</a>
+    <div class="grp">관리</div>
+    <a href="#settings">설정</a>
+    <a href="#rules">학습 규칙</a>
+    <a href="#backup">백업</a>
+  </nav>
+
+  <main>
+    <!-- 기본 정보 -->
+    <section id="basic" class="show">
+      <h2>기본 정보</h2>
+      <p class="desc">대부분의 지원서에 공통으로 들어가는 항목입니다.</p>
+      <div class="card">
+        <div class="grid three">
+          <div><label>이름(한글)</label><input value="홍길동"></div>
+          <div><label>이름(영문)</label><input value="Gildong Hong"></div>
+          <div><label>이름(한자)</label><input value="洪吉童"></div>
+          <div><label>생년월일</label><input value="1998-01-01"></div>
+          <div><label>휴대폰</label><input value="010-0000-0000"></div>
+          <div><label>이메일</label><input value="gildong@example.com"></div>
+          <div class="full"><label>주소</label><div class="inline"><input value="00000" style="width:120px"><input value="서울특별시 예시구 예시로 1"><input value="101호" style="width:160px"></div></div>
+          <div class="full"><label>포트폴리오·블로그 URL</label><input value="https://example.com/portfolio"></div>
+        </div>
+      </div>
+      <div class="card"><label>증명사진</label><div class="inline"><div style="width:72px;height:96px;border:1px dashed var(--line);display:flex;align-items:center;justify-content:center;color:var(--sub);font-size:11px">사진</div><button class="btn" style="align-self:flex-end">파일 선택</button></div></div>
+    </section>
+
+    <!-- 학력 (반복 항목) -->
+    <section id="edu">
+      <h2>학력</h2>
+      <p class="desc">최근 학력부터 입력합니다. 항목 순서는 끌어서 변경합니다.</p>
+      <div class="card">
+        <div class="card-head"><b>학력 1</b><button class="btn danger">삭제</button></div>
+        <div class="grid three">
+          <div><label>학교 구분</label><select><option>대학교(4년)</option><option>대학교(2,3년)</option><option>대학원(석사)</option><option>대학원(박사)</option><option>고등학교</option></select></div>
+          <div class="full" style="grid-column:span 2"><label>학교명</label><div class="inline"><input value="예시대학교"><input value="Example University" placeholder="영문명"></div></div>
+          <div><label>입학</label><input value="2017-03"></div>
+          <div><label>졸업</label><input value="2023-02"></div>
+          <div><label>졸업 상태</label><select><option>졸업</option><option>졸업 예정</option><option>수료</option><option>중퇴</option><option>재학</option><option>휴학</option></select></div>
+          <div><label>전공</label><input value="컴퓨터공학"></div>
+          <div><label>부·복수전공</label><input placeholder="없음"></div>
+          <div><label>학점 / 만점</label><div class="inline"><input value="3.8"><select style="width:90px"><option>4.5</option><option>4.3</option><option>4.0</option><option>100</option></select></div></div>
+          <div class="full"><label class="chk"><input type="checkbox">편입</label></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><b>학력 2</b><button class="btn danger">삭제</button></div>
+        <div class="grid three">
+          <div><label>학교 구분</label><select><option>고등학교</option></select></div>
+          <div style="grid-column:span 2"><label>학교명</label><input value="예시고등학교"></div>
+        </div>
+      </div>
+      <button class="btn add">+ 학력 추가</button>
+    </section>
+
+    <!-- 경력 -->
+    <section id="career">
+      <h2>경력</h2>
+      <p class="desc">신입이면 비워 둡니다.</p>
+      <div class="card">
+        <div class="card-head"><b>경력 1</b><button class="btn danger">삭제</button></div>
+        <div class="grid three">
+          <div style="grid-column:span 2"><label>회사명</label><div class="inline"><input value="예시주식회사"><input value="Example Corp." placeholder="영문명"></div></div>
+          <div><label>고용 형태</label><select><option>정규직</option><option>계약직</option><option>인턴</option><option>프리랜서</option></select></div>
+          <div><label>부서</label><input value="플랫폼개발팀"></div>
+          <div><label>직급·직책</label><input value="사원 / 팀원"></div>
+          <div><label>직무(영문)</label><input value="Backend Engineer"></div>
+          <div><label>입사</label><input value="2022-03"></div>
+          <div><label>퇴사</label><input placeholder="재직 중" disabled></div>
+          <div><label class="chk" style="margin-top:22px"><input type="checkbox" checked>재직 중</label></div>
+          <div><label>연봉(만원)</label><input value="4,000"></div>
+          <div style="grid-column:span 2"><label>퇴사 사유</label><input placeholder="재직 중"></div>
+          <div class="full"><label>담당 업무</label><textarea>결제 시스템 API 개발 및 운영…</textarea></div>
+        </div>
+      </div>
+      <button class="btn add">+ 경력 추가</button>
+    </section>
+
+    <!-- 병역·취업우대 -->
+    <section id="military">
+      <h2>병역·취업우대</h2>
+      <div class="card">
+        <div class="grid three">
+          <div><label>병역 구분</label><select><option>군필</option><option>미필</option><option>면제</option><option>해당 없음</option></select></div>
+          <div><label>군별</label><select><option>육군</option><option>해군</option><option>공군</option><option>해병대</option><option>사회복무</option></select></div>
+          <div><label>계급</label><input value="병장"></div>
+          <div><label>복무 시작</label><input value="2018-03"></div>
+          <div><label>복무 종료</label><input value="2019-09"></div>
+          <div><label>면제 사유</label><input disabled></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="msg warn"><b>민감정보</b> · 보훈·장애 정보는 법상 민감정보입니다. 입력은 선택이며, 이 기기에만 저장되고 LLM으로 전송되지 않습니다. '설정' 메뉴에서 자동 입력 사용 여부를 정할 수 있습니다.</div>
+        <div class="grid three">
+          <div><label>보훈 대상 <span class="s">민감</span></label><select><option>비대상</option><option>대상</option></select></div>
+          <div><label>장애 여부 <span class="s">민감</span></label><select><option>비대상</option><option>대상</option></select></div>
+          <div><label>장애 정도 <span class="s">민감</span></label><select disabled><option>-</option></select></div>
+          <div><label>취업보호대상</label><select><option>비대상</option><option>대상</option></select></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 어학·자격증 -->
+    <section id="lang">
+      <h2>어학·자격증</h2>
+      <div class="card">
+        <div class="card-head"><b>어학 시험</b></div>
+        <table>
+          <tr><th>시험</th><th>점수·등급</th><th>취득일</th><th></th></tr>
+          <tr><td>TOEIC</td><td>900</td><td>2025-06</td><td><button class="btn">편집</button></td></tr>
+          <tr><td>OPIc 영어</td><td>IH</td><td>2025-08</td><td><button class="btn">편집</button></td></tr>
+        </table>
+        <button class="btn add" style="margin-top:8px">+ 어학 추가</button>
+      </div>
+      <div class="card">
+        <div class="card-head"><b>자격증</b></div>
+        <table>
+          <tr><th>자격증명</th><th>발행기관</th><th>취득일</th><th>자격번호</th><th></th></tr>
+          <tr><td>정보처리기사</td><td>한국산업인력공단</td><td>2023-06</td><td>00000000000A</td><td><button class="btn">편집</button></td></tr>
+        </table>
+        <button class="btn add" style="margin-top:8px">+ 자격증 추가</button>
+      </div>
+    </section>
+
+    <!-- 활동·수상 -->
+    <section id="activity">
+      <h2>활동·수상</h2>
+      <div class="card">
+        <table>
+          <tr><th>구분</th><th>이름</th><th>기관</th><th>기간·일자</th><th></th></tr>
+          <tr><td>수상</td><td>교내 해커톤 대상</td><td>예시대학교</td><td>2022-11</td><td><button class="btn">편집</button></td></tr>
+          <tr><td>대외활동</td><td>오픈소스 기여 프로그램</td><td>예시재단</td><td>2021-07 – 2021-12</td><td><button class="btn">편집</button></td></tr>
+          <tr><td>교육</td><td>클라우드 실무 과정</td><td>예시교육원</td><td>2024-01 – 2024-06</td><td><button class="btn">편집</button></td></tr>
+        </table>
+        <button class="btn add" style="margin-top:8px">+ 항목 추가</button>
+      </div>
+    </section>
+
+    <!-- 희망 조건 -->
+    <section id="wish">
+      <h2>희망 조건</h2>
+      <div class="card">
+        <div class="grid three">
+          <div><label>희망 연봉</label><div class="inline"><input value="5,000"><select style="width:140px"><option>만원</option><option>회사 내규에 따름</option></select></div></div>
+          <div><label>희망 근무지</label><input value="서울, 경기"></div>
+          <div><label>입사 가능일</label><input value="협의 가능"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 자기소개서 라이브러리 -->
+    <section id="cover">
+      <h2>자기소개서</h2>
+      <p class="desc">작성했던 문항과 답변을 모아 둡니다. 지원서의 유사 문항에 추천됩니다.</p>
+      <div class="card">
+        <div class="inline" style="margin-bottom:12px"><input placeholder="문항·답변 검색"><select style="width:160px"><option>전체 태그</option><option>지원 동기</option><option>성장 과정</option><option>성격 장단점</option><option>직무 역량</option><option>입사 후 포부</option><option>협업 경험</option></select></div>
+        <table>
+          <tr><th>태그</th><th>문항</th><th>사용처</th><th>글자수</th></tr>
+          <tr><td>지원 동기</td><td>지원 동기를 기술해 주십시오.</td><td>A사 · 2026-09</td><td>932 / 1,000</td></tr>
+          <tr><td>협업 경험</td><td>팀으로 문제를 해결한 경험</td><td>B사 · 2026-08</td><td>1,480 / 1,500</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <div class="card-head"><b>답변 편집</b><span><button class="btn">복제</button> <button class="btn danger">삭제</button></span></div>
+        <div class="grid">
+          <div class="full"><label>문항</label><input value="지원 동기를 기술해 주십시오."></div>
+          <div><label>태그</label><select><option>지원 동기</option></select></div>
+          <div><label>글자수 제한</label><div class="inline"><input value="1000"><select style="width:150px"><option>공백 포함</option><option>공백 제외</option><option>바이트</option></select></div></div>
+          <div class="full"><label>답변</label><textarea style="min-height:160px">예시 답변 내용…</textarea>
+            <div class="count">공백 포함 932자 · 공백 제외 701자 · 1,980바이트</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 첨부 파일 -->
+    <section id="files">
+      <h2>첨부 파일</h2>
+      <div class="card">
+        <table>
+          <tr><th>구분</th><th>파일명</th><th>크기</th><th></th></tr>
+          <tr><td>이력서</td><td>resume_2026.pdf</td><td>320KB</td><td><button class="btn">교체</button> <button class="btn danger">삭제</button></td></tr>
+          <tr><td>포트폴리오</td><td>portfolio.pdf</td><td>4.1MB</td><td><button class="btn">교체</button> <button class="btn danger">삭제</button></td></tr>
+        </table>
+        <button class="btn add" style="margin-top:8px">+ 파일 추가</button>
+      </div>
+    </section>
+
+    <!-- 설정 -->
+    <section id="settings">
+      <h2>설정</h2>
+      <div class="card">
+        <div class="card-head"><b>자동 입력</b></div>
+        <label class="chk"><input type="checkbox">민감정보(보훈·장애) 자동 입력 사용</label>
+        <label class="chk"><input type="checkbox" checked>입력 후 결과를 사이드 패널에 표시</label>
+        <label class="chk"><input type="checkbox" checked>직접 고친 선택을 사이트별 규칙으로 기억</label>
+      </div>
+      <div class="card">
+        <div class="card-head"><b>LLM 보조 (선택)</b><span style="font-size:12px;color:var(--sub)">사용 안 함</span></div>
+        <div class="msg">본인 API 키를 입력하면 자동으로 판단하지 못한 항목을 LLM이 보조합니다. 이력서 내용은 전송하지 않으며, 요금은 사용자 계정에 부과됩니다.</div>
+        <div class="grid">
+          <div><label>제공자</label><select><option>선택…</option><option>(지원 제공자 미정)</option></select></div>
+          <div><label>API 키</label><div class="inline"><input value="sk-••••••••••••3f9a"><button class="btn">삭제</button></div></div>
+        </div>
+        <div style="margin-top:12px"><button class="btn primary">전송 범위 확인 후 사용</button></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><b>제외 사이트</b></div>
+        <table>
+          <tr><th>사이트</th><th>사유</th><th></th></tr>
+          <tr><td>linkedin.com</td><td>기본 제외 (이용약관)</td><td></td></tr>
+          <tr><td>example-bank.com</td><td>사용자 추가</td><td><button class="btn danger">제거</button></td></tr>
+        </table>
+        <div class="inline" style="margin-top:8px"><input placeholder="도메인 입력"><button class="btn">추가</button></div>
+      </div>
+    </section>
+
+    <!-- 학습 규칙 -->
+    <section id="rules">
+      <h2>학습 규칙</h2>
+      <p class="desc">사이드 패널에서 직접 고른 결과입니다. 같은 사이트 재방문 시 우선 적용됩니다.</p>
+      <div class="card">
+        <table>
+          <tr><th>사이트</th><th>입력란</th><th>이력서 항목</th><th>선택지</th><th>수정일</th><th></th></tr>
+          <tr><td>recruit.example.com</td><td>최종 학력</td><td>학력 › 학교 구분</td><td>대학교(4년) 졸업</td><td>2026-10-07</td><td><button class="btn danger">삭제</button></td></tr>
+          <tr><td>recruit.example.com</td><td>추천인</td><td>해당 없음</td><td>-</td><td>2026-10-07</td><td><button class="btn danger">삭제</button></td></tr>
+        </table>
+      </div>
+    </section>
+
+    <!-- 백업 -->
+    <section id="backup">
+      <h2>백업</h2>
+      <div class="card">
+        <div class="msg">데이터는 이 브라우저에만 저장됩니다. 다른 기기로 옮기거나 백업하려면 파일로 내보내세요. API 키는 내보내기에 포함되지 않습니다.</div>
+        <button class="btn primary">JSON 파일로 내보내기</button>
+        <button class="btn">JSON 파일 가져오기</button>
+      </div>
+      <div class="card">
+        <div class="card-head"><b>전체 삭제</b></div>
+        <p class="desc">이력서·자기소개서·학습 규칙·설정을 모두 삭제합니다. 되돌릴 수 없습니다.</p>
+        <button class="btn danger">모든 데이터 삭제</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+  var nav = document.getElementById('nav');
+  nav.addEventListener('click', function (e) {
+    var a = e.target.closest('a');
+    if (!a) return;
+    e.preventDefault();
+    var id = a.getAttribute('href').slice(1);
+    nav.querySelectorAll('a').forEach(function (x) { x.classList.toggle('on', x === a); });
+    document.querySelectorAll('main section').forEach(function (s) { s.classList.toggle('show', s.id === id); });
+  });
+</script>
+</body>
+</html>

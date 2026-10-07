@@ -130,6 +130,7 @@ interface LearnedRule {
 | `fill` | background → filler | `FillPlan` | `FillResult` |
 | `undo` | sidepanel → background → filler | — | `{ restored: number }` |
 | `fillOne` | sidepanel → background → filler | `{ fieldId, schemaKey, value \| optionText }` | `FillResult` |
+| `focusField` | sidepanel → background → filler | `{ fieldId }` | — (해당 입력란으로 스크롤·강조) |
 | `fillReport` | background → sidepanel | `FillResult` + 필드 라벨 | — |
 | `llmMap` | background 내부 | 필드 정보 + 스키마 키 목록 | `{ fieldId → schemaKey }` |
 

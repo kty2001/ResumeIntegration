@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>목업 - 동의 화면</title>
+<style>
+  :root { --bg:#f3f3f3; --card:#fff; --line:#d0d0d0; --text:#222; --sub:#777; --accent:#2f6fed; --warn:#c77700; --ok:#2e8b57; --err:#c0392b; }
+  * { box-sizing:border-box; }
+  body { margin:0; padding:24px; background:var(--bg); color:var(--text); font:14px/1.5 system-ui, "Malgun Gothic", sans-serif; }
+  .note { font-size:12px; color:var(--sub); margin-bottom:12px; }
+  .states { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:16px; }
+  .states button { border:1px solid var(--line); background:#fff; padding:4px 10px; border-radius:14px; cursor:pointer; font-size:12px; }
+  .states button.on { background:var(--text); color:#fff; border-color:var(--text); }
+  .backdrop { background:rgba(0,0,0,.35); padding:48px 16px; border-radius:8px; }
+  .modal { max-width:520px; margin:0 auto; background:var(--card); border-radius:10px; overflow:hidden; }
+  .modal h3 { margin:0; padding:16px 20px; border-bottom:1px solid var(--line); font-size:16px; }
+  .content { padding:16px 20px; }
+  .content p { margin:0 0 12px; }
+  ul.check { list-style:none; padding:0; margin:0 0 12px; }
+  ul.check li { padding:6px 0 6px 26px; position:relative; border-bottom:1px solid #eee; }
+  ul.check li::before { position:absolute; left:2px; top:6px; font-weight:700; }
+  ul.check li.yes::before { content:"✓"; color:var(--ok); }
+  ul.check li.no::before { content:"✕"; color:var(--err); }
+  table { width:100%; border-collapse:collapse; font-size:13px; margin-bottom:12px; }
+  th, td { text-align:left; padding:6px 8px; border:1px solid #eee; vertical-align:top; }
+  th { background:#fafafa; color:var(--sub); font-weight:600; }
+  .example { font:12px/1.4 Consolas, monospace; background:#f7f7f7; border-radius:6px; padding:10px; white-space:pre; overflow-x:auto; margin-bottom:12px; }
+  .chk { display:flex; gap:6px; align-items:flex-start; font-size:13px; margin:6px 0; }
+  .actions { display:flex; justify-content:flex-end; gap:8px; padding:12px 20px; border-top:1px solid var(--line); }
+  .btn { padding:8px 14px; border-radius:6px; border:1px solid var(--line); background:#fff; cursor:pointer; font-size:14px; }
+  .btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  a { color:var(--accent); }
+  [data-state] { display:none; }
+  [data-state].show { display:block; }
+</style>
+</head>
+<body>
+<p class="note">와이어프레임 — 실제 디자인 아님. 문구는 초안이며 개인정보처리방침 작성 시 확정.</p>
+<div class="states" id="states">
+  <button data-target="first" class="on">① 최초 실행 안내</button>
+  <button data-target="byok">② LLM 보조 사용 동의</button>
+</div>
+
+<div class="backdrop">
+  <!-- ① 최초 실행 -->
+  <div class="modal show" data-state="first">
+    <h3>시작하기 전에 확인해 주세요</h3>
+    <div class="content">
+      <p>이 확장 프로그램은 저장해 둔 이력서로 채용 사이트 지원서를 채워 줍니다.</p>
+      <ul class="check">
+        <li class="yes">이력서는 <b>이 브라우저에만</b> 저장됩니다.</li>
+        <li class="yes">'작성' 버튼을 누른 탭에서만 동작합니다.</li>
+        <li class="yes">입력만 하고 <b>제출은 하지 않습니다</b>. 제출 전 꼭 확인해 주세요.</li>
+        <li class="no">개발자 서버로 데이터를 보내지 않습니다.</li>
+        <li class="no">광고·제3자에게 데이터를 제공하지 않습니다.</li>
+      </ul>
+      <p style="font-size:13px;color:var(--sub)">보훈·장애 등 민감정보는 입력하지 않아도 되며, 입력해도 기본값은 자동 입력 꺼짐입니다.</p>
+      <label class="chk"><input type="checkbox">위 내용과 <a href="#">개인정보처리방침</a>을 확인했습니다.</label>
+    </div>
+    <div class="actions"><button class="btn">닫기</button><button class="btn primary">시작하기</button></div>
+  </div>
+
+  <!-- ② BYOK 동의 -->
+  <div class="modal" data-state="byok">
+    <h3>LLM 보조 사용 — 전송 범위 확인</h3>
+    <div class="content">
+      <p>자동으로 판단하지 못한 입력란에 한해, 입력하신 API 키로 <b>선택한 LLM 제공자</b>에게 아래 정보를 직접 보냅니다. 개발자 서버는 거치지 않습니다.</p>
+      <table>
+        <tr><th style="width:50%">보내는 정보</th><th>보내지 않는 정보</th></tr>
+        <tr>
+          <td>· 입력란 이름·안내 문구·선택지 목록<br>· 이력서 항목 이름 목록 (예: 학력 › 학교명)<br>· 드롭다운 선택 시 해당 항목 값 1개</td>
+          <td>· 이력서 전체 내용<br>· 보훈·장애 등 민감정보<br>· 페이지에 이미 입력된 값<br>· API 키 외 계정 정보</td>
+        </tr>
+      </table>
+      <div class="example">// 전송 예시
+{ "fields": [{ "label": "최종학교명", "placeholder": "학교명 검색" }],
+  "schemaKeys": ["education[].school", "education[].major", ...] }</div>
+      <p style="font-size:13px;color:var(--sub)">API 사용 요금은 사용자 계정에 부과됩니다. 같은 사이트의 결과는 저장해 두고 다시 요청하지 않습니다. 설정에서 언제든 끌 수 있습니다.</p>
+      <label class="chk"><input type="checkbox">전송 범위를 확인했으며 LLM 보조 사용에 동의합니다.</label>
+    </div>
+    <div class="actions"><button class="btn">취소</button><button class="btn primary">동의하고 사용</button></div>
+  </div>
+</div>
+
+<script>
+  document.getElementById('states').addEventListener('click', function (e) {
+    var t = e.target.getAttribute('data-target');
+    if (!t) return;
+    document.querySelectorAll('#states button').forEach(function (b) { b.classList.toggle('on', b === e.target); });
+    document.querySelectorAll('[data-state]').forEach(function (el) { el.classList.toggle('show', el.getAttribute('data-state') === t); });
+  });
+</script>
+</body>
+</html>

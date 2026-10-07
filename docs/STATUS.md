@@ -11,6 +11,7 @@
 - 링크드인 이용약관 확인 ([05 보고서](reports/05_privacy_and_policy.md) 4.1)
 - 기술 스택 문서 작성 ([design/tech_stack.md](design/tech_stack.md))
 - 구조·메시지 흐름 설계 v1 작성 ([design/architecture.md](design/architecture.md))
+- 화면 설계·와이어프레임 목업 작성 ([design/screens.md](design/screens.md), 팝업·사이드 패널·옵션·동의 모달)
 
 ## 결정 사항
 | 항목 | 결정 | 근거 |
