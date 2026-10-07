@@ -21,7 +21,7 @@
 - [x] 화면 설계·와이어프레임 → [screens](design/screens.md), [mockups](design/mockups/)
 
 ## 구현 (MVP)
-- [ ] 프로젝트 초기 설정 (manifest, 빌드 환경)
+- [x] 프로젝트 초기 설정 (WXT + TypeScript + React, manifest 권한, 엔트리포인트 뼈대, 스키마 타입, 저장소 정의)
 - [ ] 이력서 데이터 입력·저장 화면
 - [ ] 입력란 수집 (content script)
 - [ ] 규칙/사전 기반 매핑

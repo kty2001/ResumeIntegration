@@ -22,19 +22,42 @@
 ## 기술 방향
 - Chrome Extension Manifest V3
 - 최소 권한: `activeTab` + `scripting` + `storage`
-- 빌드 도구·프레임워크: 미정 (Vanilla JS vs WXT 검토 중)
+- WXT + TypeScript + React ([기술 스택](docs/design/tech_stack.md))
 
 ## 디렉터리 구조
 
 ```
 .
 ├─ README.md
+├─ package.json
+├─ wxt.config.ts     # WXT 설정, manifest 권한
+├─ src/
+│  ├─ entrypoints/   # background, filler(주입 스크립트), popup, options, sidepanel
+│  ├─ core/schema/   # 이력서 스키마 타입
+│  └─ storage/       # 저장소 항목 정의
 └─ docs/
    ├─ STATUS.md      # 현재 진행 상황
    ├─ TODO.md        # 할 일 목록
    ├─ design/        # 설계 문서
    └─ reports/       # 레퍼런스 조사 보고서
 ```
+
+## 개발
+
+요구 사항: Node.js, npm
+
+```bash
+npm install        # 의존성 설치 (WXT 타입 생성 포함)
+npm run dev        # 개발 모드 (변경 시 자동 재빌드, 개발용 브라우저 실행)
+npm run build      # 프로덕션 빌드 → .output/chrome-mv3/
+npm run compile    # 타입 검사
+npm run zip        # 스토어 업로드용 zip 생성
+```
+
+크롬에 직접 로드
+1. `npm run build`
+2. `chrome://extensions` 접속 → 우측 상단 '개발자 모드' 켜기
+3. '압축해제된 확장 프로그램을 로드합니다' → `.output/chrome-mv3` 폴더 선택
 
 ## 문서
 - [진행 상황](docs/STATUS.md)

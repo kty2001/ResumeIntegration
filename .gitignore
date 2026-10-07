@@ -1,0 +1,24 @@
+# dependencies
+node_modules/
+
+# WXT build output / generated
+.output/
+.wxt/
+stats.html
+stats-*.json
+web-ext.config.ts
+
+# logs
+*.log
+npm-debug.log*
+
+# editor / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# env
+.env
+.env.*

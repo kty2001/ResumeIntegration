@@ -17,9 +17,9 @@
 | Options | `entrypoints/options/` | 이력서 데이터 입력·편집, BYOK 설정, 학습 규칙 관리, 내보내기/가져오기 |
 | Side Panel | `entrypoints/sidepanel/` | 입력 결과 요약, 미입력 항목 직접 선택·복사, 되돌리기 |
 | Background | `entrypoints/background.ts` | 스크립트 주입, 메시지 중계, **매핑 엔진 실행**, BYOK LLM 호출, 권한 요청 처리 |
-| Filler (content script) | `entrypoints/filler.content.ts` (`registration: 'runtime'`) | 필드 수집(Page Details), 위젯 전략 체인으로 값 입력·검증, 하이라이트, 입력 전 값 백업 |
+| Filler (content script) | `entrypoints/filler.ts` (`defineUnlistedScript`) | 필드 수집(Page Details), 위젯 전략 체인으로 값 입력·검증, 하이라이트, 입력 전 값 백업 |
 
-- Filler는 manifest 자동 주입이 아닌 '작성' 클릭 시 `scripting.executeScript`로 주입 → 평소에는 어떤 페이지에도 스크립트 미실행
+- Filler는 manifest에 등록하지 않는 unlisted script로 빌드(`/filler.js`) → '작성' 클릭 시 `scripting.executeScript({ files: ['/filler.js'] })`로 주입. content script 정의(`defineContentScript`)는 `matches` 지정이 필요해 권한에 영향을 줄 수 있어 미사용 → 평소에는 어떤 페이지에도 스크립트 미실행
 - 중복 주입 방지: 전역 플래그 확인 후 이미 주입된 경우 메시지 수신만 수행
 
 ## 3. 권한
@@ -47,7 +47,7 @@
 src/
 ├─ entrypoints/
 │  ├─ background.ts
-│  ├─ filler.content.ts
+│  ├─ filler.ts
 │  ├─ popup/
 │  ├─ options/
 │  └─ sidepanel/
