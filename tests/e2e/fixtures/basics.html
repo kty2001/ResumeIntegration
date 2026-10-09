@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>기본 정보 fixture</title>
+</head>
+<body>
+  <!-- 텍스트 자동 입력 수동 확인용: 라벨 연결 방식 혼합 -->
+  <h1>기본 정보</h1>
+  <form onsubmit="return false">
+    <p><label for="nm">성명 *</label> <input id="nm" name="nm"></p>
+    <p><label>영문 이름 <input name="field2"></label></p>
+    <p><input name="field3" placeholder="이메일 주소"></p>
+    <p><input name="field4" aria-label="휴대폰 번호" type="tel"></p>
+    <p><span id="birth-label">생년월일</span> <input aria-labelledby="birth-label"></p>
+    <p><input name="field6" autocomplete="postal-code" placeholder="검색"></p>
+    <p><label for="a1">주소</label> <input id="a1"></p>
+    <p><label for="a2">상세 주소</label> <input id="a2"></p>
+    <p><label for="intro">한 줄 소개</label> <textarea id="intro"></textarea></p>
+    <p><label for="company">회사 이름</label> <input id="company"></p>
+    <p><label for="ro">읽기 전용</label> <input id="ro" readonly value="변경 안 됨"></p>
+    <p><input type="hidden" name="token" value="x"></p>
+  </form>
+</body>
+</html>

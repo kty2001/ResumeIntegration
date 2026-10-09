@@ -1,6 +1,6 @@
 # STATUS
 
-최종 갱신: 2026-10-07
+최종 갱신: 2026-10-09
 
 ## 현재 단계
 **MVP 구현 중**
@@ -15,6 +15,7 @@
 - 이력서 데이터 스키마 v1 작성 ([design/resume_schema_v1.md](design/resume_schema_v1.md))
 - 프로젝트 초기 설정: WXT 0.21 + TypeScript + React 19, 빈 엔트리포인트(background·filler·popup·options·sidepanel), 스키마 타입(`src/core/schema/resume.ts`), 저장소 항목(`src/storage/items.ts`). 타입 검사·빌드 통과
 - 옵션 화면 이력서 입력·저장: 섹션 8개(기본 정보~희망 조건), 반복 항목 추가·삭제·순서 변경, 500ms 디바운스 자동 저장, 빈 값 키 생략. 타입 검사·빌드 통과, 브라우저 동작 확인 전
+- 자동 입력 최소 수직 슬라이스: 팝업 '작성' → filler 주입 → text·textarea 수집 → autocomplete·키워드 사전 매핑(basics 단일 값 10개 키) → 입력 → 팝업에 개수 표시. 제외 사이트(linkedin.com) 차단. `@webext-core/messaging`·Vitest 도입, 매핑 단위 테스트 8개·타입 검사·빌드 통과, 브라우저 동작 확인 전
 
 ## 결정 사항
 | 항목 | 결정 | 근거 |
@@ -33,8 +34,9 @@
 - BYOK 지원 LLM 제공자 범위
 
 ## 다음 작업
-- 옵션 화면 브라우저 동작 확인 (사용자 수동)
-- 입력란 수집 + 규칙 매핑 + 텍스트 자동 입력
+- 옵션 화면·자동 입력 브라우저 동작 확인 (사용자 수동, `tests/e2e/fixtures/basics.html`)
+- 사이드 패널 입력 결과(`fillReport`)·미입력 항목 표시
+- 매핑 확장: 학력·경력 등 섹션 문맥, 날짜·전화번호 형식 변환(`core/format`)
 - 사람인·잡코리아 DOM 현장 조사 (사용자 로그인 필요)
 - 필드 키워드·옵션 동의어 사전 v1
 

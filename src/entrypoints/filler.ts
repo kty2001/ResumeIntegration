@@ -1,5 +1,37 @@
+import { collectPageDetails, getElement } from '@/dom/collect';
+import { fillText } from '@/dom/widgets/text';
+import { onMessage, type FillResult } from '@/messaging/protocol';
+
 // '작성' 클릭 시 scripting.executeScript({ files: ['/filler.js'] })로 주입되는 스크립트.
-// 필드 수집·입력 로직은 이후 구현 (docs/design/architecture.md 2장).
+// 수집·입력만 수행, 매핑 판단은 background (docs/design/architecture.md 1·2장)
+
+declare global {
+  interface Window {
+    __resumeFillerInjected?: boolean;
+  }
+}
+
 export default defineUnlistedScript(() => {
-  console.log('[resume-integration] filler injected');
+  // 중복 주입 시 리스너 중복 등록 방지
+  if (window.__resumeFillerInjected) return;
+  window.__resumeFillerInjected = true;
+
+  onMessage('collect', () => collectPageDetails());
+
+  onMessage('fill', ({ data: plan }) => {
+    const result: FillResult = { filled: [], failed: [] };
+    for (const { fieldId, value } of plan.items) {
+      const el = getElement(fieldId);
+      if (!el || !el.isConnected) {
+        result.failed.push({ fieldId, reason: 'not-found' });
+      } else if (el.maxLength > 0 && value.length > el.maxLength) {
+        result.failed.push({ fieldId, reason: 'too-long' });
+      } else if (fillText(el, value)) {
+        result.filled.push({ fieldId, strategy: 'text' });
+      } else {
+        result.failed.push({ fieldId, reason: 'not-applied' });
+      }
+    }
+    return result;
+  });
 });

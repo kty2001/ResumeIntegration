@@ -1,6 +1,6 @@
 # 구조·메시지 흐름 설계 v1
 
-최종 갱신: 2026-10-07 · 기술 스택: WXT + TypeScript ([tech_stack.md](tech_stack.md))
+최종 갱신: 2026-10-09 · 기술 스택: WXT + TypeScript ([tech_stack.md](tech_stack.md))
 
 ## 1. 설계 원칙
 - **DOM 작업과 판단 로직 분리**: content script는 수집·입력만, 매핑 판단은 background에서 수행 → 매핑 로직을 DOM 없이 단위 테스트 가능 (Bitwarden 수집→결정→입력 구조 참고, [02 보고서](../reports/02_field_mapping.md) 3장)
@@ -127,7 +127,7 @@ interface LearnedRule {
 
 | 메시지 | 방향 | 요청 | 응답 |
 |---|---|---|---|
-| `startFill` | popup·sidepanel → background | `{ tabId }` | `{ status: 'ok' \| 'excluded' \| 'needs-permission' }` |
+| `startFill` | popup·sidepanel → background | `{ tabId }` | `{ status: 'ok', filled, failed, unmatched }` 또는 `{ status: 'excluded' \| 'no-resume' \| 'needs-permission' \| 'error' }` |
 | `collect` | background → filler | — | `PageDetails` |
 | `fill` | background → filler | `FillPlan` | `FillResult` |
 | `undo` | sidepanel → background → filler | — | `{ restored: number }` |
@@ -136,7 +136,8 @@ interface LearnedRule {
 | `fillReport` | background → sidepanel | `FillResult` + 필드 라벨 | — |
 | `llmMap` | background 내부 | 필드 정보 + 스키마 키 목록 | `{ fieldId → schemaKey }` |
 
-- 메시지 정의는 `messaging/`에 타입으로 일원화 (`@webext-core/messaging` 권장, [tech_stack.md](tech_stack.md))
+- 메시지 정의는 `messaging/protocol.ts`에 타입으로 일원화 (`@webext-core/messaging`, [tech_stack.md](tech_stack.md))
+- 현재 구현: `startFill`·`collect`·`fill`, 최상위 프레임(`frameId: 0`)만 처리. `needs-permission`은 iframe 처리 시 추가
 
 ## 7. 주요 흐름
 
