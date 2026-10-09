@@ -23,7 +23,7 @@ export interface PageDetails {
   fields: FieldDescriptor[];
 }
 
-export type MatchSource = 'autocomplete' | 'rule';
+export type MatchSource = 'autocomplete' | 'rule' | 'manual';
 
 /** background → content script: 무엇을 어디에 넣을지 */
 export interface FillPlan {
@@ -47,6 +47,7 @@ export interface ReportField {
 }
 
 export interface FillReport {
+  tabId: number;            // fillOne·focusField·undo 대상 탭
   url: string;
   at: string;               // ISO 시각
   fields: ReportField[];    // 페이지 순서
@@ -57,10 +58,18 @@ export type StartFillResponse =
   | { status: 'excluded' | 'no-resume' }
   | { status: 'error'; message: string };
 
+export type ErrorResponse = { status: 'error'; message: string };
+export type ActionResponse = { status: 'ok' } | ErrorResponse;
+export type UndoResponse = { status: 'ok'; restored: number } | ErrorResponse;
+
+// focusField·undo: sidepanel → background(runtime 메시지)와 background → filler(tabs 메시지)에 같은 이름 사용
 interface ProtocolMap {
   startFill(data: { tabId: number }): StartFillResponse;
   collect(): PageDetails;
   fill(plan: FillPlan): FillResult;
+  fillOne(data: { fieldId: string; schemaKey: string }): ActionResponse;
+  focusField(data: { fieldId: string }): ActionResponse;
+  undo(): UndoResponse;
 }
 
 export const { sendMessage, onMessage } = defineExtensionMessaging<ProtocolMap>();

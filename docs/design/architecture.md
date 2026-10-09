@@ -105,7 +105,7 @@ interface FillPlan {
   items: { fieldId: string; schemaKey: string; value: string; source: MatchSource }[];
   unmatched: string[];      // 매핑 실패 fieldId
 }
-type MatchSource = 'learned' | 'autocomplete' | 'rule' | 'llm' | 'adapter';
+type MatchSource = 'learned' | 'autocomplete' | 'rule' | 'llm' | 'adapter' | 'manual';  // manual: 사이드 패널 직접 입력
 
 // content script → background: 입력 결과
 interface FillResult {
@@ -130,14 +130,14 @@ interface LearnedRule {
 | `startFill` | popup·sidepanel → background | `{ tabId }` | `{ status: 'ok', filled, failed, unmatched }` 또는 `{ status: 'excluded' \| 'no-resume' \| 'needs-permission' \| 'error' }` |
 | `collect` | background → filler | — | `PageDetails` |
 | `fill` | background → filler | `FillPlan` | `FillResult` |
-| `undo` | sidepanel → background → filler | — | `{ restored: number }` |
-| `fillOne` | sidepanel → background → filler | `{ fieldId, schemaKey, value \| optionText }` | `FillResult` |
-| `focusField` | sidepanel → background → filler | `{ fieldId }` | — (해당 입력란으로 스크롤·강조) |
+| `undo` | sidepanel → background → filler | — | `{ status: 'ok', restored: number }` (성공 시 `session:fillReport` 초기화) |
+| `fillOne` | sidepanel → background → filler | `{ fieldId, schemaKey }` (값은 background가 이력서에서 조회, filler에는 `fill`로 전달) | `{ status: 'ok' \| 'error' }` (결과는 `session:fillReport` 갱신) |
+| `focusField` | sidepanel → background → filler | `{ fieldId }` | `{ status: 'ok' \| 'error' }` (해당 입력란으로 스크롤·포커스) |
 | `fillReport` | background → sidepanel | `FillReport` (입력란별 라벨·상태·스키마 키·사유) | — (메시지 대신 `session:fillReport` 저장) |
 | `llmMap` | background 내부 | 필드 정보 + 스키마 키 목록 | `{ fieldId → schemaKey }` |
 
 - 메시지 정의는 `messaging/protocol.ts`에 타입으로 일원화 (`@webext-core/messaging`, [tech_stack.md](tech_stack.md))
-- 현재 구현: `startFill`·`collect`·`fill`, 최상위 프레임(`frameId: 0`)만 처리. `needs-permission`은 iframe 처리 시 추가
+- 현재 구현: `startFill`·`collect`·`fill`·`fillOne`·`focusField`·`undo`, 최상위 프레임(`frameId: 0`)만 처리. 사이드 패널 동작의 대상 탭은 `FillReport.tabId`, `focusField`·`undo`는 background가 같은 이름의 메시지로 filler에 중계. `needs-permission`은 iframe 처리 시 추가
 - `fillReport`는 메시지 대신 `session:fillReport`에 저장, 사이드 패널이 `watch`로 표시 → 사이드 패널 로드 전·팝업 닫힘 시에도 결과 유실 없음. 이력서 값은 미포함 (사이드 패널이 `local:resume`에서 직접 조회)
 
 ## 7. 주요 흐름

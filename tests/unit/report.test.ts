@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildFillReport } from '@/core/mapping/report';
+import { applyFillOne, buildFillReport } from '@/core/mapping/report';
 import type { FillPlan, FillResult, PageDetails } from '@/messaging/protocol';
 
 const details: PageDetails = {
@@ -26,7 +26,7 @@ const result: FillResult = {
 };
 
 describe('buildFillReport', () => {
-  const report = buildFillReport(details, plan, result, new Date('2026-10-09T00:00:00Z'));
+  const report = buildFillReport(details, plan, result, 7, new Date('2026-10-09T00:00:00Z'));
 
   it('입력 완료·실패·해당 없음 분류 (페이지 순서 유지)', () => {
     expect(report.fields.map((f) => [f.fieldId, f.status])).toEqual([
@@ -37,7 +37,7 @@ describe('buildFillReport', () => {
     ]);
     expect(report.fields[1]).toMatchObject({ schemaKey: 'basics.email', reason: 'too-long' });
     expect(report.fields[2]?.schemaKey).toBeUndefined();
-    expect(report).toMatchObject({ url: details.url, at: '2026-10-09T00:00:00.000Z' });
+    expect(report).toMatchObject({ tabId: 7, url: details.url, at: '2026-10-09T00:00:00.000Z' });
   });
 
   it('표시 라벨 대체 순서', () => {
@@ -45,7 +45,23 @@ describe('buildFillReport', () => {
   });
 
   it('입력 결과에 없는 계획 항목은 실패로 처리', () => {
-    const r = buildFillReport(details, plan, { filled: [], failed: [] });
+    const r = buildFillReport(details, plan, { filled: [], failed: [] }, 7);
     expect(r.fields[0]).toMatchObject({ status: 'failed', reason: 'not-applied' });
+  });
+});
+
+describe('applyFillOne', () => {
+  const report = buildFillReport(details, plan, result, 7);
+
+  it('입력 성공 시 해당 입력란만 입력 완료로 변경', () => {
+    const r = applyFillOne(report, '2', 'basics.email', { filled: [{ fieldId: '2', strategy: 'text' }], failed: [] });
+    expect(r.fields[2]).toEqual({ fieldId: '2', label: 'nickname', status: 'filled', schemaKey: 'basics.email' });
+    expect(r.fields.filter((f, i) => f !== report.fields[i])).toHaveLength(1);
+    expect(r.tabId).toBe(7);
+  });
+
+  it('입력 실패 시 사유 반영', () => {
+    const r = applyFillOne(report, '0', 'basics.name.en', { filled: [], failed: [{ fieldId: '0', reason: 'too-long' }] });
+    expect(r.fields[0]).toMatchObject({ status: 'failed', schemaKey: 'basics.name.en', reason: 'too-long' });
   });
 });

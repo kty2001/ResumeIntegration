@@ -1,4 +1,5 @@
 import { collectPageDetails, getElement } from '@/dom/collect';
+import { restoreAll, saveSnapshot } from '@/dom/snapshot';
 import { fillText } from '@/dom/widgets/text';
 import { onMessage, type FillResult } from '@/messaging/protocol';
 
@@ -26,12 +27,22 @@ export default defineUnlistedScript(() => {
         result.failed.push({ fieldId, reason: 'not-found' });
       } else if (el.maxLength > 0 && value.length > el.maxLength) {
         result.failed.push({ fieldId, reason: 'too-long' });
-      } else if (fillText(el, value)) {
-        result.filled.push({ fieldId, strategy: 'text' });
       } else {
-        result.failed.push({ fieldId, reason: 'not-applied' });
+        saveSnapshot(el);
+        if (fillText(el, value)) result.filled.push({ fieldId, strategy: 'text' });
+        else result.failed.push({ fieldId, reason: 'not-applied' });
       }
     }
     return result;
   });
+
+  onMessage('focusField', ({ data }) => {
+    const el = getElement(data.fieldId);
+    if (!el || !el.isConnected) return { status: 'error', message: '입력란을 찾을 수 없음' };
+    el.scrollIntoView({ block: 'center' });
+    el.focus();
+    return { status: 'ok' };
+  });
+
+  onMessage('undo', () => ({ status: 'ok', restored: restoreAll() }));
 });

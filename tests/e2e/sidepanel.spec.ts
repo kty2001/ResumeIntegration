@@ -57,7 +57,8 @@ const test = base.extend<{ context: BrowserContext; worker: Worker; extensionId:
   },
 });
 
-test('작성 → 페이지 입력 + 사이드 패널 결과·복사·재실행 갱신', async ({ context, worker, extensionId }) => {
+/** 이력서 저장 → fixture 열기 → 팝업 '작성' */
+async function runFill(context: BrowserContext, worker: Worker, extensionId: string) {
   await worker.evaluate((value) => chrome.storage.local.set({ resume: value, resume$: { v: 1 } }), resume);
 
   const page = await context.newPage();
@@ -70,6 +71,11 @@ test('작성 → 페이지 입력 + 사이드 패널 결과·복사·재실행 �
   const popup = await popupOpened;
   await popup.getByRole('button', { name: '작성' }).click();
   await expect(popup.getByText('입력 완료 9개 · 입력 실패 1개 · 해당 없음 1개')).toBeVisible();
+  return { page, popup };
+}
+
+test('작성 → 페이지 입력 + 사이드 패널 결과·복사·재실행 갱신', async ({ context, worker, extensionId }) => {
+  const { page, popup } = await runFill(context, worker, extensionId);
 
   // 클릭 제스처 안에서 사이드 패널 열림
   const sidePanelCount = () =>
@@ -95,7 +101,7 @@ test('작성 → 페이지 입력 + 사이드 패널 결과·복사·재실행 �
 
   // 확인 필요 항목 복사 → 페이지에 붙여넣기로 클립보드 확인 (확장 출처는 클립보드 권한 부여 불가)
   await panel.bringToFront();
-  const failedCopy = panel.getByRole('listitem').filter({ hasText: '우편번호 앞 3자리' }).getByRole('button');
+  const failedCopy = panel.getByRole('listitem').filter({ hasText: '우편번호 앞 3자리' }).getByRole('button', { name: /^복사/ });
   await failedCopy.click();
   await expect(failedCopy).toHaveText('복사됨');
   await page.bringToFront();
@@ -109,4 +115,30 @@ test('작성 → 페이지 입력 + 사이드 패널 결과·복사·재실행 �
   await popup.getByRole('button', { name: '작성' }).click();
   await expect(popup.getByText('입력 완료 10개 · 입력 실패 0개 · 해당 없음 1개')).toBeVisible();
   await expect(panel.getByText('입력 완료 10 · 확인 필요 0 · 해당 없음 1')).toBeVisible();
+});
+
+test('사이드 패널 직접 입력·입력란 이동·되돌리기', async ({ context, worker, extensionId }) => {
+  const { page } = await runFill(context, worker, extensionId);
+  const panel = await context.newPage();
+  await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+  await expect(panel.getByText('입력 완료 9 · 확인 필요 1 · 해당 없음 1')).toBeVisible();
+
+  // 해당 없음 입력란에 이력서 항목 골라 입력 (fillOne)
+  await panel.getByText('해당 없음 1개').click();
+  await panel.getByLabel('회사 이름 이력서 항목').selectOption({ label: '이메일' });
+  await panel.getByRole('listitem').filter({ hasText: '회사 이름' }).getByRole('button', { name: '입력' }).click();
+  await expect(panel.getByText('입력 완료 10 · 확인 필요 1 · 해당 없음 0')).toBeVisible();
+  await expect(page.locator('#company')).toHaveValue('gildong@example.com');
+
+  // 확인 필요 입력란으로 이동 (focusField)
+  await panel.getByRole('listitem').filter({ hasText: '우편번호 앞 3자리' }).getByRole('button', { name: '이동' }).click();
+  await expect(page.locator('#zip3')).toBeFocused();
+
+  // 되돌리기 (undo): 자동 9개 + 직접 1개 복원, 결과 초기화
+  await panel.getByRole('button', { name: '되돌리기' }).click();
+  await expect(panel.getByRole('status')).toHaveText('10개 되돌림');
+  await expect(panel.getByText("'작성'을 누르면 결과가 표시됩니다.")).toBeVisible();
+  await expect(page.locator('#nm')).toHaveValue('');
+  await expect(page.locator('#company')).toHaveValue('');
+  await expect(page.locator('#intro')).toHaveValue('');
 });
