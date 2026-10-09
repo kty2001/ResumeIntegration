@@ -37,6 +37,21 @@ export interface FillResult {
   failed: { fieldId: string; reason: string }[];
 }
 
+/** 사이드 패널 표시용 입력란별 결과 (background → session:fillReport) */
+export interface ReportField {
+  fieldId: string;
+  label: string;            // label → ariaLabel → placeholder → name → id 순 대체
+  status: 'filled' | 'failed' | 'unmatched';
+  schemaKey?: string;
+  reason?: string;          // failed 사유 코드 (not-found·too-long·not-applied)
+}
+
+export interface FillReport {
+  url: string;
+  at: string;               // ISO 시각
+  fields: ReportField[];    // 페이지 순서
+}
+
 export type StartFillResponse =
   | { status: 'ok'; filled: number; failed: number; unmatched: number }
   | { status: 'excluded' | 'no-resume' }

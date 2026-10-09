@@ -51,6 +51,8 @@ npm install        # 의존성 설치 (WXT 타입 생성 포함)
 npm run dev        # 개발 모드 (변경 시 자동 재빌드, 개발용 브라우저 실행)
 npm run build      # 프로덕션 빌드 → .output/chrome-mv3/
 npm run compile    # 타입 검사
+npm run test       # 단위 테스트 (Vitest)
+npm run test:e2e   # E2E 테스트 (최초 1회 npx playwright install chromium 필요)
 npm run zip        # 스토어 업로드용 zip 생성
 ```
 

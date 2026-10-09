@@ -1,11 +1,13 @@
 import { mapFields } from '@/core/mapping/match';
+import { buildFillReport } from '@/core/mapping/report';
 import { isExcluded } from '@/core/site-policy';
 import { onMessage, sendMessage, type StartFillResponse } from '@/messaging/protocol';
-import { resumeItem } from '@/storage/items';
+import { fillReportItem, resumeItem } from '@/storage/items';
 
 // 자동 입력 흐름: docs/design/architecture.md 7.1 (현재 최상위 프레임만 처리)
 
 async function startFill(tabId: number): Promise<StartFillResponse> {
+  await fillReportItem.setValue(null);
   const tab = await browser.tabs.get(tabId);
   if (tab.url && isExcluded(tab.url)) return { status: 'excluded' };
 
@@ -17,6 +19,7 @@ async function startFill(tabId: number): Promise<StartFillResponse> {
   const details = await sendMessage('collect', undefined, target);
   const plan = mapFields(details.fields, resume);
   const result = await sendMessage('fill', plan, target);
+  await fillReportItem.setValue(buildFillReport(details, plan, result));
 
   return {
     status: 'ok',

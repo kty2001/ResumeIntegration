@@ -137,3 +137,17 @@ export const LANGUAGE_LABELS: Record<string, string> = {
 export function toOptions<T extends string>(labels: Record<T, string>): { value: T; label: string }[] {
   return (Object.keys(labels) as T[]).map((value) => ({ value, label: labels[value] }));
 }
+
+// 매핑 사전(core/mapping/dictionary.ts) 스키마 키 → 표시명 (사이드 패널)
+export const SCHEMA_KEY_LABELS: Record<string, string> = {
+  'basics.name.ko': '이름',
+  'basics.name.en': '영문 이름',
+  'basics.email': '이메일',
+  'basics.phone.mobile': '휴대폰',
+  'basics.phone.home': '자택 전화',
+  'basics.birthDate': '생년월일',
+  'basics.address.postalCode': '우편번호',
+  'basics.address.line1': '주소',
+  'basics.address.line2': '상세 주소',
+  'basics.summary': '한 줄 소개',
+};

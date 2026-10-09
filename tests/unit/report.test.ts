@@ -1,0 +1,51 @@
+import { describe, expect, it } from 'vitest';
+import { buildFillReport } from '@/core/mapping/report';
+import type { FillPlan, FillResult, PageDetails } from '@/messaging/protocol';
+
+const details: PageDetails = {
+  url: 'https://example.com/apply',
+  fields: [
+    { fieldId: '0', widget: 'text', label: '성명', name: 'name' },
+    { fieldId: '1', widget: 'text', placeholder: '이메일', name: 'email' },
+    { fieldId: '2', widget: 'text', name: 'nickname' },
+    { fieldId: '3', widget: 'text' },
+  ],
+};
+
+const plan: FillPlan = {
+  items: [
+    { fieldId: '0', schemaKey: 'basics.name.ko', value: '홍길동', source: 'rule' },
+    { fieldId: '1', schemaKey: 'basics.email', value: 'a@b.c', source: 'rule' },
+  ],
+  unmatched: ['2', '3'],
+};
+
+const result: FillResult = {
+  filled: [{ fieldId: '0', strategy: 'text' }],
+  failed: [{ fieldId: '1', reason: 'too-long' }],
+};
+
+describe('buildFillReport', () => {
+  const report = buildFillReport(details, plan, result, new Date('2026-10-09T00:00:00Z'));
+
+  it('입력 완료·실패·해당 없음 분류 (페이지 순서 유지)', () => {
+    expect(report.fields.map((f) => [f.fieldId, f.status])).toEqual([
+      ['0', 'filled'],
+      ['1', 'failed'],
+      ['2', 'unmatched'],
+      ['3', 'unmatched'],
+    ]);
+    expect(report.fields[1]).toMatchObject({ schemaKey: 'basics.email', reason: 'too-long' });
+    expect(report.fields[2]?.schemaKey).toBeUndefined();
+    expect(report).toMatchObject({ url: details.url, at: '2026-10-09T00:00:00.000Z' });
+  });
+
+  it('표시 라벨 대체 순서', () => {
+    expect(report.fields.map((f) => f.label)).toEqual(['성명', '이메일', 'nickname', '이름 없는 입력란']);
+  });
+
+  it('입력 결과에 없는 계획 항목은 실패로 처리', () => {
+    const r = buildFillReport(details, plan, { filled: [], failed: [] });
+    expect(r.fields[0]).toMatchObject({ status: 'failed', reason: 'not-applied' });
+  });
+});

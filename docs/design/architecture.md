@@ -133,11 +133,12 @@ interface LearnedRule {
 | `undo` | sidepanel → background → filler | — | `{ restored: number }` |
 | `fillOne` | sidepanel → background → filler | `{ fieldId, schemaKey, value \| optionText }` | `FillResult` |
 | `focusField` | sidepanel → background → filler | `{ fieldId }` | — (해당 입력란으로 스크롤·강조) |
-| `fillReport` | background → sidepanel | `FillResult` + 필드 라벨 | — |
+| `fillReport` | background → sidepanel | `FillReport` (입력란별 라벨·상태·스키마 키·사유) | — (메시지 대신 `session:fillReport` 저장) |
 | `llmMap` | background 내부 | 필드 정보 + 스키마 키 목록 | `{ fieldId → schemaKey }` |
 
 - 메시지 정의는 `messaging/protocol.ts`에 타입으로 일원화 (`@webext-core/messaging`, [tech_stack.md](tech_stack.md))
 - 현재 구현: `startFill`·`collect`·`fill`, 최상위 프레임(`frameId: 0`)만 처리. `needs-permission`은 iframe 처리 시 추가
+- `fillReport`는 메시지 대신 `session:fillReport`에 저장, 사이드 패널이 `watch`로 표시 → 사이드 패널 로드 전·팝업 닫힘 시에도 결과 유실 없음. 이력서 값은 미포함 (사이드 패널이 `local:resume`에서 직접 조회)
 
 ## 7. 주요 흐름
 
@@ -181,6 +182,7 @@ Popup '작성' 클릭 (activeTab 부여)
 | `local:settings` | 민감정보 입력 여부, BYOK 제공자, 제외 사이트 추가 목록 | |
 | `local:llmKey` | BYOK API 키 | content script 접근 차단, 내보내기 제외 |
 | `session:fillState` | 진행 중 작업 상태 | service worker 재시작 대비 |
+| `session:fillReport` | 마지막 자동 입력 결과 (`FillReport`) | 사이드 패널 표시용, '작성' 시작 시 초기화 |
 
 - `storage.setAccessLevel`로 content script의 storage 접근 차단 → filler는 메시지로 받은 값만 사용
 

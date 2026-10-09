@@ -22,20 +22,27 @@ export default function App() {
   const [resume, setResume] = useState<Resume | null | undefined>(undefined);
   const [running, setRunning] = useState(false);
   const [message, setMessage] = useState<string>();
+  const [tabId, setTabId] = useState<number>();
 
   useEffect(() => {
     resumeItem.getValue().then(setResume, () => setResume(null));
+    // 사이드 패널 열기는 사용자 제스처 안에서 호출해야 하므로 탭 ID를 미리 조회
+    browser.tabs.query({ active: true, currentWindow: true }).then(([tab]) => setTabId(tab?.id));
   }, []);
 
   const openOptions = () => void browser.runtime.openOptionsPage();
 
   const fill = async () => {
+    if (tabId == null) {
+      setMessage(describe({ status: 'error', message: '현재 탭을 찾을 수 없습니다.' }));
+      return;
+    }
+    // 결과는 background가 session:fillReport에 저장 → 사이드 패널이 표시
+    browser.sidePanel.open({ tabId }).catch(() => {});
     setRunning(true);
     setMessage(undefined);
     try {
-      const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
-      if (tab?.id == null) throw new Error('현재 탭을 찾을 수 없습니다.');
-      setMessage(describe(await sendMessage('startFill', { tabId: tab.id })));
+      setMessage(describe(await sendMessage('startFill', { tabId })));
     } catch (e) {
       setMessage(describe({ status: 'error', message: e instanceof Error ? e.message : String(e) }));
     } finally {
