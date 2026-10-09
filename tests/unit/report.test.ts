@@ -44,6 +44,12 @@ describe('buildFillReport', () => {
     expect(report.fields.map((f) => f.label)).toEqual(['성명', '이메일', 'nickname', '이름 없는 입력란']);
   });
 
+  it('학습 규칙 식별자·입력 완료 출처', () => {
+    expect(report.fields[0]).toMatchObject({ fingerprint: '["text","name","","성명"]', source: 'rule' });
+    expect(report.fields[1]?.source).toBeUndefined();
+    expect(report.fields[3]?.fingerprint).toBeUndefined();
+  });
+
   it('형식 변환 힌트 보존', () => {
     expect(report.fields[1]?.hint).toEqual({ widget: 'text', placeholder: '이메일', maxLength: undefined });
   });
@@ -61,6 +67,7 @@ describe('applyFillOne', () => {
     const r = applyFillOne(report, '2', 'basics.email', { filled: [{ fieldId: '2', strategy: 'text' }], failed: [] });
     expect(r.fields[2]).toMatchObject({ fieldId: '2', label: 'nickname', status: 'filled', schemaKey: 'basics.email' });
     expect(r.fields[2]?.hint).toEqual(report.fields[2]?.hint);
+    expect(r.fields[2]).toMatchObject({ source: 'manual', fingerprint: report.fields[2]?.fingerprint });
     expect(r.fields.filter((f, i) => f !== report.fields[i])).toHaveLength(1);
     expect(r.tabId).toBe(7);
   });

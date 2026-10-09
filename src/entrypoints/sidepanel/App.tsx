@@ -135,7 +135,8 @@ export default function App() {
               <ul>
                 {filled.map((f) => (
                   <li key={f.fieldId}>
-                    {f.label} → {keyLabel(f.schemaKey)} <FocusButton fieldId={f.fieldId} notify={setNotice} />
+                    {f.label} → {keyLabel(f.schemaKey)}
+                    {f.source === 'learned' && ' (학습)'} <FocusButton fieldId={f.fieldId} notify={setNotice} />
                   </li>
                 ))}
               </ul>

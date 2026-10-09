@@ -158,3 +158,27 @@ test('입력란 형식 신호에 따라 날짜·전화번호 변환', async ({ c
   await expect(page.locator('#phone-hyphen')).toHaveValue('010-1234-5678');
   await expect(page.locator('#phone-digits')).toHaveValue('01012345678');
 });
+
+test('직접 입력 → 학습 규칙 저장 → 재실행 시 자동 입력', async ({ context, worker, extensionId }) => {
+  const { page, popup } = await runFill(context, worker, extensionId);
+  const panel = await context.newPage();
+  await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+
+  await panel.getByText('해당 없음 1개').click();
+  await panel.getByLabel('회사 이름 이력서 항목').selectOption({ label: '이메일' });
+  await panel.getByRole('listitem').filter({ hasText: '회사 이름' }).getByRole('button', { name: '입력' }).click();
+  await expect(panel.getByText('입력 완료 10 · 확인 필요 1 · 해당 없음 0')).toBeVisible();
+
+  const rules = await worker.evaluate(async () => (await chrome.storage.local.get('learnedRules')).learnedRules);
+  expect(rules).toMatchObject([
+    { origin: 'http://localhost', fingerprint: '["text","","company","회사 이름"]', schemaKey: 'basics.email' },
+  ]);
+
+  // 값 지운 뒤 재실행 → 학습 규칙으로 입력
+  await page.locator('#company').fill('');
+  await page.bringToFront();
+  await popup.getByRole('button', { name: '작성' }).click();
+  await expect(popup.getByText('입력 완료 10개 · 입력 실패 1개 · 해당 없음 0개')).toBeVisible();
+  await expect(page.locator('#company')).toHaveValue('gildong@example.com');
+  await expect(panel.getByText('회사 이름 → 이메일 (학습)')).toBeVisible();
+});

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { fieldFingerprint } from '@/core/mapping/learned';
 import { getValueByKey, mapFields, matchField } from '@/core/mapping/match';
 import { createEmptyResume } from '@/core/schema/empty';
 import { isExcluded } from '@/core/site-policy';
@@ -59,6 +60,19 @@ describe('mapFields', () => {
       { fieldId: '1', schemaKey: 'basics.email', value: 'hong@example.com', source: 'rule' },
     ]);
     expect(plan.unmatched).toEqual(['2', '3']);
+  });
+
+  it('학습 규칙이 autocomplete·사전보다 우선, 학습 키 값 없으면 unmatched', () => {
+    const company = field({ fieldId: '0', label: '회사 이름' });
+    const name = field({ fieldId: '1', label: '이름', autocomplete: 'name' });
+    const learned = new Map([
+      [fieldFingerprint(company)!, 'basics.email'],
+      [fieldFingerprint(name)!, 'basics.phone.mobile'],
+    ]);
+    const plan = mapFields([company, name], resume, learned);
+    expect(plan.items).toEqual([{ fieldId: '0', schemaKey: 'basics.email', value: 'hong@example.com', source: 'learned' }]);
+    expect(plan.unmatched).toEqual(['1']);
+    expect(mapFields([company, name], resume).items.map((i) => i.source)).toEqual(['autocomplete']);
   });
 
   it('입력란 형식에 맞게 값 변환', () => {

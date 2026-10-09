@@ -84,7 +84,7 @@ interface PageDetails {
 
 interface FieldDescriptor {
   fieldId: string;          // content script 내부 인덱스 (DOM에 속성 추가 안 함)
-  fingerprint: string;      // 학습 규칙용 안정 식별자 (name/id/label/폼 내 순서 조합)
+  fingerprint: string;      // 학습 규칙용 안정 식별자 (현재 구현: FieldDescriptor에 두지 않고 background에서 widget·name·id·표시 텍스트로 계산)
   widget: 'text' | 'textarea' | 'select' | 'combobox' | 'searchable' | 'custom-popup'
         | 'date' | 'date-text' | 'date-split' | 'date-calendar' | 'checkbox' | 'radio' | 'file';
   label?: string;
@@ -137,7 +137,7 @@ interface LearnedRule {
 | `llmMap` | background 내부 | 필드 정보 + 스키마 키 목록 | `{ fieldId → schemaKey }` |
 
 - 메시지 정의는 `messaging/protocol.ts`에 타입으로 일원화 (`@webext-core/messaging`, [tech_stack.md](tech_stack.md))
-- 현재 구현: `startFill`·`collect`·`fill`·`fillOne`·`focusField`·`undo`, 최상위 프레임(`frameId: 0`)의 text·textarea·date 입력란만 처리. 값 형식 변환은 background에서 수행(`core/format`, 입력란 placeholder·maxLength·widget 기준), `FillReport` 필드에 같은 정보(`hint`)를 보관해 `fillOne`에도 적용. 사이드 패널 동작의 대상 탭은 `FillReport.tabId`, `focusField`·`undo`는 background가 같은 이름의 메시지로 filler에 중계. `needs-permission`은 iframe 처리 시 추가
+- 현재 구현: `startFill`·`collect`·`fill`·`fillOne`·`focusField`·`undo`, 최상위 프레임(`frameId: 0`)의 text·textarea·date 입력란만 처리. 학습 규칙은 `fillOne` 성공 시 background가 저장하고 `startFill` 매핑에서 1순위 적용(`core/mapping/learned.ts`). 값 형식 변환은 background에서 수행(`core/format`, 입력란 placeholder·maxLength·widget 기준), `FillReport` 필드에 같은 정보(`hint`)를 보관해 `fillOne`에도 적용. 사이드 패널 동작의 대상 탭은 `FillReport.tabId`, `focusField`·`undo`는 background가 같은 이름의 메시지로 filler에 중계. `needs-permission`은 iframe 처리 시 추가
 - `fillReport`는 메시지 대신 `session:fillReport`에 저장, 사이드 패널이 `watch`로 표시 → 사이드 패널 로드 전·팝업 닫힘 시에도 결과 유실 없음. 이력서 값은 미포함 (사이드 패널이 `local:resume`에서 직접 조회)
 
 ## 7. 주요 흐름

@@ -2,8 +2,9 @@ import type { Resume } from '@/core/schema/resume';
 import { formatValue } from '@/core/format';
 import type { FieldDescriptor, FillPlan, FormatHint, MatchSource } from '@/messaging/protocol';
 import { FIELD_RULES } from './dictionary';
+import { fieldFingerprint } from './learned';
 
-// 매핑 순서: autocomplete 속성 → 키워드 사전 (docs/design/architecture.md 7.1)
+// 매핑 순서: 학습 규칙 → autocomplete 속성 → 키워드 사전 (docs/design/architecture.md 7.1)
 
 function normalizeAutocomplete(value: string): string {
   return value
@@ -13,7 +14,14 @@ function normalizeAutocomplete(value: string): string {
     .join(' ');
 }
 
-export function matchField(field: FieldDescriptor): { schemaKey: string; source: MatchSource } | null {
+/** learned: 해당 origin의 fingerprint → schemaKey (learned.ts rulesForOrigin) */
+export function matchField(
+  field: FieldDescriptor,
+  learned?: Map<string, string>,
+): { schemaKey: string; source: MatchSource } | null {
+  const fingerprint = learned && fieldFingerprint(field);
+  const learnedKey = fingerprint && learned.get(fingerprint);
+  if (learnedKey) return { schemaKey: learnedKey, source: 'learned' };
   if (field.autocomplete) {
     const ac = normalizeAutocomplete(field.autocomplete);
     const rule = FIELD_RULES.find((r) => r.autocomplete.includes(ac));
@@ -46,10 +54,10 @@ export function resolveValue(resume: Resume, schemaKey: string, hint: FormatHint
   return value && formatValue(schemaKey, value, hint);
 }
 
-export function mapFields(fields: FieldDescriptor[], resume: Resume): FillPlan {
+export function mapFields(fields: FieldDescriptor[], resume: Resume, learned?: Map<string, string>): FillPlan {
   const plan: FillPlan = { items: [], unmatched: [] };
   for (const field of fields) {
-    const match = matchField(field);
+    const match = matchField(field, learned);
     const value = match && resolveValue(resume, match.schemaKey, field);
     if (match && value) plan.items.push({ fieldId: field.fieldId, schemaKey: match.schemaKey, value, source: match.source });
     else plan.unmatched.push(field.fieldId);

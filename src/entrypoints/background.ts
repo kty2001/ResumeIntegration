@@ -1,3 +1,4 @@
+import { rulesForOrigin, upsertRule } from '@/core/mapping/learned';
 import { mapFields, resolveValue } from '@/core/mapping/match';
 import { applyFillOne, buildFillReport } from '@/core/mapping/report';
 import { isExcluded } from '@/core/site-policy';
@@ -10,10 +11,11 @@ import {
   type StartFillResponse,
   type UndoResponse,
 } from '@/messaging/protocol';
-import { fillReportItem, resumeItem } from '@/storage/items';
+import { fillReportItem, learnedRulesItem, resumeItem } from '@/storage/items';
 
 // 자동 입력 흐름: docs/design/architecture.md 7.1 (현재 최상위 프레임만 처리)
 // 사이드 패널 동작(fillOne·focusField·undo): 7.2·7.3, 대상 탭은 session:fillReport의 tabId
+// fillOne 성공 시 학습 규칙 저장 → 다음 startFill에서 매핑 1순위
 
 async function startFill(tabId: number): Promise<StartFillResponse> {
   await fillReportItem.setValue(null);
@@ -26,7 +28,8 @@ async function startFill(tabId: number): Promise<StartFillResponse> {
   await browser.scripting.executeScript({ target: { tabId }, files: ['/filler.js'] });
   const target = { tabId, frameId: 0 };
   const details = await sendMessage('collect', undefined, target);
-  const plan = mapFields(details.fields, resume);
+  const learned = rulesForOrigin(await learnedRulesItem.getValue(), new URL(details.url).origin);
+  const plan = mapFields(details.fields, resume, learned);
   const result = await sendMessage('fill', plan, target);
   await fillReportItem.setValue(buildFillReport(details, plan, result, tabId));
 
@@ -55,6 +58,16 @@ async function fillOne(fieldId: string, schemaKey: string): Promise<ActionRespon
   const plan = { items: [{ fieldId, schemaKey, value, source: 'manual' as const }], unmatched: [] };
   const result = await sendMessage('fill', plan, { tabId: report.tabId, frameId: 0 });
   await fillReportItem.setValue(applyFillOne(report, fieldId, schemaKey, result));
+
+  if (field.fingerprint && result.filled.length > 0) {
+    const rule = {
+      origin: new URL(report.url).origin,
+      fingerprint: field.fingerprint,
+      schemaKey,
+      updatedAt: new Date().toISOString(),
+    };
+    await learnedRulesItem.setValue(upsertRule(await learnedRulesItem.getValue(), rule));
+  }
   return { status: 'ok' };
 }
 

@@ -26,7 +26,7 @@ export interface PageDetails {
   fields: FieldDescriptor[];
 }
 
-export type MatchSource = 'autocomplete' | 'rule' | 'manual';
+export type MatchSource = 'learned' | 'autocomplete' | 'rule' | 'manual';
 
 /** background → content script: 무엇을 어디에 넣을지 */
 export interface FillPlan {
@@ -48,6 +48,8 @@ export interface ReportField {
   schemaKey?: string;
   reason?: string;          // failed 사유 코드 (not-found·too-long·not-applied)
   hint: FormatHint;         // fillOne·복사 시 같은 형식 변환 적용
+  fingerprint?: string;     // 학습 규칙 식별자 (core/mapping/learned.ts)
+  source?: MatchSource;     // 입력 완료 시 매핑 출처
 }
 
 export interface FillReport {
