@@ -12,7 +12,8 @@ declare const chrome: typeof browser;
 
 const EXTENSION_PATH = path.resolve('.output/chrome-mv3-e2e');
 const FIXTURE_DIR = path.resolve('tests/e2e/fixtures');
-const FIXTURE_URL = 'http://localhost/basics.html';
+const FIXTURE_ORIGIN = 'http://localhost';
+const BASICS_SUMMARY = '입력 완료 9개 · 입력 실패 1개 · 해당 없음 1개';
 
 const resume: Resume = {
   meta: { schemaVersion: 1, updatedAt: '2026-10-09T00:00:00.000Z' },
@@ -57,12 +58,18 @@ const test = base.extend<{ context: BrowserContext; worker: Worker; extensionId:
   },
 });
 
-/** 이력서 저장 → fixture 열기 → 팝업 '작성' */
-async function runFill(context: BrowserContext, worker: Worker, extensionId: string) {
+/** 이력서 저장 → fixture 열기 → 팝업 '작성' → 팝업 요약 확인 */
+async function runFill(
+  context: BrowserContext,
+  worker: Worker,
+  extensionId: string,
+  fixture = 'basics.html',
+  summary = BASICS_SUMMARY,
+) {
   await worker.evaluate((value) => chrome.storage.local.set({ resume: value, resume$: { v: 1 } }), resume);
 
   const page = await context.newPage();
-  await page.goto(FIXTURE_URL);
+  await page.goto(`${FIXTURE_ORIGIN}/${fixture}`);
   await page.bringToFront();
 
   // 팝업을 비활성 탭으로 열어 fixture 탭이 활성 탭으로 남게 함 (팝업이 활성 탭 대상으로 동작)
@@ -70,7 +77,7 @@ async function runFill(context: BrowserContext, worker: Worker, extensionId: str
   await worker.evaluate((url) => chrome.tabs.create({ url, active: false }), `chrome-extension://${extensionId}/popup.html`);
   const popup = await popupOpened;
   await popup.getByRole('button', { name: '작성' }).click();
-  await expect(popup.getByText('입력 완료 9개 · 입력 실패 1개 · 해당 없음 1개')).toBeVisible();
+  await expect(popup.getByText(summary)).toBeVisible();
   return { page, popup };
 }
 
@@ -141,4 +148,13 @@ test('사이드 패널 직접 입력·입력란 이동·되돌리기', async ({ 
   await expect(page.locator('#nm')).toHaveValue('');
   await expect(page.locator('#company')).toHaveValue('');
   await expect(page.locator('#intro')).toHaveValue('');
+});
+
+test('입력란 형식 신호에 따라 날짜·전화번호 변환', async ({ context, worker, extensionId }) => {
+  const { page } = await runFill(context, worker, extensionId, 'formats.html', '입력 완료 5개 · 입력 실패 0개 · 해당 없음 0개');
+  await expect(page.locator('#birth-dot')).toHaveValue('1995.03.15');
+  await expect(page.locator('#birth-8')).toHaveValue('19950315');
+  await expect(page.locator('#birth-date')).toHaveValue('1995-03-15');
+  await expect(page.locator('#phone-hyphen')).toHaveValue('010-1234-5678');
+  await expect(page.locator('#phone-digits')).toHaveValue('01012345678');
 });

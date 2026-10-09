@@ -1,11 +1,11 @@
 import type { FieldDescriptor, PageDetails } from '@/messaging/protocol';
 
 // 필드 수집 (Page Details): docs/design/architecture.md 5장
-// 현재 범위: 최상위 문서의 text·textarea 입력란
+// 현재 범위: 최상위 문서의 text·textarea·date 입력란
 
 export type TextElement = HTMLInputElement | HTMLTextAreaElement;
 
-const TEXT_INPUT_TYPES = new Set(['text', 'email', 'tel', 'url', 'search']);
+const TEXT_INPUT_TYPES = new Set(['text', 'email', 'tel', 'url', 'search', 'date']);
 
 /** fieldId → 요소. DOM에 식별 속성을 추가하지 않고 메모리에만 보관 */
 const elements = new Map<string, TextElement>();
@@ -54,7 +54,7 @@ export function collectPageDetails(): PageDetails {
     elements.set(fieldId, el);
     fields.push({
       fieldId,
-      widget: el instanceof HTMLTextAreaElement ? 'textarea' : 'text',
+      widget: el instanceof HTMLTextAreaElement ? 'textarea' : el.type === 'date' ? 'date' : 'text',
       label: resolveLabel(el),
       name: el.name || undefined,
       id: el.id || undefined,

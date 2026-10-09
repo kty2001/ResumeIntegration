@@ -1,5 +1,6 @@
 import type { Resume } from '@/core/schema/resume';
-import type { FieldDescriptor, FillPlan, MatchSource } from '@/messaging/protocol';
+import { formatValue } from '@/core/format';
+import type { FieldDescriptor, FillPlan, FormatHint, MatchSource } from '@/messaging/protocol';
 import { FIELD_RULES } from './dictionary';
 
 // 매핑 순서: autocomplete 속성 → 키워드 사전 (docs/design/architecture.md 7.1)
@@ -39,11 +40,17 @@ export function getValueByKey(resume: Resume, schemaKey: string): string | undef
   return typeof cur === 'string' && cur.trim() ? cur : undefined;
 }
 
+/** 이력서 값을 입력란 형식으로 변환해 조회 */
+export function resolveValue(resume: Resume, schemaKey: string, hint: FormatHint): string | undefined {
+  const value = getValueByKey(resume, schemaKey);
+  return value && formatValue(schemaKey, value, hint);
+}
+
 export function mapFields(fields: FieldDescriptor[], resume: Resume): FillPlan {
   const plan: FillPlan = { items: [], unmatched: [] };
   for (const field of fields) {
     const match = matchField(field);
-    const value = match && getValueByKey(resume, match.schemaKey);
+    const value = match && resolveValue(resume, match.schemaKey, field);
     if (match && value) plan.items.push({ fieldId: field.fieldId, schemaKey: match.schemaKey, value, source: match.source });
     else plan.unmatched.push(field.fieldId);
   }

@@ -18,7 +18,8 @@ export function buildFillReport(
   const failed = new Map(result.failed.map((f) => [f.fieldId, f.reason]));
 
   const fields = details.fields.map((field): ReportField => {
-    const base = { fieldId: field.fieldId, label: displayLabel(field) };
+    const hint = { widget: field.widget, placeholder: field.placeholder, maxLength: field.maxLength };
+    const base = { fieldId: field.fieldId, label: displayLabel(field), hint };
     const schemaKey = schemaKeys.get(field.fieldId);
     if (!schemaKey) return { ...base, status: 'unmatched' };
     if (filled.has(field.fieldId)) return { ...base, status: 'filled', schemaKey };
@@ -33,7 +34,7 @@ export function applyFillOne(report: FillReport, fieldId: string, schemaKey: str
   const failed = result.failed.find((f) => f.fieldId === fieldId);
   const fields = report.fields.map((field): ReportField => {
     if (field.fieldId !== fieldId) return field;
-    const base = { fieldId, label: field.label, schemaKey };
+    const base = { fieldId, label: field.label, hint: field.hint, schemaKey };
     if (result.filled.some((f) => f.fieldId === fieldId)) return { ...base, status: 'filled' };
     return { ...base, status: 'failed', reason: failed?.reason ?? 'not-applied' };
   });

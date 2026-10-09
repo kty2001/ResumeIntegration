@@ -61,6 +61,13 @@ describe('mapFields', () => {
     expect(plan.unmatched).toEqual(['2', '3']);
   });
 
+  it('입력란 형식에 맞게 값 변환', () => {
+    const r = createEmptyResume();
+    r.basics.birthDate = '1995-03-15';
+    const plan = mapFields([field({ label: '생년월일', maxLength: 8 })], r);
+    expect(plan.items[0]?.value).toBe('19950315');
+  });
+
   it('getValueByKey: 없는 경로·빈 문자열은 undefined', () => {
     expect(getValueByKey(resume, 'basics.phone.mobile')).toBeUndefined();
     expect(getValueByKey(resume, 'basics.name.en')).toBeUndefined();

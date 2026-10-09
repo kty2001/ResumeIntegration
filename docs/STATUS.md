@@ -18,6 +18,7 @@
 - 자동 입력 최소 수직 슬라이스: 팝업 '작성' → filler 주입 → text·textarea 수집 → autocomplete·키워드 사전 매핑(basics 단일 값 10개 키) → 입력 → 팝업에 개수 표시. 제외 사이트(linkedin.com) 차단. `@webext-core/messaging`·Vitest 도입, 매핑 단위 테스트 8개·타입 검사·빌드 통과, fixture(basics.html) 브라우저 확인 완료
 - 사이드 패널 입력 결과 표시: '작성' 클릭 시 사이드 패널 자동 열림, 입력란별 입력 완료·확인 필요(사유)·해당 없음 목록, 확인 필요 항목·이력서 basics 항목 '복사'. 결과는 `session:fillReport` 저장 → 사이드 패널 `watch`. 단위 테스트 11개·타입 검사·빌드 통과
 - 사이드 패널 직접 입력·이동·되돌리기: 확인 필요·해당 없음 입력란에 이력서 항목 선택 후 '입력'(`fillOne`), '이동'(`focusField`, 스크롤·포커스), '되돌리기'(`undo`, 요소별 최초 값 복원 후 결과 초기화). 대상 탭은 `fillReport.tabId`. 단위 테스트 13개·E2E 2개·타입 검사·빌드 통과
+- 형식 변환(`core/format`): 생년월일(`YYYY-MM-DD` → `YYYY.MM.DD`·`YYYYMMDD`·`YYMMDD` 등)·전화번호(숫자만/하이픈)를 입력란 placeholder·maxLength 신호로 변환, 신호 없으면 저장값 그대로. `input[type=date]` 수집. 자동 입력·사이드 패널 직접 입력·복사에 공통 적용(`resolveValue`, `ReportField.hint`). 단위 테스트 26개·E2E 3개·타입 검사·빌드 통과
 - Playwright E2E 환경: `npm run test:e2e` (e2e 모드 빌드 → 확장 프로그램 로드한 Chromium). 툴바 클릭(activeTab) 재현 불가 → e2e 빌드에만 `http://localhost/*` 호스트 권한, fixture는 route 응답. 검증 시나리오: '작성' → 사이드 패널 열림(`runtime.getContexts`), fixture 입력값, 사이드 패널 결과·복사(붙여넣기 확인), 재실행 시 갱신 — 통과
 
 ## 결정 사항
@@ -39,7 +40,7 @@
 ## 다음 작업
 - 옵션 화면 브라우저 동작 확인 (사용자 수동, `tests/e2e/fixtures/basics.html`)
 - 사이드 패널 후속: 직접 입력 결과 학습 규칙 저장, 입력 항목 하이라이트
-- 매핑 확장: 학력·경력 등 섹션 문맥, 날짜·전화번호 형식 변환(`core/format`)
+- 매핑 확장: 학력·경력 등 섹션 문맥 (연월 `YYYY-MM` 형식 변환 포함)
 - 사람인·잡코리아 DOM 현장 조사 (사용자 로그인 필요)
 - 필드 키워드·옵션 동의어 사전 v1
 

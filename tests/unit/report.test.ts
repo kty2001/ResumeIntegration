@@ -44,6 +44,10 @@ describe('buildFillReport', () => {
     expect(report.fields.map((f) => f.label)).toEqual(['성명', '이메일', 'nickname', '이름 없는 입력란']);
   });
 
+  it('형식 변환 힌트 보존', () => {
+    expect(report.fields[1]?.hint).toEqual({ widget: 'text', placeholder: '이메일', maxLength: undefined });
+  });
+
   it('입력 결과에 없는 계획 항목은 실패로 처리', () => {
     const r = buildFillReport(details, plan, { filled: [], failed: [] }, 7);
     expect(r.fields[0]).toMatchObject({ status: 'failed', reason: 'not-applied' });
@@ -55,7 +59,8 @@ describe('applyFillOne', () => {
 
   it('입력 성공 시 해당 입력란만 입력 완료로 변경', () => {
     const r = applyFillOne(report, '2', 'basics.email', { filled: [{ fieldId: '2', strategy: 'text' }], failed: [] });
-    expect(r.fields[2]).toEqual({ fieldId: '2', label: 'nickname', status: 'filled', schemaKey: 'basics.email' });
+    expect(r.fields[2]).toMatchObject({ fieldId: '2', label: 'nickname', status: 'filled', schemaKey: 'basics.email' });
+    expect(r.fields[2]?.hint).toEqual(report.fields[2]?.hint);
     expect(r.fields.filter((f, i) => f !== report.fields[i])).toHaveLength(1);
     expect(r.tabId).toBe(7);
   });

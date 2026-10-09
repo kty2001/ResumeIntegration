@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>형식 변환 fixture</title>
+</head>
+<body>
+  <!-- 날짜·전화번호 형식 신호(placeholder·maxlength·type=date)별 입력 확인용 -->
+  <h1>형식 변환</h1>
+  <form onsubmit="return false">
+    <p><label for="birth-dot">생년월일</label> <input id="birth-dot" placeholder="YYYY.MM.DD"></p>
+    <p><label for="birth-8">생년월일 (숫자)</label> <input id="birth-8" maxlength="8"></p>
+    <p><label for="birth-date">생년월일 선택</label> <input id="birth-date" type="date"></p>
+    <p><label for="phone-hyphen">휴대폰</label> <input id="phone-hyphen" type="tel" placeholder="010-0000-0000"></p>
+    <p><label for="phone-digits">연락처</label> <input id="phone-digits" placeholder="'-' 없이 입력"></p>
+  </form>
+</body>
+</html>

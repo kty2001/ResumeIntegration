@@ -1,4 +1,4 @@
-import { getValueByKey, mapFields } from '@/core/mapping/match';
+import { mapFields, resolveValue } from '@/core/mapping/match';
 import { applyFillOne, buildFillReport } from '@/core/mapping/report';
 import { isExcluded } from '@/core/site-policy';
 import {
@@ -46,8 +46,10 @@ async function requireReport(): Promise<FillReport> {
 
 async function fillOne(fieldId: string, schemaKey: string): Promise<ActionResponse> {
   const report = await requireReport();
+  const field = report.fields.find((f) => f.fieldId === fieldId);
+  if (!field) throw new Error('입력란을 찾을 수 없음');
   const resume = await resumeItem.getValue();
-  const value = resume && getValueByKey(resume, schemaKey);
+  const value = resume && resolveValue(resume, schemaKey, field.hint);
   if (!value) return { status: 'error', message: '이력서 값 없음' };
 
   const plan = { items: [{ fieldId, schemaKey, value, source: 'manual' as const }], unmatched: [] };

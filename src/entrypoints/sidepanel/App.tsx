@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { getValueByKey } from '@/core/mapping/match';
+import { getValueByKey, resolveValue } from '@/core/mapping/match';
 import type { Resume } from '@/core/schema/resume';
 import { SCHEMA_KEY_LABELS } from '@/core/schema/labels';
 import { sendMessage, type ActionResponse, type FillReport, type ReportField } from '@/messaging/protocol';
@@ -120,7 +120,7 @@ export default function App() {
                     key={f.fieldId}
                     label={f.label}
                     note={`→ ${keyLabel(f.schemaKey)} (${REASON_LABELS[f.reason ?? ''] ?? f.reason})`}
-                    value={valueOf(f.schemaKey)}
+                    value={resume && f.schemaKey ? resolveValue(resume, f.schemaKey, f.hint) : undefined}
                   >
                     <FillControls field={f} options={copyable} notify={setNotice} />
                   </ValueRow>
