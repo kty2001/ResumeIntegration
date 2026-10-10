@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { formatValue } from '@/core/format';
-import { formatDate } from '@/core/format/date';
+import { formatDate, formatYearMonth } from '@/core/format/date';
 import { formatPhone, hyphenatePhone } from '@/core/format/phone';
 import type { FormatHint } from '@/messaging/protocol';
 
@@ -74,9 +74,35 @@ describe('formatPhone', () => {
   });
 });
 
+describe('formatYearMonth', () => {
+  const ym = (props: Partial<FormatHint>) => formatYearMonth('2014-03', hint(props));
+
+  it('placeholder 형식 문자열', () => {
+    expect(ym({ placeholder: 'YYYY.MM' })).toBe('2014.03');
+    expect(ym({ placeholder: 'yyyy/mm' })).toBe('2014/03');
+    expect(ym({ placeholder: 'YYYYMM' })).toBe('201403');
+    expect(ym({ placeholder: '입학년월 (YY.MM)' })).toBe('14.03');
+  });
+
+  it('placeholder 예시값·maxLength', () => {
+    expect(ym({ placeholder: '예) 2020.01' })).toBe('2014.03');
+    expect(ym({ placeholder: '202001' })).toBe('201403');
+    expect(ym({ maxLength: 6 })).toBe('201403');
+  });
+
+  it('일자 포함 형식·type=date·신호 없음은 그대로', () => {
+    expect(ym({ placeholder: 'YYYY.MM.DD' })).toBe('2014-03');
+    expect(ym({ placeholder: '2020.01.01' })).toBe('2014-03');
+    expect(ym({ widget: 'date', placeholder: 'YYYY.MM' })).toBe('2014-03');
+    expect(ym({})).toBe('2014-03');
+  });
+});
+
 describe('formatValue', () => {
   it('스키마 키별 변환, 대상 아닌 키는 그대로', () => {
     expect(formatValue('basics.birthDate', '1995-03-15', hint({ maxLength: 8 }))).toBe('19950315');
+    expect(formatValue('education.1.startDate', '2014-03', hint({ placeholder: 'YYYY.MM' }))).toBe('2014.03');
+    expect(formatValue('work.0.endDate', '2024-02', hint({ maxLength: 6 }))).toBe('202402');
     expect(formatValue('basics.phone.home', '0212345678', hint({ placeholder: '02-000-0000' }))).toBe('02-1234-5678');
     expect(formatValue('basics.address.postalCode', '06236', hint({ maxLength: 8 }))).toBe('06236');
   });

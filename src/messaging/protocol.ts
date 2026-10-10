@@ -16,6 +16,7 @@ export interface FieldDescriptor {
   autocomplete?: string;
   ariaLabel?: string;
   maxLength?: number;
+  section?: string;         // 소속 섹션 텍스트 (fieldset legend → 직전 제목)
 }
 
 /** 형식 변환(core/format) 판단에 쓰는 입력란 정보 */

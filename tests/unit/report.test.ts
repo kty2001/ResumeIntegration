@@ -50,6 +50,19 @@ describe('buildFillReport', () => {
     expect(report.fields[3]?.fingerprint).toBeUndefined();
   });
 
+  it('페이지 안에서 겹치는 식별자는 학습 제외 (반복 블록)', () => {
+    const repeated: PageDetails = {
+      url: details.url,
+      fields: [
+        { fieldId: '0', widget: 'text', label: '학교명', name: 'school' },
+        { fieldId: '1', widget: 'text', label: '학교명', name: 'school' },
+        { fieldId: '2', widget: 'text', label: '전공', name: 'major' },
+      ],
+    };
+    const r = buildFillReport(repeated, { items: [], unmatched: ['0', '1', '2'] }, { filled: [], failed: [] }, 7);
+    expect(r.fields.map((f) => f.fingerprint)).toEqual([undefined, undefined, '["text","major","","전공"]']);
+  });
+
   it('형식 변환 힌트 보존', () => {
     expect(report.fields[1]?.hint).toEqual({ widget: 'text', placeholder: '이메일', maxLength: undefined });
   });

@@ -44,11 +44,26 @@ function resolveLabel(el: TextElement): string | undefined {
   return undefined;
 }
 
+/** 섹션 문맥: 가장 가까운 fieldset의 legend → 문서 순서상 직전 제목 */
+function resolveSection(el: TextElement, heading: string | undefined): string | undefined {
+  const legend = el.closest('fieldset')?.querySelector(':scope > legend');
+  return (legend && cleanText(legend.textContent)) || heading;
+}
+
+const HEADING = /^H[1-6]$/;
+
 export function collectPageDetails(): PageDetails {
   elements.clear();
   const fields: FieldDescriptor[] = [];
-  const candidates = document.querySelectorAll<TextElement>('input, textarea');
-  candidates.forEach((el) => {
+  let heading: string | undefined;
+  // 제목과 입력란을 문서 순서로 함께 순회해 직전 제목 추적
+  const nodes = document.querySelectorAll<HTMLElement>('h1, h2, h3, h4, h5, h6, input, textarea');
+  nodes.forEach((node) => {
+    if (HEADING.test(node.tagName)) {
+      heading = cleanText(node.textContent);
+      return;
+    }
+    const el = node as TextElement;
     if (!isFillable(el)) return;
     const fieldId = String(elements.size);
     elements.set(fieldId, el);
@@ -62,6 +77,7 @@ export function collectPageDetails(): PageDetails {
       autocomplete: el.getAttribute('autocomplete') || undefined,
       ariaLabel: cleanText(el.getAttribute('aria-label')),
       maxLength: el.maxLength > 0 ? el.maxLength : undefined,
+      section: resolveSection(el, heading),
     });
   });
   return { url: location.origin + location.pathname, fields };

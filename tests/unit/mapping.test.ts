@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { fieldFingerprint } from '@/core/mapping/learned';
-import { getValueByKey, mapFields, matchField } from '@/core/mapping/match';
+import { detectSection, getValueByKey, mapFields, matchField } from '@/core/mapping/match';
 import { createEmptyResume } from '@/core/schema/empty';
+import { schemaKeyLabel, schemaKeyOptions } from '@/core/schema/labels';
 import { isExcluded } from '@/core/site-policy';
 import type { FieldDescriptor } from '@/messaging/protocol';
 
@@ -34,9 +35,39 @@ describe('matchField', () => {
   });
 
   it('이름이 아닌 명칭 입력란은 이름으로 매칭하지 않음', () => {
-    expect(keyOf({ label: '회사 이름' })).toBeUndefined();
-    expect(keyOf({ label: 'Company name' })).toBeUndefined();
+    expect(keyOf({ label: '회사 이름' })).toBe('work.*.company.ko');
+    expect(keyOf({ label: 'Company name' })).toBe('work.*.company.ko');
     expect(keyOf({ name: 'username' })).toBeUndefined();
+  });
+
+  it('섹션 제목 문맥으로 학력·경력 항목 매칭', () => {
+    expect(keyOf({ label: '전공', section: '학력사항' })).toBe('education.*.major.ko');
+    expect(keyOf({ label: '입학년월', section: '학력사항' })).toBe('education.*.startDate');
+    expect(keyOf({ label: '졸업년월', section: 'Education' })).toBe('education.*.endDate');
+    expect(keyOf({ label: '학점 만점', section: '학력사항' })).toBe('education.*.gpa.max');
+    expect(keyOf({ label: '학점', section: '학력사항' })).toBe('education.*.gpa.value');
+    expect(keyOf({ label: '부서', section: '경력사항' })).toBe('work.*.department');
+    expect(keyOf({ label: '입사일', section: '경력사항' })).toBe('work.*.startDate');
+    expect(keyOf({ label: '퇴사 사유', section: '경력사항' })).toBe('work.*.leaveReason');
+    expect(keyOf({ label: '담당 업무', section: 'Work Experience' })).toBe('work.*.description');
+  });
+
+  it('입력란 라벨 자체로 섹션 판별, 라벨이 섹션 제목보다 우선', () => {
+    expect(keyOf({ label: '학교명' })).toBe('education.*.school.ko');
+    expect(keyOf({ label: '영문 학교명' })).toBe('education.*.school.en');
+    expect(keyOf({ label: '회사명', section: '학력사항' })).toBe('work.*.company.ko');
+  });
+
+  it('섹션 안에서는 basics 규칙 미적용, enum 성격 라벨 제외', () => {
+    expect(keyOf({ label: '주소', section: '경력사항' })).toBeUndefined();
+    expect(keyOf({ label: '이름', section: '학력사항' })).toBeUndefined();
+    expect(keyOf({ label: '졸업 구분', section: '학력사항' })).toBeUndefined();
+    expect(keyOf({ label: '학교 소재지', section: '학력사항' })).toBeUndefined();
+  });
+
+  it('두 섹션이 함께 걸리는 제목은 판별 보류 → basics 규칙', () => {
+    expect(detectSection(field({ label: '전공', section: '학력·경력 사항' }))).toBeUndefined();
+    expect(keyOf({ label: '이메일', section: '학력·경력 사항' })).toBe('basics.email');
   });
 
   it('라벨이 매칭되지 않으면 placeholder·name 순으로 검사', () => {
@@ -82,9 +113,53 @@ describe('mapFields', () => {
     expect(plan.items[0]?.value).toBe('19950315');
   });
 
+  it('반복 항목은 등장 순서대로 인덱스 부여, 이력서에 없는 인덱스는 unmatched', () => {
+    const r = createEmptyResume();
+    r.education = [
+      { id: 'e1', level: 'university', school: { ko: '한국대학교' }, status: 'graduated', startDate: '2014-03', gpa: { value: 3.8, max: 4.5 } },
+      { id: 'e2', level: 'master', school: { ko: '한국대학원' }, status: 'graduated' },
+    ];
+    const school = (fieldId: string) => field({ fieldId, label: '학교명', section: '학력사항' });
+    const plan = mapFields(
+      [
+        school('0'),
+        field({ fieldId: '1', label: '입학년월', placeholder: 'YYYY.MM', section: '학력사항' }),
+        field({ fieldId: '2', label: '학점', section: '학력사항' }),
+        school('3'),
+        school('4'),
+      ],
+      r,
+    );
+    expect(plan.items).toEqual([
+      { fieldId: '0', schemaKey: 'education.0.school.ko', value: '한국대학교', source: 'rule' },
+      { fieldId: '1', schemaKey: 'education.0.startDate', value: '2014.03', source: 'rule' },
+      { fieldId: '2', schemaKey: 'education.0.gpa.value', value: '3.8', source: 'rule' },
+      { fieldId: '3', schemaKey: 'education.1.school.ko', value: '한국대학원', source: 'rule' },
+    ]);
+    expect(plan.unmatched).toEqual(['4']);
+  });
+
   it('getValueByKey: 없는 경로·빈 문자열은 undefined', () => {
     expect(getValueByKey(resume, 'basics.phone.mobile')).toBeUndefined();
     expect(getValueByKey(resume, 'basics.name.en')).toBeUndefined();
+  });
+});
+
+describe('schemaKeyLabel·schemaKeyOptions', () => {
+  it('반복 항목 키는 섹션·순번 포함 표시명', () => {
+    expect(schemaKeyLabel('basics.email')).toBe('이메일');
+    expect(schemaKeyLabel('education.0.school.ko')).toBe('학력 1 학교명');
+    expect(schemaKeyLabel('work.1.startDate')).toBe('경력 2 입사 연월');
+    expect(schemaKeyLabel('unknown.key')).toBe('unknown.key');
+  });
+
+  it('이력서 항목 수만큼 인덱스 키 생성', () => {
+    const r = createEmptyResume();
+    r.work = [{ id: 'w1', company: { ko: '가나다' }, startDate: '2020-01', current: true }];
+    const keys = schemaKeyOptions(r).map(([key]) => key);
+    expect(keys).toContain('basics.name.ko');
+    expect(keys).toContain('work.0.company.ko');
+    expect(keys.some((k) => k.startsWith('education.') || k.startsWith('work.1.'))).toBe(false);
   });
 });
 

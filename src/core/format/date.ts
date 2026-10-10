@@ -27,6 +27,28 @@ function patternFromMaxLength(maxLength?: number): DatePattern | undefined {
   return undefined;
 }
 
+function yearMonthPatternFromPlaceholder(placeholder: string): DatePattern | undefined {
+  // 형식 문자열: YYYY.MM, yy-mm, YYYYMM (뒤에 일자 없음)
+  const token = placeholder.match(/(y{4}|y{2})([.\-/ ]?)mm(?![.\-/ ]?dd)/i);
+  if (token) return { yearDigits: token[1]!.length === 4 ? 4 : 2, sep: token[2]! };
+  // 예시값: 2020.03, 202003 (연도 4자리만, 뒤에 일자 없음)
+  const example = placeholder.match(/(?<!\d)(\d{4})([.\-/]?)(0[1-9]|1[0-2])(?![.\-/]?\d)/);
+  if (example) return { yearDigits: 4, sep: example[2]! };
+  return undefined;
+}
+
+/** 연월(YYYY-MM) → 입력란 형식. 신호 없으면 저장값 그대로 */
+export function formatYearMonth(value: string, hint: FormatHint): string {
+  const m = value.match(/^(\d{4})-(\d{2})$/);
+  if (!m || hint.widget === 'date') return value;
+  const pattern =
+    (hint.placeholder && yearMonthPatternFromPlaceholder(hint.placeholder)) ||
+    (hint.maxLength === 6 ? { yearDigits: 4, sep: '' } : undefined);
+  if (!pattern) return value;
+  const year = pattern.yearDigits === 4 ? m[1]! : m[1]!.slice(2);
+  return [year, m[2]].join(pattern.sep);
+}
+
 export function formatDate(value: string, hint: FormatHint): string {
   const m = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!m || hint.widget === 'date') return value;

@@ -65,8 +65,9 @@ async function runFill(
   extensionId: string,
   fixture = 'basics.html',
   summary = BASICS_SUMMARY,
+  data = resume,
 ) {
-  await worker.evaluate((value) => chrome.storage.local.set({ resume: value, resume$: { v: 1 } }), resume);
+  await worker.evaluate((value) => chrome.storage.local.set({ resume: value, resume$: { v: 1 } }), data);
 
   const page = await context.newPage();
   await page.goto(`${FIXTURE_ORIGIN}/${fixture}`);
@@ -166,6 +167,38 @@ test('입력란 형식 신호에 따라 날짜·전화번호 변환', async ({ c
   await expect(page.locator('#birth-date')).toHaveValue('1995-03-15');
   await expect(page.locator('#phone-hyphen')).toHaveValue('010-1234-5678');
   await expect(page.locator('#phone-digits')).toHaveValue('01012345678');
+});
+
+test('섹션 문맥으로 학력·경력 반복 항목 입력 + 연월 변환', async ({ context, worker, extensionId }) => {
+  const data: Resume = {
+    ...resume,
+    education: [
+      { id: 'e1', level: 'university', school: { ko: '한국대학교' }, status: 'graduated', major: { ko: '컴퓨터공학' }, startDate: '2014-03', endDate: '2020-02', gpa: { value: 3.8, max: 4.5 } },
+      { id: 'e2', level: 'master', school: { ko: '한국대학원' }, status: 'graduated', major: { ko: '인공지능' }, startDate: '2020-03', endDate: '2022-02', gpa: { value: 4.1, max: 4.5 } },
+    ],
+    work: [
+      { id: 'w1', company: { ko: '가나다전자' }, department: '플랫폼팀', startDate: '2022-03', endDate: '2025-12', current: false, description: 'API 서버 개발' },
+    ],
+  };
+  const { page } = await runFill(context, worker, extensionId, 'sections.html', '입력 완료 16개 · 입력 실패 0개 · 해당 없음 1개', data);
+
+  await expect(page.locator('#nm')).toHaveValue('홍길동');
+  await expect(page.locator('#school-0')).toHaveValue('한국대학교');
+  await expect(page.locator('#major-1')).toHaveValue('인공지능');
+  await expect(page.locator('#edu-start-0')).toHaveValue('2014.03');
+  await expect(page.locator('#edu-end-1')).toHaveValue('202202');
+  await expect(page.locator('#gpa-1')).toHaveValue('4.1');
+  await expect(page.locator('#company')).toHaveValue('가나다전자');
+  await expect(page.locator('#dept')).toHaveValue('플랫폼팀');
+  await expect(page.locator('#work-end')).toHaveValue('2025-12');
+  await expect(page.locator('#duty')).toHaveValue('API 서버 개발');
+  // 경력 섹션 안 '주소'는 기본 주소로 입력하지 않음
+  await expect(page.locator('#work-addr')).toHaveValue('');
+
+  const panel = await context.newPage();
+  await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+  await expect(panel.getByText('학교명 → 학력 2 학교명')).toBeVisible();
+  await expect(panel.getByText('입사년월 → 경력 1 입사 연월')).toBeVisible();
 });
 
 test('직접 입력 → 학습 규칙 저장 → 재실행 시 자동 입력', async ({ context, worker, extensionId }) => {

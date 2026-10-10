@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { getValueByKey, resolveValue } from '@/core/mapping/match';
 import type { Resume } from '@/core/schema/resume';
-import { SCHEMA_KEY_LABELS } from '@/core/schema/labels';
+import { schemaKeyLabel, schemaKeyOptions } from '@/core/schema/labels';
 import { sendMessage, type ActionResponse, type FillReport, type ReportField } from '@/messaging/protocol';
 import { fillReportItem, resumeItem } from '@/storage/items';
 
@@ -13,7 +13,7 @@ const REASON_LABELS: Record<string, string> = {
   'not-applied': '값이 반영되지 않음',
 };
 
-const keyLabel = (schemaKey?: string) => (schemaKey && SCHEMA_KEY_LABELS[schemaKey]) || schemaKey || '';
+const keyLabel = (schemaKey?: string) => (schemaKey ? schemaKeyLabel(schemaKey) : '');
 
 function CopyButton({ value }: { value: string }) {
   const [copied, setCopied] = useState(false);
@@ -99,7 +99,7 @@ export default function App() {
   const filled = byStatus('filled');
   const failed = byStatus('failed');
   const unmatched = byStatus('unmatched');
-  const copyable = Object.entries(SCHEMA_KEY_LABELS).filter(([key]) => valueOf(key));
+  const copyable = resume ? schemaKeyOptions(resume).filter(([key]) => valueOf(key)) : [];
 
   const undo = async () => {
     const r = await sendMessage('undo');

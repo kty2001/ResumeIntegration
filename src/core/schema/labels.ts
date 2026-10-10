@@ -13,6 +13,7 @@ import type {
   LengthUnit,
   MilitaryBranch,
   MilitaryStatus,
+  Resume,
   SchoolLocation,
 } from './resume';
 
@@ -151,3 +152,51 @@ export const SCHEMA_KEY_LABELS: Record<string, string> = {
   'basics.address.line2': '상세 주소',
   'basics.summary': '한 줄 소개',
 };
+
+// 반복 항목 스키마 키(인덱스 자리 '*') → 표시명. 매핑 사전 SECTION_FIELD_RULES와 같은 키
+const SECTION_LABELS = { education: '학력', work: '경력' } as const;
+
+export const ITEM_KEY_LABELS: Record<string, string> = {
+  'education.*.school.ko': '학교명',
+  'education.*.school.en': '영문 학교명',
+  'education.*.major.ko': '전공',
+  'education.*.major.en': '영문 전공',
+  'education.*.minor': '부전공',
+  'education.*.doubleMajor': '복수전공',
+  'education.*.startDate': '입학 연월',
+  'education.*.endDate': '졸업 연월',
+  'education.*.gpa.value': '학점',
+  'education.*.gpa.max': '학점 만점',
+  'work.*.company.ko': '회사명',
+  'work.*.company.en': '영문 회사명',
+  'work.*.department': '부서',
+  'work.*.rank': '직급',
+  'work.*.title': '직책',
+  'work.*.role.ko': '직무',
+  'work.*.startDate': '입사 연월',
+  'work.*.endDate': '퇴사 연월',
+  'work.*.salary': '연봉(만원)',
+  'work.*.leaveReason': '퇴사 사유',
+  'work.*.description': '담당 업무',
+};
+
+/** 스키마 키 표시명: basics는 그대로, 반복 항목은 '학력 1 학교명' 형식 */
+export function schemaKeyLabel(schemaKey: string): string {
+  const m = schemaKey.match(/^(education|work)\.(\d+)\.(.+)$/);
+  const item = m && ITEM_KEY_LABELS[`${m[1]}.*.${m[3]}`];
+  if (m && item) return `${SECTION_LABELS[m[1] as keyof typeof SECTION_LABELS]} ${Number(m[2]) + 1} ${item}`;
+  return SCHEMA_KEY_LABELS[schemaKey] ?? schemaKey;
+}
+
+/** 사이드 패널 선택·복사 대상 키 목록: basics + 이력서 학력·경력 항목 수만큼 */
+export function schemaKeyOptions(resume: Pick<Resume, 'education' | 'work'>): [string, string][] {
+  const keys = Object.keys(SCHEMA_KEY_LABELS);
+  for (const section of ['education', 'work'] as const) {
+    resume[section].forEach((_, i) => {
+      for (const key of Object.keys(ITEM_KEY_LABELS)) {
+        if (key.startsWith(`${section}.`)) keys.push(key.replace('*', String(i)));
+      }
+    });
+  }
+  return keys.map((key) => [key, schemaKeyLabel(key)]);
+}

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>학력·경력 fixture</title>
+</head>
+<body>
+  <!-- 섹션 문맥 매핑 확인용: 직전 제목(h2)·fieldset legend로 섹션 판별, 반복 블록은 같은 name -->
+  <form onsubmit="return false">
+    <h2>기본 정보</h2>
+    <p><label for="nm">이름</label> <input id="nm" name="nm"></p>
+
+    <h2>학력사항</h2>
+    <div>
+      <p><label>학교명 <input name="school" id="school-0"></label></p>
+      <p><label>전공 <input name="major" id="major-0"></label></p>
+      <p><label>입학년월 <input name="edu_start" id="edu-start-0" placeholder="YYYY.MM"></label></p>
+      <p><label>졸업년월 <input name="edu_end" id="edu-end-0" maxlength="6"></label></p>
+      <p><label>학점 <input name="gpa" id="gpa-0"></label></p>
+    </div>
+    <div>
+      <p><label>학교명 <input name="school" id="school-1"></label></p>
+      <p><label>전공 <input name="major" id="major-1"></label></p>
+      <p><label>입학년월 <input name="edu_start" id="edu-start-1" placeholder="YYYY.MM"></label></p>
+      <p><label>졸업년월 <input name="edu_end" id="edu-end-1" maxlength="6"></label></p>
+      <p><label>학점 <input name="gpa" id="gpa-1"></label></p>
+    </div>
+
+    <fieldset>
+      <legend>경력사항</legend>
+      <p><label>회사명 <input name="company" id="company"></label></p>
+      <p><label>부서 <input name="dept" id="dept"></label></p>
+      <p><label>입사년월 <input name="work_start" id="work-start" placeholder="예) 2020-01"></label></p>
+      <p><label>퇴사년월 <input name="work_end" id="work-end" placeholder="예) 2020-01"></label></p>
+      <p><label>담당 업무 <textarea name="duty" id="duty"></textarea></label></p>
+      <p><label>주소 <input name="work_addr" id="work-addr"></label></p>
+    </fieldset>
+  </form>
+</body>
+</html>

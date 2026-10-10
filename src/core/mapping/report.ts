@@ -17,10 +17,14 @@ export function buildFillReport(
   const items = new Map(plan.items.map((i) => [i.fieldId, i]));
   const filled = new Set(result.filled.map((f) => f.fieldId));
   const failed = new Map(result.failed.map((f) => [f.fieldId, f.reason]));
+  // 반복 블록처럼 같은 fingerprint가 여러 입력란에 있으면 학습 제외 (한 블록 규칙이 모든 블록에 적용되는 문제 방지)
+  const fingerprints = details.fields.map(fieldFingerprint);
+  const isUnique = (fp?: string) => fingerprints.indexOf(fp) === fingerprints.lastIndexOf(fp);
 
-  const fields = details.fields.map((field): ReportField => {
+  const fields = details.fields.map((field, i): ReportField => {
     const hint = { widget: field.widget, placeholder: field.placeholder, maxLength: field.maxLength };
-    const base = { fieldId: field.fieldId, label: displayLabel(field), hint, fingerprint: fieldFingerprint(field) };
+    const fingerprint = isUnique(fingerprints[i]) ? fingerprints[i] : undefined;
+    const base = { fieldId: field.fieldId, label: displayLabel(field), hint, fingerprint };
     const item = items.get(field.fieldId);
     if (!item) return { ...base, status: 'unmatched' };
     const { schemaKey, source } = item;
