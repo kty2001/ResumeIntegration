@@ -181,4 +181,15 @@ test('직접 입력 → 학습 규칙 저장 → 재실행 시 자동 입력', a
   await expect(popup.getByText('입력 완료 10개 · 입력 실패 1개 · 해당 없음 0개')).toBeVisible();
   await expect(page.locator('#company')).toHaveValue('gildong@example.com');
   await expect(panel.getByText('회사 이름 → 이메일 (학습)')).toBeVisible();
+
+  // 옵션 화면 학습 규칙 조회·삭제
+  const options = await context.newPage();
+  await options.goto(`chrome-extension://${extensionId}/options.html`);
+  await options.getByRole('button', { name: '학습 규칙' }).click();
+  const row = options.getByRole('row').filter({ hasText: '회사 이름' });
+  await expect(row).toContainText('localhost');
+  await expect(row).toContainText('이메일');
+  await row.getByRole('button', { name: '삭제' }).click();
+  await expect(options.getByText('학습된 규칙이 없습니다.')).toBeVisible();
+  expect(await worker.evaluate(async () => (await chrome.storage.local.get('learnedRules')).learnedRules)).toEqual([]);
 });

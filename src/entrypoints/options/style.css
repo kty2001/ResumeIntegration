@@ -51,5 +51,9 @@ textarea { min-height: 90px; resize: vertical; }
 .btn.danger { color: var(--err); }
 .btn.add { width: 100%; border-style: dashed; color: var(--sub); padding: 10px; }
 
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 8px; border-bottom: 1px solid #eee; }
+th { color: var(--sub); font-weight: 600; }
+
 .msg { padding: 10px 12px; border-radius: 6px; font-size: 13px; background: #eef3fe; margin-bottom: 12px; }
 .msg.warn { background: #fdf0dc; }

@@ -19,10 +19,24 @@ export function fieldFingerprint(
   return JSON.stringify([field.widget, field.name ?? '', field.id ?? '', text ?? '']);
 }
 
+/** fingerprint 표시명: 표시 텍스트 → name → id (옵션 화면 학습 규칙 목록) */
+export function fingerprintLabel(fingerprint: string): string {
+  try {
+    const [, name, id, text] = JSON.parse(fingerprint) as string[];
+    return text || name || id || fingerprint;
+  } catch {
+    return fingerprint;
+  }
+}
+
+/** origin + fingerprint 규칙 제거 */
+export function removeRule(rules: LearnedRule[], origin: string, fingerprint: string): LearnedRule[] {
+  return rules.filter((r) => r.origin !== origin || r.fingerprint !== fingerprint);
+}
+
 /** 같은 origin + fingerprint 규칙은 교체 */
 export function upsertRule(rules: LearnedRule[], rule: LearnedRule): LearnedRule[] {
-  const rest = rules.filter((r) => r.origin !== rule.origin || r.fingerprint !== rule.fingerprint);
-  return [...rest, rule];
+  return [...removeRule(rules, rule.origin, rule.fingerprint), rule];
 }
 
 /** fingerprint → schemaKey (해당 origin 규칙만) */

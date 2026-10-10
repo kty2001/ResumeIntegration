@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { fieldFingerprint, rulesForOrigin, upsertRule, type LearnedRule } from '@/core/mapping/learned';
+import {
+  fieldFingerprint,
+  fingerprintLabel,
+  removeRule,
+  rulesForOrigin,
+  upsertRule,
+  type LearnedRule,
+} from '@/core/mapping/learned';
 
 const rule = (props: Partial<LearnedRule>): LearnedRule => ({
   origin: 'https://a.com',
@@ -28,6 +35,22 @@ describe('upsertRule', () => {
     expect(replaced).toHaveLength(2);
     expect(replaced.find((r) => r.origin === 'https://a.com')?.schemaKey).toBe('basics.name.ko');
     expect(upsertRule(rules, rule({ fingerprint: 'other' }))).toHaveLength(3);
+  });
+});
+
+describe('removeRule', () => {
+  it('같은 origin + fingerprint만 제거', () => {
+    const rules = [rule({}), rule({ origin: 'https://b.com' }), rule({ fingerprint: 'other' })];
+    expect(removeRule(rules, 'https://a.com', 'fp')).toEqual([rules[1], rules[2]]);
+  });
+});
+
+describe('fingerprintLabel', () => {
+  it('표시 텍스트 → name → id, 해석 불가 시 원문', () => {
+    expect(fingerprintLabel('["text","n","i","회사 이름"]')).toBe('회사 이름');
+    expect(fingerprintLabel('["text","n","i",""]')).toBe('n');
+    expect(fingerprintLabel('["text","","i",""]')).toBe('i');
+    expect(fingerprintLabel('fp')).toBe('fp');
   });
 });
 

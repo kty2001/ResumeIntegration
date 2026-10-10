@@ -7,6 +7,7 @@ import { EducationSection } from './sections/EducationSection';
 import { LanguageSection } from './sections/LanguageSection';
 import { MilitarySection } from './sections/MilitarySection';
 import { ProjectSection } from './sections/ProjectSection';
+import { RulesSection } from './sections/RulesSection';
 import { WorkSection } from './sections/WorkSection';
 import { useResume, type SaveStatus } from './useResume';
 
@@ -20,6 +21,7 @@ const SECTIONS: { id: string; title: string; component: ComponentType<SectionPro
   { id: 'activity', title: '활동·수상', component: ActivitySection },
   { id: 'project', title: '프로젝트·기술', component: ProjectSection },
   { id: 'desired', title: '희망 조건', component: DesiredSection },
+  { id: 'rules', title: '학습 규칙', component: RulesSection },
 ];
 
 function statusText(status: SaveStatus, updatedAt?: string) {
