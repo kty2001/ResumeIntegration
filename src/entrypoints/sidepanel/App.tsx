@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { getValueByKey, resolveValue } from '@/core/mapping/match';
+import { resolveValue } from '@/core/mapping/match';
 import type { Resume } from '@/core/schema/resume';
 import { schemaKeyLabel, schemaKeyOptions } from '@/core/schema/labels';
 import { sendMessage, type ActionResponse, type FillReport, type ReportField } from '@/messaging/protocol';
@@ -94,7 +94,8 @@ export default function App() {
     });
   }, [report, highlightOn]);
 
-  const valueOf = (schemaKey?: string) => (resume && schemaKey ? getValueByKey(resume, schemaKey) : undefined);
+  // 복사·표시용 값: enum 코드는 표시명으로
+  const valueOf = (schemaKey?: string) => (resume && schemaKey ? resolveValue(resume, schemaKey, { widget: 'text' }) : undefined);
   const byStatus = (status: ReportField['status']) => report?.fields.filter((f) => f.status === status) ?? [];
   const filled = byStatus('filled');
   const failed = byStatus('failed');

@@ -1,7 +1,7 @@
 import { collectPageDetails, getElement } from '@/dom/collect';
 import { clearHighlights, showHighlights } from '@/dom/highlight';
 import { restoreAll, saveSnapshot } from '@/dom/snapshot';
-import { fillText } from '@/dom/widgets/text';
+import { fillElement } from '@/dom/widgets';
 import { onMessage, type FillResult } from '@/messaging/protocol';
 
 // '작성' 클릭 시 scripting.executeScript({ files: ['/filler.js'] })로 주입되는 스크립트.
@@ -30,11 +30,12 @@ export default defineUnlistedScript(() => {
       const el = getElement(fieldId);
       if (!el || !el.isConnected) {
         result.failed.push({ fieldId, reason: 'not-found' });
-      } else if (el.maxLength > 0 && value.length > el.maxLength) {
+      } else if (!(el instanceof HTMLSelectElement) && el.maxLength > 0 && value.length > el.maxLength) {
         result.failed.push({ fieldId, reason: 'too-long' });
       } else {
         saveSnapshot(el);
-        if (fillText(el, value)) result.filled.push({ fieldId, strategy: 'text' });
+        const strategy = el instanceof HTMLSelectElement ? 'select' : 'text';
+        if (fillElement(el, value)) result.filled.push({ fieldId, strategy });
         else result.failed.push({ fieldId, reason: 'not-applied' });
       }
     }

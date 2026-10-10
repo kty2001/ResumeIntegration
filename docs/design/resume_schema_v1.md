@@ -404,7 +404,7 @@ interface CoverLetterEntry {
 
 ## 5. enum 정의 (표시명·동의어 초안)
 
-동의어는 키워드·동의어 사전 v1의 초기값. 사이트별 실제 선택지는 DOM 현장 조사 후 `사이트 선택지` 열에 보완.
+동의어는 키워드·동의어 사전 v1의 초기값. 사전 원본은 `src/core/mapping/options.ts`로 이관([dictionary_v1.md](dictionary_v1.md) 3장), 이후 갱신은 코드 기준. 사이트별 실제 선택지는 DOM 현장 조사 후 동의어로 보완.
 
 ### 학력 구분 `EducationLevel`
 | 코드 | 표시명 | 동의어 초안 | 사이트 선택지 |

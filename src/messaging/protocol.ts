@@ -1,9 +1,9 @@
 import { defineExtensionMessaging } from '@webext-core/messaging';
 
 // 메시지 규격: docs/design/architecture.md 5·6장
-// 현재 범위: 최상위 프레임의 text·textarea·date 입력란만 처리
+// 현재 범위: 최상위 프레임의 text·textarea·date 입력란, 기본 select
 
-export type WidgetKind = 'text' | 'textarea' | 'date';
+export type WidgetKind = 'text' | 'textarea' | 'date' | 'select';
 
 /** content script → background: 페이지에서 수집한 필드 정보 (값 미포함) */
 export interface FieldDescriptor {
@@ -17,10 +17,11 @@ export interface FieldDescriptor {
   ariaLabel?: string;
   maxLength?: number;
   section?: string;         // 소속 섹션 텍스트 (fieldset legend → 직전 제목)
+  options?: { value: string; text: string }[]; // select 선택지 (페이지 정보, 이력서 값 아님)
 }
 
 /** 형식 변환(core/format) 판단에 쓰는 입력란 정보 */
-export type FormatHint = Pick<FieldDescriptor, 'widget' | 'placeholder' | 'maxLength'>;
+export type FormatHint = Pick<FieldDescriptor, 'widget' | 'placeholder' | 'maxLength' | 'options'>;
 
 export interface PageDetails {
   url: string;              // origin + pathname만 (쿼리 제거)

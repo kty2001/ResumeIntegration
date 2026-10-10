@@ -58,11 +58,28 @@ describe('matchField', () => {
     expect(keyOf({ label: '회사명', section: '학력사항' })).toBe('work.*.company.ko');
   });
 
-  it('섹션 안에서는 basics 규칙 미적용, enum 성격 라벨 제외', () => {
+  it('섹션 안에서는 basics 규칙 미적용', () => {
     expect(keyOf({ label: '주소', section: '경력사항' })).toBeUndefined();
     expect(keyOf({ label: '이름', section: '학력사항' })).toBeUndefined();
-    expect(keyOf({ label: '졸업 구분', section: '학력사항' })).toBeUndefined();
-    expect(keyOf({ label: '학교 소재지', section: '학력사항' })).toBeUndefined();
+  });
+
+  it('enum 항목 라벨은 날짜·명칭보다 enum 규칙 우선', () => {
+    expect(keyOf({ label: '졸업 구분', section: '학력사항' })).toBe('education.*.status');
+    expect(keyOf({ label: '학교 소재지', section: '학력사항' })).toBe('education.*.location');
+    expect(keyOf({ label: '학력', section: '학력사항', widget: 'select' })).toBe('education.*.level');
+    expect(keyOf({ label: '학교 구분' })).toBe('education.*.level');
+    expect(keyOf({ label: '고용 형태', section: '경력사항' })).toBe('work.*.employmentType');
+    expect(keyOf({ label: '성별' })).toBe('basics.gender');
+    expect(keyOf({ autocomplete: 'sex' })).toBe('basics.gender');
+  });
+
+  it('병역 섹션 (인덱스 없는 키)', () => {
+    expect(keyOf({ label: '병역 구분' })).toBe('military.status');
+    expect(keyOf({ label: '군별', section: '병역사항' })).toBe('military.branch');
+    expect(keyOf({ label: '계급', section: '병역사항' })).toBe('military.rank');
+    expect(keyOf({ label: '입대일', section: '병역사항' })).toBe('military.startDate');
+    expect(keyOf({ label: '전역일', section: '병역사항' })).toBe('military.endDate');
+    expect(keyOf({ label: '전역 구분', section: '병역사항' })).toBe('military.dischargeType');
   });
 
   it('자격증·어학·수상·활동·프로젝트 섹션 매칭', () => {
@@ -85,9 +102,9 @@ describe('matchField', () => {
     expect(keyOf({ label: 'URL', section: '프로젝트' })).toBe('projects.*.url');
   });
 
-  it('새 섹션의 enum 성격 라벨 제외', () => {
-    expect(keyOf({ label: '활동 구분', section: '대외활동' })).toBeUndefined();
-    expect(keyOf({ label: '외국어', section: '어학' })).toBeUndefined();
+  it('새 섹션의 enum 항목', () => {
+    expect(keyOf({ label: '활동 구분', section: '대외활동' })).toBe('activities.*.type');
+    expect(keyOf({ label: '외국어', section: '어학' })).toBe('languageTests.*.language');
     expect(keyOf({ label: '시험 종류', section: '어학' })).toBeUndefined();
   });
 
@@ -163,6 +180,30 @@ describe('mapFields', () => {
       { fieldId: '3', schemaKey: 'education.1.school.ko', value: '한국대학원', source: 'rule' },
     ]);
     expect(plan.unmatched).toEqual(['4']);
+  });
+
+  it('select는 선택지 value, 텍스트 입력란의 enum 값은 표시명, 선택지 불일치는 unmatched', () => {
+    const r = createEmptyResume();
+    r.basics.gender = 'male';
+    r.education = [{ id: 'e1', level: 'university', school: { ko: '한국대학교' }, status: 'expected' }];
+    const options = [
+      { value: '1', text: '고등학교' },
+      { value: '2', text: '대학(2,3년제)' },
+      { value: '3', text: '대학교(4년제)' },
+    ];
+    const plan = mapFields(
+      [
+        field({ fieldId: '0', label: '학력', section: '학력사항', widget: 'select', options }),
+        field({ fieldId: '1', label: '졸업 구분', section: '학력사항' }),
+        field({ fieldId: '2', label: '성별', widget: 'select', options: [{ value: 'F', text: '여자' }] }),
+      ],
+      r,
+    );
+    expect(plan.items).toEqual([
+      { fieldId: '0', schemaKey: 'education.0.level', value: '3', source: 'rule' },
+      { fieldId: '1', schemaKey: 'education.0.status', value: '졸업 예정', source: 'rule' },
+    ]);
+    expect(plan.unmatched).toEqual(['2']);
   });
 
   it('getValueByKey: 없는 경로·빈 문자열은 undefined', () => {

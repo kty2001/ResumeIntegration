@@ -65,6 +65,14 @@ describe('buildFillReport', () => {
 
   it('형식 변환 힌트 보존', () => {
     expect(report.fields[1]?.hint).toEqual({ widget: 'text', placeholder: '이메일', maxLength: undefined });
+    const options = [{ value: '1', text: '남' }];
+    const select = buildFillReport(
+      { url: details.url, fields: [{ fieldId: '0', widget: 'select', label: '성별', options }] },
+      { items: [], unmatched: ['0'] },
+      { filled: [], failed: [] },
+      7,
+    );
+    expect(select.fields[0]?.hint).toMatchObject({ widget: 'select', options });
   });
 
   it('입력 결과에 없는 계획 항목은 실패로 처리', () => {

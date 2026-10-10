@@ -1,5 +1,5 @@
 import type { ReportField } from '@/messaging/protocol';
-import type { TextElement } from './collect';
+import type { FillElement } from './collect';
 
 // 입력란 위치 하이라이트: docs/design/architecture.md 4장
 // 페이지 요소 스타일은 변경하지 않고 Shadow Root 안의 고정 위치 테두리 박스로 표시
@@ -26,7 +26,7 @@ div {
 `;
 
 let host: HTMLDivElement | null = null;
-let boxes: [TextElement, HTMLDivElement][] = [];
+let boxes: [FillElement, HTMLDivElement][] = [];
 let frame = 0;
 
 function position(): void {
@@ -59,7 +59,7 @@ export function clearHighlights(): void {
 }
 
 /** 기존 표시를 지우고 다시 그림. 빈 배열이면 해제만 */
-export function showHighlights(items: { el: TextElement; status: HighlightStatus }[]): void {
+export function showHighlights(items: { el: FillElement; status: HighlightStatus }[]): void {
   clearHighlights();
   if (items.length === 0) return;
 

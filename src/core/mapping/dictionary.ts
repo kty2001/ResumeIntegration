@@ -4,18 +4,19 @@
 
 import type { SectionKey } from '@/core/schema/labels';
 
-export type { SectionKey };
+/** 반복 항목 섹션 + 병역(단일 객체) */
+export type RuleSection = SectionKey | 'military';
 
 export interface FieldRule {
-  schemaKey: string;        // 섹션 규칙은 인덱스 자리를 '*'로 표기 (education.*.school.ko)
+  schemaKey: string;        // 반복 섹션 규칙은 인덱스 자리를 '*'로 표기 (education.*.school.ko)
   autocomplete: string[];   // 정규화된 autocomplete 값 (section-*·shipping·billing 제거)
   pattern: RegExp;
   exclude?: RegExp;
-  section?: SectionKey;     // 지정 시 해당 섹션 문맥에서만 검사
+  section?: RuleSection;    // 지정 시 해당 섹션 문맥에서만 검사
 }
 
 // 섹션 판별: 입력란 텍스트 → 섹션 텍스트(fieldset legend·직전 제목) 순, 두 섹션이 함께 걸리면 판별 보류
-export const SECTION_RULES: { section: SectionKey; pattern: RegExp }[] = [
+export const SECTION_RULES: { section: RuleSection; pattern: RegExp }[] = [
   { section: 'education', pattern: /학력|학교|school|education/i },
   // '수상경력'·'활동 경력' 같은 제목은 경력 섹션으로 보지 않음
   { section: 'work', pattern: /(?<!(수상|활동|봉사)\s*)경력|직장|회사|company|employment|work\s*experience|career/i },
@@ -24,9 +25,10 @@ export const SECTION_RULES: { section: SectionKey; pattern: RegExp }[] = [
   { section: 'awards', pattern: /수상|award|honou?r/i },
   { section: 'activities', pattern: /활동|동아리|봉사|activit|volunteer|extracurricular/i },
   { section: 'projects', pattern: /프로젝트|project/i },
+  { section: 'military', pattern: /병역|군\s*복무|군필|military/i },
 ];
 
-// enum 성격 라벨 (학교 구분·졸업 상태·고용 형태 등) → 드롭다운 처리 시 매핑
+// 날짜·명칭 규칙에서 제외할 enum 성격 라벨 (학교 구분·졸업 상태 등은 각 enum 규칙이 먼저 처리)
 const ENUM_LABEL = /구분|상태|여부|유형|종류|형태|소재|type|status|location/i;
 
 export const SECTION_FIELD_RULES: FieldRule[] = [
@@ -69,6 +71,19 @@ export const SECTION_FIELD_RULES: FieldRule[] = [
     autocomplete: [],
     pattern: /학점|평점|gpa/i,
     exclude: /이수|취득|credit/i,
+  },
+  {
+    section: 'education',
+    schemaKey: 'education.*.status',
+    autocomplete: [],
+    pattern: /(졸업|재학)\s*(구분|상태|여부)|학적|status/i,
+  },
+  { section: 'education', schemaKey: 'education.*.location', autocomplete: [], pattern: /소재지?|국내\s*\/?\s*해외|location/i },
+  {
+    section: 'education',
+    schemaKey: 'education.*.level',
+    autocomplete: [],
+    pattern: /학력|학교\s*(구분|종류|유형)|학위|degree|level/i,
   },
   {
     section: 'education',
@@ -128,6 +143,12 @@ export const SECTION_FIELD_RULES: FieldRule[] = [
     pattern: /직무|담당\s*분야|\bjob\b|role/i,
   },
   { section: 'work', schemaKey: 'work.*.title', autocomplete: [], pattern: /직책|직위|position|title/i },
+  {
+    section: 'work',
+    schemaKey: 'work.*.employmentType',
+    autocomplete: [],
+    pattern: /(고용|근무|채용|계약)\s*(형태|구분|유형)|employment\s*type/i,
+  },
   {
     section: 'work',
     schemaKey: 'work.*.company.ko',
@@ -191,6 +212,7 @@ export const SECTION_FIELD_RULES: FieldRule[] = [
     pattern: /시험|exam|test/i,
     exclude: ENUM_LABEL,
   },
+  { section: 'languageTests', schemaKey: 'languageTests.*.language', autocomplete: [], pattern: /외국어|언어|language/i },
   // 수상
   {
     section: 'awards',
@@ -228,6 +250,7 @@ export const SECTION_FIELD_RULES: FieldRule[] = [
     autocomplete: [],
     pattern: /내용|설명|역할|description|detail/i,
   },
+  { section: 'activities', schemaKey: 'activities.*.type', autocomplete: [], pattern: /구분|종류|유형|분류|type/i },
   {
     section: 'activities',
     schemaKey: 'activities.*.name',
@@ -258,6 +281,30 @@ export const SECTION_FIELD_RULES: FieldRule[] = [
     pattern: /프로젝트|명칭|name|title/i,
     exclude: ENUM_LABEL,
   },
+  // 병역 (단일 객체 → 인덱스 없는 키, 민감 항목 exemptionReason 제외)
+  {
+    section: 'military',
+    schemaKey: 'military.dischargeType',
+    autocomplete: [],
+    pattern: /(전역|제대)\s*(구분|사유|유형|형태)|discharge/i,
+  },
+  { section: 'military', schemaKey: 'military.branch', autocomplete: [], pattern: /군별|군\s*(구분|종류)|branch/i },
+  { section: 'military', schemaKey: 'military.rank', autocomplete: [], pattern: /계급|rank/i },
+  {
+    section: 'military',
+    schemaKey: 'military.startDate',
+    autocomplete: [],
+    pattern: /입대|입영|복무\s*시작|enlist|start/i,
+    exclude: ENUM_LABEL,
+  },
+  {
+    section: 'military',
+    schemaKey: 'military.endDate',
+    autocomplete: [],
+    pattern: /전역|제대|소집\s*해제|복무\s*종료|end/i,
+    exclude: ENUM_LABEL,
+  },
+  { section: 'military', schemaKey: 'military.status', autocomplete: [], pattern: /병역|군필|구분|사항|여부|상태|status|military/i },
 ];
 
 export const FIELD_RULES: FieldRule[] = [
@@ -307,6 +354,7 @@ export const FIELD_RULES: FieldRule[] = [
     autocomplete: [],
     pattern: /한\s*줄\s*소개|간단\s*소개|headline|summary/i,
   },
+  { schemaKey: 'basics.gender', autocomplete: ['sex'], pattern: /성별|gender|\bsex\b/i },
   {
     schemaKey: 'basics.name.ko',
     autocomplete: ['name'],

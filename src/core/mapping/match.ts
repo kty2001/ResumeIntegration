@@ -1,8 +1,9 @@
 import type { Resume } from '@/core/schema/resume';
 import { formatValue } from '@/core/format';
 import type { FieldDescriptor, FillPlan, FormatHint, MatchSource } from '@/messaging/protocol';
-import { FIELD_RULES, SECTION_FIELD_RULES, SECTION_RULES, type SectionKey } from './dictionary';
+import { FIELD_RULES, SECTION_FIELD_RULES, SECTION_RULES, type RuleSection } from './dictionary';
 import { fieldFingerprint } from './learned';
+import { enumLabel, matchOption } from './options';
 
 // 매핑 순서: 학습 규칙 → autocomplete 속성 → 키워드 사전 (docs/design/architecture.md 7.1)
 
@@ -41,7 +42,7 @@ export function matchField(
 }
 
 /** 입력란 텍스트 → 섹션 텍스트 순으로 섹션 판별. 한 텍스트에 두 섹션이 함께 걸리면 다음 텍스트로 */
-export function detectSection(field: FieldDescriptor): SectionKey | undefined {
+export function detectSection(field: FieldDescriptor): RuleSection | undefined {
   const texts = [field.label, field.ariaLabel, field.placeholder, field.name, field.id, field.section];
   for (const text of texts) {
     if (!text) continue;
@@ -62,10 +63,12 @@ export function getValueByKey(resume: Resume, schemaKey: string): string | undef
   return typeof cur === 'string' && cur.trim() ? cur : undefined;
 }
 
-/** 이력서 값을 입력란 형식으로 변환해 조회 */
+/** 이력서 값을 입력란 형식으로 변환해 조회. select는 선택지 value, 텍스트 입력란의 enum 값은 표시명 */
 export function resolveValue(resume: Resume, schemaKey: string, hint: FormatHint): string | undefined {
   const value = getValueByKey(resume, schemaKey);
-  return value && formatValue(schemaKey, value, hint);
+  if (!value) return undefined;
+  if (hint.widget === 'select') return matchOption(schemaKey, value, hint.options ?? []);
+  return enumLabel(schemaKey, value) ?? formatValue(schemaKey, value, hint);
 }
 
 export function mapFields(fields: FieldDescriptor[], resume: Resume, learned?: Map<string, string>): FillPlan {

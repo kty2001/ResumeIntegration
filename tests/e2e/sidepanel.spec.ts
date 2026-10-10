@@ -169,20 +169,22 @@ test('입력란 형식 신호에 따라 날짜·전화번호 변환', async ({ c
   await expect(page.locator('#phone-digits')).toHaveValue('01012345678');
 });
 
-test('섹션 문맥으로 학력·경력·자격증·어학 항목 입력 + 날짜 변환', async ({ context, worker, extensionId }) => {
+test('섹션 문맥으로 학력·경력·자격증·어학·병역 항목 입력 + 날짜 변환 + select 선택', async ({ context, worker, extensionId }) => {
   const data: Resume = {
     ...resume,
+    basics: { ...resume.basics, gender: 'male' },
     education: [
       { id: 'e1', level: 'university', school: { ko: '한국대학교' }, status: 'graduated', major: { ko: '컴퓨터공학' }, startDate: '2014-03', endDate: '2020-02', gpa: { value: 3.8, max: 4.5 } },
       { id: 'e2', level: 'master', school: { ko: '한국대학원' }, status: 'graduated', major: { ko: '인공지능' }, startDate: '2020-03', endDate: '2022-02', gpa: { value: 4.1, max: 4.5 } },
     ],
     work: [
-      { id: 'w1', company: { ko: '가나다전자' }, department: '플랫폼팀', startDate: '2022-03', endDate: '2025-12', current: false, description: 'API 서버 개발' },
+      { id: 'w1', company: { ko: '가나다전자' }, department: '플랫폼팀', startDate: '2022-03', endDate: '2025-12', current: false, description: 'API 서버 개발', employmentType: 'full_time' },
     ],
     certificates: [{ id: 'c1', name: '정보처리기사', issuer: '한국산업인력공단', date: '2021-06-18' }],
     languageTests: [{ id: 'l1', language: 'en', exam: 'TOEIC', score: '900', date: '2023-05-20' }],
+    military: { status: 'served', branch: 'army', endDate: '2016-01' },
   };
-  const { page } = await runFill(context, worker, extensionId, 'sections.html', '입력 완료 22개 · 입력 실패 0개 · 해당 없음 1개', data);
+  const { page } = await runFill(context, worker, extensionId, 'sections.html', '입력 완료 31개 · 입력 실패 0개 · 해당 없음 1개', data);
 
   await expect(page.locator('#nm')).toHaveValue('홍길동');
   await expect(page.locator('#school-0')).toHaveValue('한국대학교');
@@ -203,6 +205,15 @@ test('섹션 문맥으로 학력·경력·자격증·어학 항목 입력 + 날�
   await expect(page.locator('#lang-exam')).toHaveValue('TOEIC');
   await expect(page.locator('#lang-score')).toHaveValue('900');
   await expect(page.locator('#lang-date')).toHaveValue('2023.05');
+  // select: 표시명·동의어로 선택지 매칭
+  await expect(page.locator('#gender')).toHaveValue('M');
+  await expect(page.locator('#level-0')).toHaveValue('U');
+  await expect(page.locator('#level-1')).toHaveValue('M');
+  await expect(page.locator('#grad-0')).toHaveValue('1');
+  await expect(page.locator('#emp')).toHaveValue('FT');
+  await expect(page.locator('#mil-status')).toHaveValue('1');
+  await expect(page.locator('#mil-branch')).toHaveValue('A');
+  await expect(page.locator('#mil-end')).toHaveValue('2016.01');
 
   const panel = await context.newPage();
   await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
