@@ -5,12 +5,13 @@ import { schemaKeyLabel, schemaKeyOptions } from '@/core/schema/labels';
 import { sendMessage, type ActionResponse, type FillReport, type ReportField } from '@/messaging/protocol';
 import { fillReportItem, resumeItem } from '@/storage/items';
 
-// 화면 설계: docs/design/screens.md 3장 (현재: 입력 결과 목록·복사·직접 입력·이동·되돌리기·위치 표시)
+// 화면 설계: docs/design/screens.md 3장 (현재: 입력 결과 목록·복사·직접 입력·선택지 직접 선택·이동·되돌리기·위치 표시)
 
 const REASON_LABELS: Record<string, string> = {
   'not-found': '입력란을 찾을 수 없음',
   'too-long': '글자수 제한 초과',
   'not-applied': '값이 반영되지 않음',
+  'no-option': '맞는 선택지 없음',
 };
 
 const keyLabel = (schemaKey?: string) => (schemaKey ? schemaKeyLabel(schemaKey) : '');
@@ -68,6 +69,29 @@ function FillControls({ field, options, notify }: { field: ReportField; options:
   );
 }
 
+/** select 선택지 직접 선택 → '선택'(fillOne optionValue, 선택 결과 학습) */
+function OptionControls({ field, notify }: { field: ReportField & { schemaKey: string }; notify: Notify }) {
+  const [optionValue, setOptionValue] = useState('');
+  const choose = async () =>
+    notifyError(notify, await sendMessage('fillOne', { fieldId: field.fieldId, schemaKey: field.schemaKey, optionValue }));
+  return (
+    <>
+      <select aria-label={`${field.label} 선택지`} value={optionValue} onChange={(e) => setOptionValue(e.target.value)}>
+        <option value="">사이트 선택지 선택</option>
+        {field.hint.options?.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.text}
+          </option>
+        ))}
+      </select>{' '}
+      <button disabled={!optionValue} onClick={choose}>
+        선택
+      </button>{' '}
+      <FocusButton fieldId={field.fieldId} notify={notify} />
+    </>
+  );
+}
+
 export default function App() {
   const [resume, setResume] = useState<Resume | null>(null);
   const [report, setReport] = useState<FillReport | null>(null);
@@ -96,6 +120,9 @@ export default function App() {
 
   // 복사·표시용 값: enum 코드는 표시명으로
   const valueOf = (schemaKey?: string) => (resume && schemaKey ? resolveValue(resume, schemaKey, { widget: 'text' }) : undefined);
+  // 확인 필요 행 값: 입력란 형식으로 변환, select는 선택지 value 대신 표시명
+  const failedValue = (f: ReportField) =>
+    resume && f.schemaKey ? resolveValue(resume, f.schemaKey, f.hint.widget === 'select' ? { widget: 'text' } : f.hint) : undefined;
   const byStatus = (status: ReportField['status']) => report?.fields.filter((f) => f.status === status) ?? [];
   const filled = byStatus('filled');
   const failed = byStatus('failed');
@@ -141,9 +168,13 @@ export default function App() {
                     key={f.fieldId}
                     label={f.label}
                     note={`→ ${keyLabel(f.schemaKey)} (${REASON_LABELS[f.reason ?? ''] ?? f.reason})`}
-                    value={resume && f.schemaKey ? resolveValue(resume, f.schemaKey, f.hint) : undefined}
+                    value={failedValue(f)}
                   >
-                    <FillControls field={f} options={copyable} notify={setNotice} />
+                    {f.schemaKey && f.hint.options?.length ? (
+                      <OptionControls field={{ ...f, schemaKey: f.schemaKey }} notify={setNotice} />
+                    ) : (
+                      <FillControls field={f} options={copyable} notify={setNotice} />
+                    )}
                   </ValueRow>
                 ))}
               </ul>

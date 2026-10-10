@@ -118,7 +118,7 @@ interface LearnedRule {
   origin: string;
   fingerprint: string;
   schemaKey: string;
-  optionText?: string;      // 드롭다운의 경우 사용자가 고른 선택지
+  option?: { value: string; text: string }; // select 직접 선택: 이력서 원래 값(코드) → 고른 선택지 텍스트. 이력서 값이 같을 때만 적용
   updatedAt: string;
 }
 ```
@@ -131,7 +131,7 @@ interface LearnedRule {
 | `collect` | background → filler | — | `PageDetails` |
 | `fill` | background → filler | `FillPlan` | `FillResult` |
 | `undo` | sidepanel → background → filler | — | `{ status: 'ok', restored: number }` (성공 시 `session:fillReport` 초기화) |
-| `fillOne` | sidepanel → background → filler | `{ fieldId, schemaKey }` (값은 background가 이력서에서 조회, filler에는 `fill`로 전달) | `{ status: 'ok' \| 'error' }` (결과는 `session:fillReport` 갱신) |
+| `fillOne` | sidepanel → background → filler | `{ fieldId, schemaKey, optionValue? }` (값은 background가 이력서에서 조회, `optionValue`가 있으면 그 select 선택지 입력 + 학습. filler에는 `fill`로 전달) | `{ status: 'ok' \| 'error' }` (결과는 `session:fillReport` 갱신) |
 | `focusField` | sidepanel → background → filler | `{ fieldId }` | `{ status: 'ok' \| 'error' }` (해당 입력란으로 스크롤·포커스) |
 | `highlight` | sidepanel → background → filler | `{ fields: { fieldId, status }[] }` (빈 배열이면 해제) | `{ status: 'ok' \| 'error' }` (상태별 색 테두리로 입력란 위치 표시) |
 | `fillReport` | background → sidepanel | `FillReport` (입력란별 라벨·상태·스키마 키·사유) | — (메시지 대신 `session:fillReport` 저장) |

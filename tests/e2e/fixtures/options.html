@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>선택지 불일치 fixture</title>
+</head>
+<body>
+  <!-- 선택지 불일치 확인용: 이력서 값(대학교(4년))에 해당하는 선택지가 동의어 사전에 없음 -->
+  <form onsubmit="return false">
+    <p><label for="nm">이름</label> <input id="nm" name="nm"></p>
+    <h2>학력사항</h2>
+    <p>
+      <label for="level">학력 구분</label>
+      <select id="level" name="level">
+        <option value="">선택</option>
+        <option value="10">고등학교</option>
+        <option value="20">전문대학</option>
+        <option value="30">일반대학</option>
+        <option value="40">대학원</option>
+      </select>
+    </p>
+  </form>
+</body>
+</html>

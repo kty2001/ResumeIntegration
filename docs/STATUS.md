@@ -25,6 +25,7 @@
 - 섹션 문맥 매핑(학력·경력): 수집 시 입력란별 섹션 텍스트(가장 가까운 fieldset legend → 직전 h1~h6) 추가, 입력란 텍스트 → 섹션 텍스트 순으로 섹션 판별(두 섹션이 함께 걸리면 보류). 섹션 판별 시 해당 섹션 규칙만 적용(섹션 안 '주소' 등 basics 오입력 방지). 규칙 키는 `education.*.school.ko` 형식, 페이지 등장 순서대로 인덱스 부여 → 반복 블록 지원. 대상: 학교명·전공·부/복수전공·입학/졸업 연월·학점, 회사명·부서·직급·직책·직무·입사/퇴사 연월·연봉·퇴사 사유·담당 업무 (enum 항목 제외). 연월 `YYYY-MM` → placeholder·maxLength 6 신호로 변환(`formatYearMonth`). 사이드 패널·옵션 표시명 '학력 1 학교명' 형식(`schemaKeyLabel`·`schemaKeyOptions`). 페이지 안 중복 fingerprint는 학습 제외. 단위 테스트 45개·E2E 5개(`sections.html`)·타입 검사·빌드 통과
 - 섹션 문맥 매핑 확장: 자격증(자격증명·발행 기관·취득일·번호)·어학(시험명·점수·등급·응시일·만료일·수험 번호)·수상(수상명·수여 기관·수상일·내용)·활동(활동명·기관·시작/종료 연월·내용)·프로젝트(프로젝트명·기관·시작/종료 연월·URL·내용). 섹션 목록은 `labels.ts`의 `SECTION_LABELS` 한 곳에서 관리(`SectionKey`). '수상경력'·'활동 경력' 제목은 경력 섹션으로 보지 않음. 연월/연월일 값(`PartialDate`)은 `formatPartialDate`로 변환(연월일 값을 연월 입력란에 넣으면 연월만). 단위 테스트 50개·E2E 5개(`sections.html`에 자격증·어학 추가)·타입 검사·빌드 통과
 - 키워드·옵션 동의어 사전 v1 + 기본 `<select>`: 설계 문서([design/dictionary_v1.md](design/dictionary_v1.md)). `<select>` 수집(선택지 text·value, 안내·비활성 옵션 제외)·입력(네이티브 setter + input·change, 되돌리기 포함). enum 항목 매핑 추가(성별, 학력 구분·졸업 상태·소재지, 고용 형태, 어학 언어, 활동 구분, 병역 구분·군별·계급·입대/전역 연월·전역 구분). 옵션 동의어 사전(`core/mapping/options.ts`, resume_schema 5장 초안 이관): 표시명·동의어·코드 순 정규화 일치 → 단일 옵션 포함 매칭, 실패 시 '해당 없음'. 텍스트 입력란의 enum 값은 표시명 입력, 사이드 패널 복사도 표시명. 단위 테스트 60개·E2E 5개(`sections.html`에 select·병역 추가)·타입 검사·빌드 통과
+- 선택지 불일치 처리: select 매칭 실패 시 '해당 없음' 대신 '확인 필요 · 맞는 선택지 없음'(`FillPlan.skipped` → reason `no-option`, 팝업 '입력 실패'에 포함). 사이드 패널에 저장 값 표시명 + 사이트 선택지 목록 + '선택'(`fillOne` `optionValue`). 성공 시 학습 규칙에 `option: { value: 이력서 원래 값, text: 선택지 텍스트 }` 저장 → 다음 '작성'에서 이력서 값이 같으면 사전 매칭보다 우선. 옵션 화면 학습 규칙 표에 '선택지' 열. 단위 테스트 62개·E2E 6개(`options.html`)·타입 검사·빌드 통과
 - Playwright E2E 환경: `npm run test:e2e` (e2e 모드 빌드 → 확장 프로그램 로드한 Chromium). 툴바 클릭(activeTab) 재현 불가 → e2e 빌드에만 `http://localhost/*` 호스트 권한, fixture는 route 응답. 검증 시나리오: '작성' → 사이드 패널 열림(`runtime.getContexts`), fixture 입력값, 사이드 패널 결과·복사(붙여넣기 확인), 재실행 시 갱신 — 통과
 
 ## 결정 사항
@@ -46,7 +47,7 @@
 ## 다음 작업
 - 옵션 화면 브라우저 동작 확인 (사용자 수동, `tests/e2e/fixtures/basics.html`)
 - 사람인·잡코리아 DOM 현장 조사 (사용자 로그인 필요)
-- 사이드 패널: 선택지 불일치 시 사이트 선택지 목록 표시·선택 (screens.md 3장)
+- 사이드 패널 후속: '다시 작성'·'건너뛰기' (screens.md 3장)
 
 ## 이슈·리스크
 - 국내 사이트의 WAI-ARIA 준수율 미확인 → 범용 전략 효과 불확실

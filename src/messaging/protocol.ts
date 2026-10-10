@@ -34,6 +34,7 @@ export type MatchSource = 'learned' | 'autocomplete' | 'rule' | 'manual';
 export interface FillPlan {
   items: { fieldId: string; schemaKey: string; value: string; source: MatchSource }[];
   unmatched: string[];      // 매핑 실패 또는 이력서 값 없음
+  skipped?: { fieldId: string; schemaKey: string; reason: 'no-option' }[]; // 매핑됐으나 입력 불가 (select 선택지 불일치)
 }
 
 /** content script → background: 입력 결과 */
@@ -48,7 +49,7 @@ export interface ReportField {
   label: string;            // label → ariaLabel → placeholder → name → id 순 대체
   status: 'filled' | 'failed' | 'unmatched';
   schemaKey?: string;
-  reason?: string;          // failed 사유 코드 (not-found·too-long·not-applied)
+  reason?: string;          // failed 사유 코드 (not-found·too-long·not-applied·no-option)
   hint: FormatHint;         // fillOne·복사 시 같은 형식 변환 적용
   fingerprint?: string;     // 학습 규칙 식별자 (core/mapping/learned.ts)
   source?: MatchSource;     // 입력 완료 시 매핑 출처
@@ -75,7 +76,8 @@ interface ProtocolMap {
   startFill(data: { tabId: number }): StartFillResponse;
   collect(): PageDetails;
   fill(plan: FillPlan): FillResult;
-  fillOne(data: { fieldId: string; schemaKey: string }): ActionResponse;
+  /** optionValue: select 선택지 직접 선택 (이력서 값 대신 해당 선택지 입력 + 학습) */
+  fillOne(data: { fieldId: string; schemaKey: string; optionValue?: string }): ActionResponse;
   focusField(data: { fieldId: string }): ActionResponse;
   /** 입력란 위치 표시, 빈 배열이면 해제 */
   highlight(data: { fields: Pick<ReportField, 'fieldId' | 'status'>[] }): ActionResponse;

@@ -75,6 +75,17 @@ describe('buildFillReport', () => {
     expect(select.fields[0]?.hint).toMatchObject({ widget: 'select', options });
   });
 
+  it('선택지 불일치(skipped)는 확인 필요 + 사유 no-option', () => {
+    const r = buildFillReport(
+      details,
+      { ...plan, unmatched: ['3'], skipped: [{ fieldId: '2', schemaKey: 'basics.gender', reason: 'no-option' }] },
+      result,
+      7,
+    );
+    expect(r.fields[2]).toMatchObject({ status: 'failed', schemaKey: 'basics.gender', reason: 'no-option' });
+    expect(r.fields[3]?.status).toBe('unmatched');
+  });
+
   it('입력 결과에 없는 계획 항목은 실패로 처리', () => {
     const r = buildFillReport(details, plan, { filled: [], failed: [] }, 7);
     expect(r.fields[0]).toMatchObject({ status: 'failed', reason: 'not-applied' });

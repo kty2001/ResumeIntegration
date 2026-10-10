@@ -7,8 +7,12 @@ export interface LearnedRule {
   origin: string;
   fingerprint: string;
   schemaKey: string;
+  option?: { value: string; text: string }; // select 직접 선택: 이력서 원래 값(코드) → 고른 선택지 텍스트
   updatedAt: string;        // ISO 시각
 }
+
+/** 매핑에 쓰는 학습 정보 */
+export type LearnedMatch = Pick<LearnedRule, 'schemaKey' | 'option'>;
 
 /** 입력란 안정 식별자 (widget·name·id·표시 텍스트). 식별 정보가 없으면 undefined → 학습 안 함 */
 export function fieldFingerprint(
@@ -39,7 +43,7 @@ export function upsertRule(rules: LearnedRule[], rule: LearnedRule): LearnedRule
   return [...removeRule(rules, rule.origin, rule.fingerprint), rule];
 }
 
-/** fingerprint → schemaKey (해당 origin 규칙만) */
-export function rulesForOrigin(rules: LearnedRule[], origin: string): Map<string, string> {
-  return new Map(rules.filter((r) => r.origin === origin).map((r) => [r.fingerprint, r.schemaKey]));
+/** fingerprint → 학습 정보 (해당 origin 규칙만) */
+export function rulesForOrigin(rules: LearnedRule[], origin: string): Map<string, LearnedMatch> {
+  return new Map(rules.filter((r) => r.origin === origin).map((r) => [r.fingerprint, { schemaKey: r.schemaKey, option: r.option }]));
 }

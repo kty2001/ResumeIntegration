@@ -55,8 +55,12 @@ describe('fingerprintLabel', () => {
 });
 
 describe('rulesForOrigin', () => {
-  it('해당 origin 규칙만 fingerprint → schemaKey', () => {
-    const map = rulesForOrigin([rule({}), rule({ origin: 'https://b.com', fingerprint: 'fp2' })], 'https://a.com');
-    expect([...map]).toEqual([['fp', 'basics.email']]);
+  it('해당 origin 규칙만 fingerprint → schemaKey·선택지', () => {
+    const option = { value: 'university', text: '일반대학' };
+    const map = rulesForOrigin(
+      [rule({ option }), rule({ origin: 'https://b.com', fingerprint: 'fp2' })],
+      'https://a.com',
+    );
+    expect([...map]).toEqual([['fp', { schemaKey: 'basics.email', option }]]);
   });
 });

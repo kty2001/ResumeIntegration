@@ -255,3 +255,40 @@ test('직접 입력 → 학습 규칙 저장 → 재실행 시 자동 입력', a
   await expect(options.getByText('학습된 규칙이 없습니다.')).toBeVisible();
   expect(await worker.evaluate(async () => (await chrome.storage.local.get('learnedRules')).learnedRules)).toEqual([]);
 });
+
+test('선택지 불일치 → 사이드 패널에서 사이트 선택지 선택 → 학습 → 재실행 시 자동 선택', async ({ context, worker, extensionId }) => {
+  const data: Resume = {
+    ...resume,
+    education: [{ id: 'e1', level: 'university', school: { ko: '한국대학교' }, status: 'graduated' }],
+  };
+  const { page, popup } = await runFill(context, worker, extensionId, 'options.html', '입력 완료 1개 · 입력 실패 1개 · 해당 없음 0개', data);
+  await expect(page.locator('#level')).toHaveValue('');
+
+  // 확인 필요: 저장 값(표시명)·사유 + 사이트 선택지 목록에서 직접 선택
+  const panel = await context.newPage();
+  await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+  const row = panel.getByRole('listitem').filter({ hasText: '맞는 선택지 없음' });
+  await expect(row).toContainText('학력 구분 → 학력 1 학력 구분');
+  await expect(row).toContainText('대학교(4년)');
+  await panel.getByLabel('학력 구분 선택지').selectOption({ label: '일반대학' });
+  await row.getByRole('button', { name: '선택' }).click();
+  await expect(panel.getByText('입력 완료 2 · 확인 필요 0 · 해당 없음 0')).toBeVisible();
+  await expect(page.locator('#level')).toHaveValue('30');
+
+  // 학습 규칙: 이력서 원래 값 → 고른 선택지 텍스트
+  const rules = await worker.evaluate(async () => (await chrome.storage.local.get('learnedRules')).learnedRules);
+  expect(rules).toMatchObject([{ schemaKey: 'education.0.level', option: { value: 'university', text: '일반대학' } }]);
+
+  // 값 지운 뒤 재실행 → 학습 선택지로 자동 선택
+  await page.locator('#level').selectOption('');
+  await page.bringToFront();
+  await popup.getByRole('button', { name: '작성' }).click();
+  await expect(popup.getByText('입력 완료 2개 · 입력 실패 0개 · 해당 없음 0개')).toBeVisible();
+  await expect(page.locator('#level')).toHaveValue('30');
+
+  // 옵션 화면 '선택지' 열
+  const options = await context.newPage();
+  await options.goto(`chrome-extension://${extensionId}/options.html`);
+  await options.getByRole('button', { name: '학습 규칙' }).click();
+  await expect(options.getByRole('row').filter({ hasText: '학력 구분' })).toContainText('일반대학');
+});

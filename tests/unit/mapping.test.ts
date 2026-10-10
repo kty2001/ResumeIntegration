@@ -140,8 +140,8 @@ describe('mapFields', () => {
     const company = field({ fieldId: '0', label: '회사 이름' });
     const name = field({ fieldId: '1', label: '이름', autocomplete: 'name' });
     const learned = new Map([
-      [fieldFingerprint(company)!, 'basics.email'],
-      [fieldFingerprint(name)!, 'basics.phone.mobile'],
+      [fieldFingerprint(company)!, { schemaKey: 'basics.email' }],
+      [fieldFingerprint(name)!, { schemaKey: 'basics.phone.mobile' }],
     ]);
     const plan = mapFields([company, name], resume, learned);
     expect(plan.items).toEqual([{ fieldId: '0', schemaKey: 'basics.email', value: 'hong@example.com', source: 'learned' }]);
@@ -182,7 +182,7 @@ describe('mapFields', () => {
     expect(plan.unmatched).toEqual(['4']);
   });
 
-  it('select는 선택지 value, 텍스트 입력란의 enum 값은 표시명, 선택지 불일치는 unmatched', () => {
+  it('select는 선택지 value, 텍스트 입력란의 enum 값은 표시명, 선택지 불일치는 skipped', () => {
     const r = createEmptyResume();
     r.basics.gender = 'male';
     r.education = [{ id: 'e1', level: 'university', school: { ko: '한국대학교' }, status: 'expected' }];
@@ -203,7 +203,26 @@ describe('mapFields', () => {
       { fieldId: '0', schemaKey: 'education.0.level', value: '3', source: 'rule' },
       { fieldId: '1', schemaKey: 'education.0.status', value: '졸업 예정', source: 'rule' },
     ]);
-    expect(plan.unmatched).toEqual(['2']);
+    expect(plan.unmatched).toEqual([]);
+    expect(plan.skipped).toEqual([{ fieldId: '2', schemaKey: 'basics.gender', reason: 'no-option' }]);
+  });
+
+  it('select 학습 선택지: 이력서 값이 학습 당시와 같을 때만 적용, 선택지 없으면 사전 매칭', () => {
+    const r = createEmptyResume();
+    r.education = [{ id: 'e1', level: 'university', school: { ko: '한국대학교' }, status: 'graduated' }];
+    const level = field({ label: '학력', section: '학력사항', widget: 'select', options: [
+      { value: 'A', text: '일반 대학' },
+      { value: 'B', text: '대학교(4년)' },
+    ] });
+    const learned = (value: string) =>
+      new Map([[fieldFingerprint(level)!, { schemaKey: 'education.0.level', option: { value, text: '일반대학' } }]]);
+
+    expect(mapFields([level], r, learned('university')).items[0]).toMatchObject({ value: 'A', source: 'learned' });
+    // 이력서 값이 바뀌면 학습 선택지 무시 → 사전 매칭
+    expect(mapFields([level], r, learned('college')).items[0]?.value).toBe('B');
+    // 학습한 텍스트의 선택지가 사라지면 사전 매칭
+    const noLearnedText = { ...level, options: [{ value: 'B', text: '대학교(4년)' }] };
+    expect(mapFields([noLearnedText], r, learned('university')).items[0]?.value).toBe('B');
   });
 
   it('getValueByKey: 없는 경로·빈 문자열은 undefined', () => {

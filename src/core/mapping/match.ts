@@ -2,8 +2,8 @@ import type { Resume } from '@/core/schema/resume';
 import { formatValue } from '@/core/format';
 import type { FieldDescriptor, FillPlan, FormatHint, MatchSource } from '@/messaging/protocol';
 import { FIELD_RULES, SECTION_FIELD_RULES, SECTION_RULES, type RuleSection } from './dictionary';
-import { fieldFingerprint } from './learned';
-import { enumLabel, matchOption } from './options';
+import { fieldFingerprint, type LearnedMatch } from './learned';
+import { enumLabel, matchOption, normalizeOption } from './options';
 
 // 매핑 순서: 학습 규칙 → autocomplete 속성 → 키워드 사전 (docs/design/architecture.md 7.1)
 
@@ -15,14 +15,14 @@ function normalizeAutocomplete(value: string): string {
     .join(' ');
 }
 
-/** learned: 해당 origin의 fingerprint → schemaKey (learned.ts rulesForOrigin) */
+/** learned: 해당 origin의 fingerprint → 학습 정보 (learned.ts rulesForOrigin) */
 export function matchField(
   field: FieldDescriptor,
-  learned?: Map<string, string>,
-): { schemaKey: string; source: MatchSource } | null {
+  learned?: Map<string, LearnedMatch>,
+): { schemaKey: string; source: MatchSource; option?: LearnedMatch['option'] } | null {
   const fingerprint = learned && fieldFingerprint(field);
-  const learnedKey = fingerprint && learned.get(fingerprint);
-  if (learnedKey) return { schemaKey: learnedKey, source: 'learned' };
+  const rule = fingerprint && learned.get(fingerprint);
+  if (rule) return { schemaKey: rule.schemaKey, source: 'learned', option: rule.option };
   if (field.autocomplete) {
     const ac = normalizeAutocomplete(field.autocomplete);
     const rule = FIELD_RULES.find((r) => r.autocomplete.includes(ac));
@@ -63,16 +63,33 @@ export function getValueByKey(resume: Resume, schemaKey: string): string | undef
   return typeof cur === 'string' && cur.trim() ? cur : undefined;
 }
 
-/** 이력서 값을 입력란 형식으로 변환해 조회. select는 선택지 value, 텍스트 입력란의 enum 값은 표시명 */
-export function resolveValue(resume: Resume, schemaKey: string, hint: FormatHint): string | undefined {
+/** 학습한 선택지: 이력서 값이 학습 당시와 같을 때만, 같은 텍스트의 선택지가 있으면 그 value */
+function learnedOptionValue(value: string, hint: FormatHint, option?: LearnedMatch['option']): string | undefined {
+  if (!option || option.value !== value) return undefined;
+  const text = normalizeOption(option.text);
+  return hint.options?.find((o) => normalizeOption(o.text) === text)?.value;
+}
+
+/**
+ * 이력서 값을 입력란 형식으로 변환해 조회. select는 선택지 value(학습 선택지 우선), 텍스트 입력란의 enum 값은 표시명
+ * option: 학습 규칙의 선택지 (matchField 반환값)
+ */
+export function resolveValue(
+  resume: Resume,
+  schemaKey: string,
+  hint: FormatHint,
+  option?: LearnedMatch['option'],
+): string | undefined {
   const value = getValueByKey(resume, schemaKey);
   if (!value) return undefined;
-  if (hint.widget === 'select') return matchOption(schemaKey, value, hint.options ?? []);
+  if (hint.widget === 'select')
+    return learnedOptionValue(value, hint, option) ?? matchOption(schemaKey, value, hint.options ?? []);
   return enumLabel(schemaKey, value) ?? formatValue(schemaKey, value, hint);
 }
 
-export function mapFields(fields: FieldDescriptor[], resume: Resume, learned?: Map<string, string>): FillPlan {
-  const plan: FillPlan = { items: [], unmatched: [] };
+export function mapFields(fields: FieldDescriptor[], resume: Resume, learned?: Map<string, LearnedMatch>): FillPlan {
+  const skipped: NonNullable<FillPlan['skipped']> = [];
+  const plan: FillPlan = { items: [], unmatched: [], skipped };
   // 반복 항목 키('education.*.school.ko')는 페이지 등장 순서대로 인덱스 부여
   const counts = new Map<string, number>();
   for (const field of fields) {
@@ -83,8 +100,11 @@ export function mapFields(fields: FieldDescriptor[], resume: Resume, learned?: M
       counts.set(schemaKey, index + 1);
       schemaKey = schemaKey.replace('*', String(index));
     }
-    const value = schemaKey && resolveValue(resume, schemaKey, field);
+    const value = schemaKey && resolveValue(resume, schemaKey, field, match?.option);
     if (match && schemaKey && value) plan.items.push({ fieldId: field.fieldId, schemaKey, value, source: match.source });
+    // 이력서 값은 있지만 맞는 선택지 없음 → '확인 필요'로 사이드 패널에서 직접 선택
+    else if (schemaKey && field.widget === 'select' && getValueByKey(resume, schemaKey))
+      skipped.push({ fieldId: field.fieldId, schemaKey, reason: 'no-option' });
     else plan.unmatched.push(field.fieldId);
   }
   return plan;

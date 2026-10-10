@@ -1,5 +1,5 @@
-import { rulesForOrigin, upsertRule } from '@/core/mapping/learned';
-import { mapFields, resolveValue } from '@/core/mapping/match';
+import { rulesForOrigin, upsertRule, type LearnedRule } from '@/core/mapping/learned';
+import { getValueByKey, mapFields, resolveValue } from '@/core/mapping/match';
 import { applyFillOne, buildFillReport } from '@/core/mapping/report';
 import { isExcluded } from '@/core/site-policy';
 import {
@@ -8,6 +8,7 @@ import {
   type ActionResponse,
   type ErrorResponse,
   type FillReport,
+  type ReportField,
   type StartFillResponse,
   type UndoResponse,
 } from '@/messaging/protocol';
@@ -31,14 +32,12 @@ async function startFill(tabId: number): Promise<StartFillResponse> {
   const learned = rulesForOrigin(await learnedRulesItem.getValue(), new URL(details.url).origin);
   const plan = mapFields(details.fields, resume, learned);
   const result = await sendMessage('fill', plan, target);
-  await fillReportItem.setValue(buildFillReport(details, plan, result, tabId));
+  const report = buildFillReport(details, plan, result, tabId);
+  await fillReportItem.setValue(report);
 
-  return {
-    status: 'ok',
-    filled: result.filled.length,
-    failed: result.failed.length,
-    unmatched: plan.unmatched.length,
-  };
+  // 선택지 불일치(plan.skipped)도 '입력 실패'에 포함되도록 보고서 상태 기준으로 집계
+  const count = (status: ReportField['status']) => report.fields.filter((f) => f.status === status).length;
+  return { status: 'ok', filled: count('filled'), failed: count('failed'), unmatched: count('unmatched') };
 }
 
 async function requireReport(): Promise<FillReport> {
@@ -47,12 +46,23 @@ async function requireReport(): Promise<FillReport> {
   return report;
 }
 
-async function fillOne(fieldId: string, schemaKey: string): Promise<ActionResponse> {
+/** optionValue: select 선택지 직접 선택 → 그 선택지를 입력하고 '이력서 값 → 선택지 텍스트'도 학습 */
+async function fillOne(fieldId: string, schemaKey: string, optionValue?: string): Promise<ActionResponse> {
   const report = await requireReport();
   const field = report.fields.find((f) => f.fieldId === fieldId);
   if (!field) throw new Error('입력란을 찾을 수 없음');
   const resume = await resumeItem.getValue();
-  const value = resume && resolveValue(resume, schemaKey, field.hint);
+  let value: string | undefined;
+  let option: LearnedRule['option'];
+  if (optionValue !== undefined) {
+    const chosen = field.hint.options?.find((o) => o.value === optionValue);
+    if (!chosen) return { status: 'error', message: '선택지를 찾을 수 없음' };
+    value = chosen.value;
+    const original = resume && getValueByKey(resume, schemaKey);
+    if (original) option = { value: original, text: chosen.text };
+  } else {
+    value = resume ? resolveValue(resume, schemaKey, field.hint) : undefined;
+  }
   if (!value) return { status: 'error', message: '이력서 값 없음' };
 
   const plan = { items: [{ fieldId, schemaKey, value, source: 'manual' as const }], unmatched: [] };
@@ -64,6 +74,7 @@ async function fillOne(fieldId: string, schemaKey: string): Promise<ActionRespon
       origin: new URL(report.url).origin,
       fingerprint: field.fingerprint,
       schemaKey,
+      option,
       updatedAt: new Date().toISOString(),
     };
     await learnedRulesItem.setValue(upsertRule(await learnedRulesItem.getValue(), rule));
@@ -93,7 +104,7 @@ export default defineBackground(() => {
   });
 
   onMessage('startFill', ({ data }) => withErrors(() => startFill(data.tabId)));
-  onMessage('fillOne', ({ data }) => withErrors(() => fillOne(data.fieldId, data.schemaKey)));
+  onMessage('fillOne', ({ data }) => withErrors(() => fillOne(data.fieldId, data.schemaKey, data.optionValue)));
   onMessage('focusField', ({ data }) =>
     withErrors(async () => {
       const report = await requireReport();
