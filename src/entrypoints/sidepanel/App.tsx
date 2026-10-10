@@ -5,7 +5,7 @@ import { SCHEMA_KEY_LABELS } from '@/core/schema/labels';
 import { sendMessage, type ActionResponse, type FillReport, type ReportField } from '@/messaging/protocol';
 import { fillReportItem, resumeItem } from '@/storage/items';
 
-// 화면 설계: docs/design/screens.md 3장 (현재: 입력 결과 목록·복사·직접 입력·이동·되돌리기. 하이라이트·학습은 후속)
+// 화면 설계: docs/design/screens.md 3장 (현재: 입력 결과 목록·복사·직접 입력·이동·되돌리기·위치 표시)
 
 const REASON_LABELS: Record<string, string> = {
   'not-found': '입력란을 찾을 수 없음',
@@ -72,6 +72,7 @@ export default function App() {
   const [resume, setResume] = useState<Resume | null>(null);
   const [report, setReport] = useState<FillReport | null>(null);
   const [notice, setNotice] = useState('');
+  const [highlightOn, setHighlightOn] = useState(false);
 
   useEffect(() => {
     resumeItem.getValue().then(setResume);
@@ -83,6 +84,15 @@ export default function App() {
       unwatchReport();
     };
   }, []);
+
+  // 결과가 바뀌면(fillOne 등) 상태 색도 갱신. 결과 초기화(undo·재작성) 시 해제는 filler가 처리
+  useEffect(() => {
+    if (!report) return;
+    const fields = highlightOn ? report.fields.map(({ fieldId, status }) => ({ fieldId, status })) : [];
+    sendMessage('highlight', { fields }).then((r) => {
+      if (highlightOn && r.status === 'error') setNotice(r.message);
+    });
+  }, [report, highlightOn]);
 
   const valueOf = (schemaKey?: string) => (resume && schemaKey ? getValueByKey(resume, schemaKey) : undefined);
   const byStatus = (status: ReportField['status']) => report?.fields.filter((f) => f.status === status) ?? [];
@@ -109,7 +119,17 @@ export default function App() {
               {report.url} · {new Date(report.at).toLocaleTimeString()}
             </small>
           </p>
+          {report.fields.length > 0 && (
+            <button onClick={() => setHighlightOn(!highlightOn)}>
+              {highlightOn ? '위치 표시 끄기' : '입력 항목 위치 보기'}
+            </button>
+          )}{' '}
           {filled.length > 0 && <button onClick={undo}>되돌리기</button>}
+          {highlightOn && (
+            <p>
+              <small>테두리: 초록 입력 완료 · 주황 확인 필요 · 회색 해당 없음</small>
+            </p>
+          )}
 
           {failed.length > 0 && (
             <section>

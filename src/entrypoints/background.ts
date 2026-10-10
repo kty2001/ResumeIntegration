@@ -14,7 +14,7 @@ import {
 import { fillReportItem, learnedRulesItem, resumeItem } from '@/storage/items';
 
 // 자동 입력 흐름: docs/design/architecture.md 7.1 (현재 최상위 프레임만 처리)
-// 사이드 패널 동작(fillOne·focusField·undo): 7.2·7.3, 대상 탭은 session:fillReport의 tabId
+// 사이드 패널 동작(fillOne·focusField·highlight·undo): 7.2·7.3, 대상 탭은 session:fillReport의 tabId
 // fillOne 성공 시 학습 규칙 저장 → 다음 startFill에서 매핑 1순위
 
 async function startFill(tabId: number): Promise<StartFillResponse> {
@@ -98,6 +98,12 @@ export default defineBackground(() => {
     withErrors(async () => {
       const report = await requireReport();
       return sendMessage('focusField', data, { tabId: report.tabId, frameId: 0 });
+    }),
+  );
+  onMessage('highlight', ({ data }) =>
+    withErrors(async () => {
+      const report = await requireReport();
+      return sendMessage('highlight', data, { tabId: report.tabId, frameId: 0 });
     }),
   );
   onMessage('undo', () => withErrors(undo));

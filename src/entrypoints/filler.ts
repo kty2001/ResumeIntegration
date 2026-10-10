@@ -1,4 +1,5 @@
 import { collectPageDetails, getElement } from '@/dom/collect';
+import { clearHighlights, showHighlights } from '@/dom/highlight';
 import { restoreAll, saveSnapshot } from '@/dom/snapshot';
 import { fillText } from '@/dom/widgets/text';
 import { onMessage, type FillResult } from '@/messaging/protocol';
@@ -17,7 +18,11 @@ export default defineUnlistedScript(() => {
   if (window.__resumeFillerInjected) return;
   window.__resumeFillerInjected = true;
 
-  onMessage('collect', () => collectPageDetails());
+  // 재수집 시 fieldId가 다시 매겨지므로 기존 하이라이트 해제
+  onMessage('collect', () => {
+    clearHighlights();
+    return collectPageDetails();
+  });
 
   onMessage('fill', ({ data: plan }) => {
     const result: FillResult = { filled: [], failed: [] };
@@ -44,5 +49,18 @@ export default defineUnlistedScript(() => {
     return { status: 'ok' };
   });
 
-  onMessage('undo', () => ({ status: 'ok', restored: restoreAll() }));
+  onMessage('highlight', ({ data }) => {
+    const items = data.fields.flatMap(({ fieldId, status }) => {
+      const el = getElement(fieldId);
+      return el ? [{ el, status }] : [];
+    });
+    showHighlights(items);
+    return { status: 'ok' };
+  });
+
+  // 되돌리면 입력 결과가 초기화되므로 하이라이트도 해제
+  onMessage('undo', () => {
+    clearHighlights();
+    return { status: 'ok', restored: restoreAll() };
+  });
 });

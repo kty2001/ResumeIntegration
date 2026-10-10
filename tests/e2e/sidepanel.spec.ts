@@ -124,11 +124,18 @@ test('작성 → 페이지 입력 + 사이드 패널 결과·복사·재실행 �
   await expect(panel.getByText('입력 완료 10 · 확인 필요 0 · 해당 없음 1')).toBeVisible();
 });
 
-test('사이드 패널 직접 입력·입력란 이동·되돌리기', async ({ context, worker, extensionId }) => {
+test('사이드 패널 직접 입력·입력란 이동·위치 표시·되돌리기', async ({ context, worker, extensionId }) => {
   const { page } = await runFill(context, worker, extensionId);
   const panel = await context.newPage();
   await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
   await expect(panel.getByText('입력 완료 9 · 확인 필요 1 · 해당 없음 1')).toBeVisible();
+
+  // 위치 표시 (highlight): Shadow Root 안 상태별 테두리 박스 (Playwright CSS 선택자는 open shadow root 관통)
+  const boxes = page.locator('[data-status]');
+  await panel.getByRole('button', { name: '입력 항목 위치 보기' }).click();
+  await expect(boxes).toHaveCount(11);
+  await expect(page.locator('[data-status=filled]')).toHaveCount(9);
+  await expect(page.locator('[data-status=failed]')).toHaveCount(1);
 
   // 해당 없음 입력란에 이력서 항목 골라 입력 (fillOne)
   await panel.getByText('해당 없음 1개').click();
@@ -136,6 +143,7 @@ test('사이드 패널 직접 입력·입력란 이동·되돌리기', async ({ 
   await panel.getByRole('listitem').filter({ hasText: '회사 이름' }).getByRole('button', { name: '입력' }).click();
   await expect(panel.getByText('입력 완료 10 · 확인 필요 1 · 해당 없음 0')).toBeVisible();
   await expect(page.locator('#company')).toHaveValue('gildong@example.com');
+  await expect(page.locator('[data-status=filled]')).toHaveCount(10);
 
   // 확인 필요 입력란으로 이동 (focusField)
   await panel.getByRole('listitem').filter({ hasText: '우편번호 앞 3자리' }).getByRole('button', { name: '이동' }).click();
@@ -148,6 +156,7 @@ test('사이드 패널 직접 입력·입력란 이동·되돌리기', async ({ 
   await expect(page.locator('#nm')).toHaveValue('');
   await expect(page.locator('#company')).toHaveValue('');
   await expect(page.locator('#intro')).toHaveValue('');
+  await expect(boxes).toHaveCount(0);
 });
 
 test('입력란 형식 신호에 따라 날짜·전화번호 변환', async ({ context, worker, extensionId }) => {

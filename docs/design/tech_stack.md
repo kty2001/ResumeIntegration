@@ -19,7 +19,7 @@
 |---|---|---|
 | 메시징 | `@webext-core/messaging` | WXT 문서 추천 목록 중 가장 가벼운 타입 안전 래퍼 — [WXT Messaging](https://wxt.dev/guide/essentials/messaging.html) |
 | 단위 테스트 | Vitest | WXT가 Vite 기반 → 설정 공유 |
-| 페이지 내 UI 격리 | WXT `createShadowRootUi` | 하이라이트·안내 UI가 사이트 CSS와 충돌하지 않도록 Shadow Root로 격리 |
+| 페이지 내 UI 격리 | WXT `createShadowRootUi` | 하이라이트·안내 UI가 사이트 CSS와 충돌하지 않도록 Shadow Root로 격리 (unlisted script인 filler는 `ContentScriptContext`가 없어 네이티브 `attachShadow` 사용) |
 
 ## 미결
 

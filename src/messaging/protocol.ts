@@ -68,13 +68,15 @@ export type ErrorResponse = { status: 'error'; message: string };
 export type ActionResponse = { status: 'ok' } | ErrorResponse;
 export type UndoResponse = { status: 'ok'; restored: number } | ErrorResponse;
 
-// focusField·undo: sidepanel → background(runtime 메시지)와 background → filler(tabs 메시지)에 같은 이름 사용
+// focusField·highlight·undo: sidepanel → background(runtime 메시지)와 background → filler(tabs 메시지)에 같은 이름 사용
 interface ProtocolMap {
   startFill(data: { tabId: number }): StartFillResponse;
   collect(): PageDetails;
   fill(plan: FillPlan): FillResult;
   fillOne(data: { fieldId: string; schemaKey: string }): ActionResponse;
   focusField(data: { fieldId: string }): ActionResponse;
+  /** 입력란 위치 표시, 빈 배열이면 해제 */
+  highlight(data: { fields: Pick<ReportField, 'fieldId' | 'status'>[] }): ActionResponse;
   undo(): UndoResponse;
 }
 

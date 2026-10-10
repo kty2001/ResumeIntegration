@@ -21,6 +21,7 @@
 - 형식 변환(`core/format`): 생년월일(`YYYY-MM-DD` → `YYYY.MM.DD`·`YYYYMMDD`·`YYMMDD` 등)·전화번호(숫자만/하이픈)를 입력란 placeholder·maxLength 신호로 변환, 신호 없으면 저장값 그대로. `input[type=date]` 수집. 자동 입력·사이드 패널 직접 입력·복사에 공통 적용(`resolveValue`, `ReportField.hint`). 단위 테스트 26개·E2E 3개·타입 검사·빌드 통과
 - 학습 규칙: 사이드 패널 직접 입력 성공 시 `origin + fingerprint → schemaKey` 규칙을 `local:learnedRules`에 저장(같은 입력란은 교체), 다음 '작성'에서 autocomplete·사전보다 우선 적용, 사이드 패널에 '(학습)' 표시. fingerprint는 widget·name·id·표시 텍스트 조합(`core/mapping/learned.ts`). 단위 테스트 32개·E2E 4개·타입 검사·빌드 통과
 - 옵션 화면 학습 규칙 조회·삭제: '학습 규칙' 섹션에 사이트·입력란(fingerprint 표시 텍스트 → name → id)·이력서 항목·수정일 표, '삭제' 시 `local:learnedRules`에서 제거(`removeRule`). 단위 테스트 34개·E2E 4개(학습 규칙 시나리오에 조회·삭제 추가)·타입 검사·빌드 통과
+- 입력 항목 하이라이트: 사이드 패널 '입력 항목 위치 보기' 토글 → `highlight` 메시지(sidepanel → background → filler) → 페이지에 상태별 색 테두리(초록 입력 완료·주황 확인 필요·회색 해당 없음). `dom/highlight.ts`가 Shadow Root 안 `position: fixed` 박스로 표시(페이지 요소 스타일 미변경, scroll·resize 시 재배치), `fillOne` 후 색 갱신, `collect`·`undo` 시 해제. 단위 테스트 34개·E2E 4개(직접 입력 시나리오에 위치 표시 추가)·타입 검사·빌드 통과
 - Playwright E2E 환경: `npm run test:e2e` (e2e 모드 빌드 → 확장 프로그램 로드한 Chromium). 툴바 클릭(activeTab) 재현 불가 → e2e 빌드에만 `http://localhost/*` 호스트 권한, fixture는 route 응답. 검증 시나리오: '작성' → 사이드 패널 열림(`runtime.getContexts`), fixture 입력값, 사이드 패널 결과·복사(붙여넣기 확인), 재실행 시 갱신 — 통과
 
 ## 결정 사항
@@ -41,7 +42,6 @@
 
 ## 다음 작업
 - 옵션 화면 브라우저 동작 확인 (사용자 수동, `tests/e2e/fixtures/basics.html`)
-- 사이드 패널 후속: 입력 항목 하이라이트
 - 매핑 확장: 학력·경력 등 섹션 문맥 (연월 `YYYY-MM` 형식 변환 포함)
 - 사람인·잡코리아 DOM 현장 조사 (사용자 로그인 필요)
 - 필드 키워드·옵션 동의어 사전 v1
