@@ -186,6 +186,7 @@ Popup '작성' 클릭 (activeTab 부여)
 | `session:fillReport` | 마지막 자동 입력 결과 (`FillReport`) | 사이드 패널 표시용, '작성' 시작 시 초기화 |
 
 - `storage.setAccessLevel`로 content script의 storage 접근 차단 → filler는 메시지로 받은 값만 사용
+- 백업 파일(옵션 '백업'): `resume`·`coverLetters`·`learnedRules`만 포함, `session:*`·`llmKey` 제외 (`core/backup.ts`, 가져오기 시 `resume.meta.schemaVersion` 확인)
 
 ## 9. 사이트 정책
 - 기본 제외 목록: `linkedin.com` (이용약관상 확장 프로그램의 활동 자동화·화면 변경 금지, [05 보고서](../reports/05_privacy_and_policy.md) 4.1)
