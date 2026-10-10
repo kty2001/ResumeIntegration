@@ -1,62 +1,14 @@
-import path from 'node:path';
-import { chromium, expect, test as base, type BrowserContext, type Worker } from '@playwright/test';
+import type { BrowserContext, Worker } from '@playwright/test';
 import type { Resume } from '@/core/schema/resume';
+import { expect, FIXTURE_ORIGIN, resume, test } from './extension';
 
-// 자동 입력 → 사이드 패널 결과 표시 E2E
-// - e2e 빌드는 http://localhost/* 호스트 권한 보유 (wxt.config.ts) → 툴바 클릭 없이 filler 주입 가능
-// - fixture는 실제 서버 없이 route로 응답
+// 자동 입력 → 사이드 패널 결과 표시 E2E (확장 로드·fixture 응답은 extension.ts)
 // - 사이드 패널은 탭으로 열어 확인 (Playwright로 브라우저 사이드 패널 UI 조작 불가)
 
 // worker.evaluate 콜백은 service worker에서 실행 → WXT browser 타입으로 chrome 전역 선언
 declare const chrome: typeof browser;
 
-const EXTENSION_PATH = path.resolve('.output/chrome-mv3-e2e');
-const FIXTURE_DIR = path.resolve('tests/e2e/fixtures');
-const FIXTURE_ORIGIN = 'http://localhost';
 const BASICS_SUMMARY = '입력 완료 9개 · 입력 실패 1개 · 해당 없음 1개';
-
-const resume: Resume = {
-  meta: { schemaVersion: 1, updatedAt: '2026-10-09T00:00:00.000Z' },
-  basics: {
-    name: { ko: '홍길동', en: 'Gildong Hong' },
-    birthDate: '1995-03-15',
-    email: 'gildong@example.com',
-    phone: { mobile: '010-1234-5678' },
-    address: { postalCode: '06236', line1: '서울특별시 강남구 테헤란로 1', line2: '101호' },
-    urls: [],
-    summary: '백엔드 개발자',
-  },
-  education: [],
-  work: [],
-  languageTests: [],
-  languages: [],
-  certificates: [],
-  awards: [],
-  activities: [],
-  projects: [],
-  skills: [],
-  attachments: [],
-};
-
-const test = base.extend<{ context: BrowserContext; worker: Worker; extensionId: string }>({
-  context: async ({}, use) => {
-    const context = await chromium.launchPersistentContext('', {
-      channel: 'chromium',
-      args: [`--disable-extensions-except=${EXTENSION_PATH}`, `--load-extension=${EXTENSION_PATH}`],
-    });
-    await context.route('http://localhost/**', (route) =>
-      route.fulfill({ path: path.join(FIXTURE_DIR, new URL(route.request().url()).pathname) }),
-    );
-    await use(context);
-    await context.close();
-  },
-  worker: async ({ context }, use) => {
-    await use(context.serviceWorkers()[0] ?? (await context.waitForEvent('serviceworker')));
-  },
-  extensionId: async ({ worker }, use) => {
-    await use(new URL(worker.url()).host);
-  },
-});
 
 /** 이력서 저장 → fixture 열기 → 팝업 '작성' → 팝업 요약 확인 */
 async function runFill(
@@ -158,6 +110,27 @@ test('사이드 패널 직접 입력·입력란 이동·위치 표시·되돌리
   await expect(page.locator('#company')).toHaveValue('');
   await expect(page.locator('#intro')).toHaveValue('');
   await expect(boxes).toHaveCount(0);
+});
+
+test('사이드 패널 건너뛰기·다시 작성', async ({ context, worker, extensionId }) => {
+  const { page } = await runFill(context, worker, extensionId);
+  const panel = await context.newPage();
+  await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+  await expect(panel.getByText('입력 완료 9 · 확인 필요 1 · 해당 없음 1')).toBeVisible();
+
+  // 건너뛰기: 확인 필요 → 해당 없음
+  await panel.getByRole('listitem').filter({ hasText: '우편번호 앞 3자리' }).getByRole('button', { name: '건너뛰기' }).click();
+  await expect(panel.getByText('입력 완료 9 · 확인 필요 0 · 해당 없음 2')).toBeVisible();
+  await panel.getByText('해당 없음 2개').click();
+  await expect(panel.getByRole('listitem').filter({ hasText: '우편번호 앞 3자리' })).toBeVisible();
+
+  // 다시 작성: 같은 탭 재실행 → 지운 값 복원, 건너뛴 항목은 다시 확인 필요
+  await page.locator('#nm').fill('');
+  await panel.bringToFront();
+  await panel.getByRole('button', { name: '다시 작성' }).click();
+  await expect(panel.getByRole('status')).toHaveText('입력 완료 9개 · 입력 실패 1개 · 해당 없음 1개');
+  await expect(panel.getByText('입력 완료 9 · 확인 필요 1 · 해당 없음 1')).toBeVisible();
+  await expect(page.locator('#nm')).toHaveValue('홍길동');
 });
 
 test('입력란 형식 신호에 따라 날짜·전화번호 변환', async ({ context, worker, extensionId }) => {

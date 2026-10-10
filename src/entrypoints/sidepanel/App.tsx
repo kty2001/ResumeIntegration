@@ -1,11 +1,12 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { resolveValue } from '@/core/mapping/match';
+import { skipField } from '@/core/mapping/report';
 import type { Resume } from '@/core/schema/resume';
 import { schemaKeyLabel, schemaKeyOptions } from '@/core/schema/labels';
-import { sendMessage, type ActionResponse, type FillReport, type ReportField } from '@/messaging/protocol';
+import { describeStartFill, sendMessage, type ActionResponse, type FillReport, type ReportField } from '@/messaging/protocol';
 import { fillReportItem, resumeItem } from '@/storage/items';
 
-// 화면 설계: docs/design/screens.md 3장 (현재: 입력 결과 목록·복사·직접 입력·선택지 직접 선택·이동·되돌리기·위치 표시)
+// 화면 설계: docs/design/screens.md 3장 (현재: 입력 결과 목록·복사·직접 입력·선택지 직접 선택·이동·건너뛰기·다시 작성·되돌리기·위치 표시)
 
 const REASON_LABELS: Record<string, string> = {
   'not-found': '입력란을 찾을 수 없음',
@@ -134,6 +135,17 @@ export default function App() {
     setNotice(r.status === 'ok' ? `${r.restored}개 되돌림` : r.message);
   };
 
+  // 같은 탭 재작성 (activeTab 부여가 남아 있는 같은 페이지에서만 동작)
+  const refill = async (tabId: number) => {
+    setNotice(describeStartFill(await sendMessage('startFill', { tabId })));
+  };
+
+  // 확인 필요 → 해당 없음 (보고서만 변경, 페이지 조작 없음)
+  const skip = async (fieldId: string) => {
+    const current = await fillReportItem.getValue();
+    if (current) await fillReportItem.setValue(skipField(current, fieldId));
+  };
+
   return (
     <main style={{ padding: 16 }}>
       <h1 style={{ fontSize: 16, margin: 0 }}>입력 결과</h1>
@@ -152,6 +164,7 @@ export default function App() {
               {highlightOn ? '위치 표시 끄기' : '입력 항목 위치 보기'}
             </button>
           )}{' '}
+          <button onClick={() => void refill(report.tabId)}>다시 작성</button>{' '}
           {filled.length > 0 && <button onClick={undo}>되돌리기</button>}
           {highlightOn && (
             <p>
@@ -174,7 +187,8 @@ export default function App() {
                       <OptionControls field={{ ...f, schemaKey: f.schemaKey }} notify={setNotice} />
                     ) : (
                       <FillControls field={f} options={copyable} notify={setNotice} />
-                    )}
+                    )}{' '}
+                    <button onClick={() => void skip(f.fieldId)}>건너뛰기</button>
                   </ValueRow>
                 ))}
               </ul>

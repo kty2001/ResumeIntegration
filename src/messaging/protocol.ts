@@ -67,6 +67,20 @@ export type StartFillResponse =
   | { status: 'excluded' | 'no-resume' }
   | { status: 'error'; message: string };
 
+/** '작성' 결과 문구 (팝업·사이드 패널 공용) */
+export function describeStartFill(res: StartFillResponse): string {
+  switch (res.status) {
+    case 'ok':
+      return `입력 완료 ${res.filled}개 · 입력 실패 ${res.failed}개 · 해당 없음 ${res.unmatched}개`;
+    case 'excluded':
+      return '이용약관상 자동 입력을 지원하지 않는 사이트입니다.';
+    case 'no-resume':
+      return '저장된 이력서가 없습니다.';
+    case 'error':
+      return `입력하지 못했습니다: ${res.message}`;
+  }
+}
+
 export type ErrorResponse = { status: 'error'; message: string };
 export type ActionResponse = { status: 'ok' } | ErrorResponse;
 export type UndoResponse = { status: 'ok'; restored: number } | ErrorResponse;

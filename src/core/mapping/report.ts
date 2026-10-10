@@ -49,3 +49,13 @@ export function applyFillOne(report: FillReport, fieldId: string, schemaKey: str
   });
   return { ...report, fields };
 }
+
+/** 사이드 패널 '건너뛰기': 확인 필요 입력란을 해당 없음으로 이동 (페이지 조작·학습 없음) */
+export function skipField(report: FillReport, fieldId: string): FillReport {
+  const fields = report.fields.map((field): ReportField => {
+    if (field.fieldId !== fieldId) return field;
+    const { reason: _reason, source: _source, ...rest } = field;
+    return { ...rest, status: 'unmatched' };
+  });
+  return { ...report, fields };
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyFillOne, buildFillReport } from '@/core/mapping/report';
+import { applyFillOne, buildFillReport, skipField } from '@/core/mapping/report';
 import type { FillPlan, FillResult, PageDetails } from '@/messaging/protocol';
 
 const details: PageDetails = {
@@ -107,5 +107,17 @@ describe('applyFillOne', () => {
   it('입력 실패 시 사유 반영', () => {
     const r = applyFillOne(report, '0', 'basics.name.en', { filled: [], failed: [{ fieldId: '0', reason: 'too-long' }] });
     expect(r.fields[0]).toMatchObject({ status: 'failed', schemaKey: 'basics.name.en', reason: 'too-long' });
+  });
+});
+
+describe('skipField', () => {
+  const report = buildFillReport(details, plan, result, 7);
+
+  it('해당 입력란만 해당 없음으로 이동, 사유 제거·나머지 정보 유지', () => {
+    const r = skipField(report, '1');
+    expect(r.fields[1]).toMatchObject({ fieldId: '1', status: 'unmatched', schemaKey: 'basics.email', label: '이메일' });
+    expect(r.fields[1]?.reason).toBeUndefined();
+    expect(r.fields.filter((f, i) => f !== report.fields[i])).toHaveLength(1);
+    expect(r.tabId).toBe(7);
   });
 });

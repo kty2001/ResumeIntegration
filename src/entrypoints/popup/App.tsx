@@ -1,22 +1,9 @@
 import { useEffect, useState } from 'react';
 import type { Resume } from '@/core/schema/resume';
-import { sendMessage, type StartFillResponse } from '@/messaging/protocol';
+import { describeStartFill as describe, sendMessage } from '@/messaging/protocol';
 import { resumeItem } from '@/storage/items';
 
-// 화면 설계: docs/design/screens.md 2장 (현재: 작성 가능·이력서 미입력·제외 사이트 상태)
-
-function describe(res: StartFillResponse): string {
-  switch (res.status) {
-    case 'ok':
-      return `입력 완료 ${res.filled}개 · 입력 실패 ${res.failed}개 · 해당 없음 ${res.unmatched}개`;
-    case 'excluded':
-      return '이용약관상 자동 입력을 지원하지 않는 사이트입니다.';
-    case 'no-resume':
-      return '저장된 이력서가 없습니다.';
-    case 'error':
-      return `입력하지 못했습니다: ${res.message}`;
-  }
-}
+// 화면 설계: docs/design/screens.md 2장 (현재: 작성 가능·이력서 미입력(JSON 가져오기 포함)·제외 사이트 상태)
 
 export default function App() {
   const [resume, setResume] = useState<Resume | null | undefined>(undefined);
@@ -31,6 +18,7 @@ export default function App() {
   }, []);
 
   const openOptions = () => void browser.runtime.openOptionsPage();
+  const openBackup = () => void browser.tabs.create({ url: browser.runtime.getURL('/options.html#backup') });
 
   const fill = async () => {
     if (tabId == null) {
@@ -65,7 +53,8 @@ export default function App() {
       ) : (
         <>
           <p>저장된 이력서가 없습니다. 먼저 이력서를 입력해 주세요.</p>
-          <button onClick={openOptions}>이력서 입력하러 가기</button>
+          <button onClick={openOptions}>이력서 입력하러 가기</button>{' '}
+          <button onClick={openBackup}>JSON 가져오기</button>
         </>
       )}
       {message && <p>{message}</p>}

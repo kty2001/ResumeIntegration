@@ -1,6 +1,7 @@
 import { useState, type ComponentType } from 'react';
 import type { SectionProps } from './fields';
 import { ActivitySection } from './sections/ActivitySection';
+import { BackupSection } from './sections/BackupSection';
 import { BasicSection } from './sections/BasicSection';
 import { DesiredSection } from './sections/DesiredSection';
 import { EducationSection } from './sections/EducationSection';
@@ -22,7 +23,11 @@ const SECTIONS: { id: string; title: string; component: ComponentType<SectionPro
   { id: 'project', title: '프로젝트·기술', component: ProjectSection },
   { id: 'desired', title: '희망 조건', component: DesiredSection },
   { id: 'rules', title: '학습 규칙', component: RulesSection },
+  { id: 'backup', title: '백업', component: BackupSection },
 ];
+
+// 팝업 'JSON 가져오기' 등에서 options.html#backup 으로 메뉴 지정
+const initialSection = () => SECTIONS.find((s) => `#${s.id}` === location.hash)?.id ?? SECTIONS[0]!.id;
 
 function statusText(status: SaveStatus, updatedAt?: string) {
   switch (status) {
@@ -39,7 +44,7 @@ function statusText(status: SaveStatus, updatedAt?: string) {
 
 export default function App() {
   const { resume, update, status } = useResume();
-  const [current, setCurrent] = useState(SECTIONS[0]!.id);
+  const [current, setCurrent] = useState(initialSection);
   const section = SECTIONS.find((s) => s.id === current) ?? SECTIONS[0]!;
   const Section = section.component;
 

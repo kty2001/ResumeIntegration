@@ -19,14 +19,24 @@ import { fillReportItem, learnedRulesItem, resumeItem } from '@/storage/items';
 // fillOne 성공 시 학습 규칙 저장 → 다음 startFill에서 매핑 1순위
 
 async function startFill(tabId: number): Promise<StartFillResponse> {
-  await fillReportItem.setValue(null);
   const tab = await browser.tabs.get(tabId);
-  if (tab.url && isExcluded(tab.url)) return { status: 'excluded' };
-
+  if (tab.url && isExcluded(tab.url)) {
+    await fillReportItem.setValue(null);
+    return { status: 'excluded' };
+  }
   const resume = await resumeItem.getValue();
-  if (!resume) return { status: 'no-resume' };
+  if (!resume) {
+    await fillReportItem.setValue(null);
+    return { status: 'no-resume' };
+  }
 
-  await browser.scripting.executeScript({ target: { tabId }, files: ['/filler.js'] });
+  // 사이드 패널 '다시 작성'은 activeTab 부여가 없어 페이지 이동 후 실패 → 안내 문구, 기존 결과는 유지
+  try {
+    await browser.scripting.executeScript({ target: { tabId }, files: ['/filler.js'] });
+  } catch {
+    throw new Error("페이지 접근 권한 없음: 툴바 아이콘의 '작성'으로 다시 실행해 주세요");
+  }
+  await fillReportItem.setValue(null);
   const target = { tabId, frameId: 0 };
   const details = await sendMessage('collect', undefined, target);
   const learned = rulesForOrigin(await learnedRulesItem.getValue(), new URL(details.url).origin);

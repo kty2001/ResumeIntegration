@@ -22,6 +22,10 @@ export function useResume() {
         setStatus('idle');
       })
       .catch(() => setStatus('error'));
+    // 백업 가져오기·전체 삭제 등 외부 변경 반영 (대기 중인 저장이 있으면 편집 내용 우선)
+    return resumeItem.watch((saved) => {
+      if (!pending.current) setResume(saved ?? createEmptyResume());
+    });
   }, []);
 
   const flush = useCallback(async () => {
