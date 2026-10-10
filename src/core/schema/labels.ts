@@ -153,9 +153,22 @@ export const SCHEMA_KEY_LABELS: Record<string, string> = {
   'basics.summary': '한 줄 소개',
 };
 
-// 반복 항목 스키마 키(인덱스 자리 '*') → 표시명. 매핑 사전 SECTION_FIELD_RULES와 같은 키
-const SECTION_LABELS = { education: '학력', work: '경력' } as const;
+// 반복 항목 섹션 (매핑 사전 SectionKey의 기준) → 표시명
+export const SECTION_LABELS = {
+  education: '학력',
+  work: '경력',
+  certificates: '자격증',
+  languageTests: '어학',
+  awards: '수상',
+  activities: '활동',
+  projects: '프로젝트',
+} as const;
 
+export type SectionKey = keyof typeof SECTION_LABELS;
+
+const SECTION_KEYS = Object.keys(SECTION_LABELS) as SectionKey[];
+
+// 반복 항목 스키마 키(인덱스 자리 '*') → 표시명. 매핑 사전 SECTION_FIELD_RULES와 같은 키
 export const ITEM_KEY_LABELS: Record<string, string> = {
   'education.*.school.ko': '학교명',
   'education.*.school.en': '영문 학교명',
@@ -178,20 +191,47 @@ export const ITEM_KEY_LABELS: Record<string, string> = {
   'work.*.salary': '연봉(만원)',
   'work.*.leaveReason': '퇴사 사유',
   'work.*.description': '담당 업무',
+  'certificates.*.name': '자격증명',
+  'certificates.*.issuer': '발행 기관',
+  'certificates.*.date': '취득일',
+  'certificates.*.number': '자격 번호',
+  'languageTests.*.exam': '시험명',
+  'languageTests.*.score': '점수',
+  'languageTests.*.grade': '등급',
+  'languageTests.*.date': '응시일',
+  'languageTests.*.expiresAt': '만료일',
+  'languageTests.*.registrationNo': '수험 번호',
+  'awards.*.title': '수상명',
+  'awards.*.awarder': '수여 기관',
+  'awards.*.date': '수상일',
+  'awards.*.description': '수상 내용',
+  'activities.*.name': '활동명',
+  'activities.*.organization': '기관',
+  'activities.*.startDate': '시작 연월',
+  'activities.*.endDate': '종료 연월',
+  'activities.*.description': '활동 내용',
+  'projects.*.name': '프로젝트명',
+  'projects.*.organization': '기관',
+  'projects.*.startDate': '시작 연월',
+  'projects.*.endDate': '종료 연월',
+  'projects.*.url': 'URL',
+  'projects.*.description': '프로젝트 내용',
 };
+
+const ITEM_KEY = new RegExp(`^(${SECTION_KEYS.join('|')})\\.(\\d+)\\.(.+)$`);
 
 /** 스키마 키 표시명: basics는 그대로, 반복 항목은 '학력 1 학교명' 형식 */
 export function schemaKeyLabel(schemaKey: string): string {
-  const m = schemaKey.match(/^(education|work)\.(\d+)\.(.+)$/);
+  const m = schemaKey.match(ITEM_KEY);
   const item = m && ITEM_KEY_LABELS[`${m[1]}.*.${m[3]}`];
-  if (m && item) return `${SECTION_LABELS[m[1] as keyof typeof SECTION_LABELS]} ${Number(m[2]) + 1} ${item}`;
+  if (m && item) return `${SECTION_LABELS[m[1] as SectionKey]} ${Number(m[2]) + 1} ${item}`;
   return SCHEMA_KEY_LABELS[schemaKey] ?? schemaKey;
 }
 
-/** 사이드 패널 선택·복사 대상 키 목록: basics + 이력서 학력·경력 항목 수만큼 */
-export function schemaKeyOptions(resume: Pick<Resume, 'education' | 'work'>): [string, string][] {
+/** 사이드 패널 선택·복사 대상 키 목록: basics + 이력서 반복 항목 수만큼 */
+export function schemaKeyOptions(resume: Pick<Resume, SectionKey>): [string, string][] {
   const keys = Object.keys(SCHEMA_KEY_LABELS);
-  for (const section of ['education', 'work'] as const) {
+  for (const section of SECTION_KEYS) {
     resume[section].forEach((_, i) => {
       for (const key of Object.keys(ITEM_KEY_LABELS)) {
         if (key.startsWith(`${section}.`)) keys.push(key.replace('*', String(i)));

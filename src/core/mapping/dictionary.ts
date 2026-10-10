@@ -2,7 +2,9 @@
 // 배열 순서 = 검사 순서: 다른 키의 키워드를 포함하는 구체적 항목을 앞에 둠
 // (예: '영문 이름' → 이름, '이메일 주소' → 주소, '상세 주소' → 주소)
 
-export type SectionKey = 'education' | 'work';
+import type { SectionKey } from '@/core/schema/labels';
+
+export type { SectionKey };
 
 export interface FieldRule {
   schemaKey: string;        // 섹션 규칙은 인덱스 자리를 '*'로 표기 (education.*.school.ko)
@@ -15,7 +17,13 @@ export interface FieldRule {
 // 섹션 판별: 입력란 텍스트 → 섹션 텍스트(fieldset legend·직전 제목) 순, 두 섹션이 함께 걸리면 판별 보류
 export const SECTION_RULES: { section: SectionKey; pattern: RegExp }[] = [
   { section: 'education', pattern: /학력|학교|school|education/i },
-  { section: 'work', pattern: /경력|직장|회사|company|employment|work\s*experience|career/i },
+  // '수상경력'·'활동 경력' 같은 제목은 경력 섹션으로 보지 않음
+  { section: 'work', pattern: /(?<!(수상|활동|봉사)\s*)경력|직장|회사|company|employment|work\s*experience|career/i },
+  { section: 'certificates', pattern: /자격|면허|certificat|license|\bcert/i },
+  { section: 'languageTests', pattern: /어학|외국어|language|toeic|토익/i },
+  { section: 'awards', pattern: /수상|award|honou?r/i },
+  { section: 'activities', pattern: /활동|동아리|봉사|activit|volunteer|extracurricular/i },
+  { section: 'projects', pattern: /프로젝트|project/i },
 ];
 
 // enum 성격 라벨 (학교 구분·졸업 상태·고용 형태 등) → 드롭다운 처리 시 매핑
@@ -126,6 +134,129 @@ export const SECTION_FIELD_RULES: FieldRule[] = [
     autocomplete: [],
     pattern: /회사|직장|company/i,
     exclude: /주소|전화|규모|업종|size|industry|구분|형태|유형|type|소재|location/i,
+  },
+  // 자격증
+  {
+    section: 'certificates',
+    schemaKey: 'certificates.*.number',
+    autocomplete: [],
+    pattern: /번호|number|\bno\b/i,
+  },
+  {
+    section: 'certificates',
+    schemaKey: 'certificates.*.issuer',
+    autocomplete: [],
+    pattern: /기관|발행|시행처|issuer|issued\s*by|organization/i,
+  },
+  {
+    section: 'certificates',
+    schemaKey: 'certificates.*.date',
+    autocomplete: [],
+    pattern: /취득|발급\s*일|합격|date|acquired/i,
+    exclude: ENUM_LABEL,
+  },
+  {
+    section: 'certificates',
+    schemaKey: 'certificates.*.name',
+    autocomplete: [],
+    pattern: /자격|면허|명칭|name|certificat|license/i,
+    exclude: ENUM_LABEL,
+  },
+  // 어학
+  {
+    section: 'languageTests',
+    schemaKey: 'languageTests.*.registrationNo',
+    autocomplete: [],
+    pattern: /번호|registration|number|\bno\b/i,
+  },
+  {
+    section: 'languageTests',
+    schemaKey: 'languageTests.*.expiresAt',
+    autocomplete: [],
+    pattern: /만료|유효|expir|valid/i,
+  },
+  {
+    section: 'languageTests',
+    schemaKey: 'languageTests.*.date',
+    autocomplete: [],
+    pattern: /응시|취득|시험\s*일|date/i,
+    exclude: ENUM_LABEL,
+  },
+  { section: 'languageTests', schemaKey: 'languageTests.*.grade', autocomplete: [], pattern: /등급|급수|grade|level/i },
+  { section: 'languageTests', schemaKey: 'languageTests.*.score', autocomplete: [], pattern: /점수|성적|score/i },
+  {
+    section: 'languageTests',
+    schemaKey: 'languageTests.*.exam',
+    autocomplete: [],
+    pattern: /시험|exam|test/i,
+    exclude: ENUM_LABEL,
+  },
+  // 수상
+  {
+    section: 'awards',
+    schemaKey: 'awards.*.awarder',
+    autocomplete: [],
+    pattern: /수여|주최|주관|기관|awarder|issuer|organization/i,
+  },
+  {
+    section: 'awards',
+    schemaKey: 'awards.*.date',
+    autocomplete: [],
+    pattern: /수상\s*(일|년월|연월|날짜)|일자|date/i,
+    exclude: ENUM_LABEL,
+  },
+  { section: 'awards', schemaKey: 'awards.*.description', autocomplete: [], pattern: /내용|설명|description|detail/i },
+  {
+    section: 'awards',
+    schemaKey: 'awards.*.title',
+    autocomplete: [],
+    pattern: /수상|대회|상\s*명|award|title|name/i,
+    exclude: ENUM_LABEL,
+  },
+  // 활동
+  {
+    section: 'activities',
+    schemaKey: 'activities.*.organization',
+    autocomplete: [],
+    pattern: /기관|단체|주최|주관|소속|organization/i,
+  },
+  { section: 'activities', schemaKey: 'activities.*.startDate', autocomplete: [], pattern: /시작|start/i, exclude: ENUM_LABEL },
+  { section: 'activities', schemaKey: 'activities.*.endDate', autocomplete: [], pattern: /종료|end/i, exclude: ENUM_LABEL },
+  {
+    section: 'activities',
+    schemaKey: 'activities.*.description',
+    autocomplete: [],
+    pattern: /내용|설명|역할|description|detail/i,
+  },
+  {
+    section: 'activities',
+    schemaKey: 'activities.*.name',
+    autocomplete: [],
+    pattern: /활동|명칭|name|title/i,
+    exclude: ENUM_LABEL,
+  },
+  // 프로젝트
+  { section: 'projects', schemaKey: 'projects.*.url', autocomplete: [], pattern: /url|링크|주소|link|github/i },
+  {
+    section: 'projects',
+    schemaKey: 'projects.*.organization',
+    autocomplete: [],
+    pattern: /기관|소속|발주|organization|client/i,
+  },
+  { section: 'projects', schemaKey: 'projects.*.startDate', autocomplete: [], pattern: /시작|start/i, exclude: ENUM_LABEL },
+  { section: 'projects', schemaKey: 'projects.*.endDate', autocomplete: [], pattern: /종료|end/i, exclude: ENUM_LABEL },
+  {
+    section: 'projects',
+    schemaKey: 'projects.*.description',
+    autocomplete: [],
+    pattern: /내용|설명|역할|description|detail/i,
+  },
+  {
+    section: 'projects',
+    schemaKey: 'projects.*.name',
+    autocomplete: [],
+    pattern: /프로젝트|명칭|name|title/i,
+    exclude: ENUM_LABEL,
   },
 ];
 

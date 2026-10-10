@@ -23,6 +23,7 @@
 - 옵션 화면 학습 규칙 조회·삭제: '학습 규칙' 섹션에 사이트·입력란(fingerprint 표시 텍스트 → name → id)·이력서 항목·수정일 표, '삭제' 시 `local:learnedRules`에서 제거(`removeRule`). 단위 테스트 34개·E2E 4개(학습 규칙 시나리오에 조회·삭제 추가)·타입 검사·빌드 통과
 - 입력 항목 하이라이트: 사이드 패널 '입력 항목 위치 보기' 토글 → `highlight` 메시지(sidepanel → background → filler) → 페이지에 상태별 색 테두리(초록 입력 완료·주황 확인 필요·회색 해당 없음). `dom/highlight.ts`가 Shadow Root 안 `position: fixed` 박스로 표시(페이지 요소 스타일 미변경, scroll·resize 시 재배치), `fillOne` 후 색 갱신, `collect`·`undo` 시 해제. 단위 테스트 34개·E2E 4개(직접 입력 시나리오에 위치 표시 추가)·타입 검사·빌드 통과
 - 섹션 문맥 매핑(학력·경력): 수집 시 입력란별 섹션 텍스트(가장 가까운 fieldset legend → 직전 h1~h6) 추가, 입력란 텍스트 → 섹션 텍스트 순으로 섹션 판별(두 섹션이 함께 걸리면 보류). 섹션 판별 시 해당 섹션 규칙만 적용(섹션 안 '주소' 등 basics 오입력 방지). 규칙 키는 `education.*.school.ko` 형식, 페이지 등장 순서대로 인덱스 부여 → 반복 블록 지원. 대상: 학교명·전공·부/복수전공·입학/졸업 연월·학점, 회사명·부서·직급·직책·직무·입사/퇴사 연월·연봉·퇴사 사유·담당 업무 (enum 항목 제외). 연월 `YYYY-MM` → placeholder·maxLength 6 신호로 변환(`formatYearMonth`). 사이드 패널·옵션 표시명 '학력 1 학교명' 형식(`schemaKeyLabel`·`schemaKeyOptions`). 페이지 안 중복 fingerprint는 학습 제외. 단위 테스트 45개·E2E 5개(`sections.html`)·타입 검사·빌드 통과
+- 섹션 문맥 매핑 확장: 자격증(자격증명·발행 기관·취득일·번호)·어학(시험명·점수·등급·응시일·만료일·수험 번호)·수상(수상명·수여 기관·수상일·내용)·활동(활동명·기관·시작/종료 연월·내용)·프로젝트(프로젝트명·기관·시작/종료 연월·URL·내용). 섹션 목록은 `labels.ts`의 `SECTION_LABELS` 한 곳에서 관리(`SectionKey`). '수상경력'·'활동 경력' 제목은 경력 섹션으로 보지 않음. 연월/연월일 값(`PartialDate`)은 `formatPartialDate`로 변환(연월일 값을 연월 입력란에 넣으면 연월만). 단위 테스트 50개·E2E 5개(`sections.html`에 자격증·어학 추가)·타입 검사·빌드 통과
 - Playwright E2E 환경: `npm run test:e2e` (e2e 모드 빌드 → 확장 프로그램 로드한 Chromium). 툴바 클릭(activeTab) 재현 불가 → e2e 빌드에만 `http://localhost/*` 호스트 권한, fixture는 route 응답. 검증 시나리오: '작성' → 사이드 패널 열림(`runtime.getContexts`), fixture 입력값, 사이드 패널 결과·복사(붙여넣기 확인), 재실행 시 갱신 — 통과
 
 ## 결정 사항
@@ -43,7 +44,6 @@
 
 ## 다음 작업
 - 옵션 화면 브라우저 동작 확인 (사용자 수동, `tests/e2e/fixtures/basics.html`)
-- 매핑 확장: 자격증·어학·활동 등 나머지 섹션 (같은 `*` 키 구조)
 - 사람인·잡코리아 DOM 현장 조사 (사용자 로그인 필요)
 - 필드 키워드·옵션 동의어 사전 v1
 

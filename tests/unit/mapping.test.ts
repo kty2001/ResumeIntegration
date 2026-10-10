@@ -65,6 +65,32 @@ describe('matchField', () => {
     expect(keyOf({ label: '학교 소재지', section: '학력사항' })).toBeUndefined();
   });
 
+  it('자격증·어학·수상·활동·프로젝트 섹션 매칭', () => {
+    expect(keyOf({ label: '자격증명' })).toBe('certificates.*.name');
+    expect(keyOf({ label: '발행기관', section: '자격증' })).toBe('certificates.*.issuer');
+    expect(keyOf({ label: '취득일', section: '자격증' })).toBe('certificates.*.date');
+    expect(keyOf({ label: '자격증 번호' })).toBe('certificates.*.number');
+    expect(keyOf({ label: '시험명', section: '어학' })).toBe('languageTests.*.exam');
+    expect(keyOf({ label: '점수', section: '어학 시험' })).toBe('languageTests.*.score');
+    expect(keyOf({ label: '응시일', section: 'Language' })).toBe('languageTests.*.date');
+    expect(keyOf({ label: '수험번호', section: '어학' })).toBe('languageTests.*.registrationNo');
+    expect(keyOf({ label: '수상명' })).toBe('awards.*.title');
+    expect(keyOf({ label: '수상일' })).toBe('awards.*.date');
+    expect(keyOf({ label: '수여 기관', section: '수상경력' })).toBe('awards.*.awarder');
+    expect(keyOf({ label: '내용', section: '대외활동 경력' })).toBe('activities.*.description');
+    expect(keyOf({ label: '부서', section: '경력 사항' })).toBe('work.*.department');
+    expect(keyOf({ label: '활동명' })).toBe('activities.*.name');
+    expect(keyOf({ label: '종료 연월', section: '대외활동' })).toBe('activities.*.endDate');
+    expect(keyOf({ label: '프로젝트명' })).toBe('projects.*.name');
+    expect(keyOf({ label: 'URL', section: '프로젝트' })).toBe('projects.*.url');
+  });
+
+  it('새 섹션의 enum 성격 라벨 제외', () => {
+    expect(keyOf({ label: '활동 구분', section: '대외활동' })).toBeUndefined();
+    expect(keyOf({ label: '외국어', section: '어학' })).toBeUndefined();
+    expect(keyOf({ label: '시험 종류', section: '어학' })).toBeUndefined();
+  });
+
   it('두 섹션이 함께 걸리는 제목은 판별 보류 → basics 규칙', () => {
     expect(detectSection(field({ label: '전공', section: '학력·경력 사항' }))).toBeUndefined();
     expect(keyOf({ label: '이메일', section: '학력·경력 사항' })).toBe('basics.email');
@@ -150,15 +176,20 @@ describe('schemaKeyLabel·schemaKeyOptions', () => {
     expect(schemaKeyLabel('basics.email')).toBe('이메일');
     expect(schemaKeyLabel('education.0.school.ko')).toBe('학력 1 학교명');
     expect(schemaKeyLabel('work.1.startDate')).toBe('경력 2 입사 연월');
+    expect(schemaKeyLabel('certificates.0.name')).toBe('자격증 1 자격증명');
+    expect(schemaKeyLabel('languageTests.2.score')).toBe('어학 3 점수');
     expect(schemaKeyLabel('unknown.key')).toBe('unknown.key');
   });
 
   it('이력서 항목 수만큼 인덱스 키 생성', () => {
     const r = createEmptyResume();
     r.work = [{ id: 'w1', company: { ko: '가나다' }, startDate: '2020-01', current: true }];
+    r.projects = [{ id: 'p1', name: '추천 시스템' }];
     const keys = schemaKeyOptions(r).map(([key]) => key);
     expect(keys).toContain('basics.name.ko');
     expect(keys).toContain('work.0.company.ko');
+    expect(keys).toContain('projects.0.url');
+    expect(keys.some((k) => k.startsWith('certificates.'))).toBe(false);
     expect(keys.some((k) => k.startsWith('education.') || k.startsWith('work.1.'))).toBe(false);
   });
 });

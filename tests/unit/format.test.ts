@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { formatValue } from '@/core/format';
-import { formatDate, formatYearMonth } from '@/core/format/date';
+import { formatDate, formatPartialDate, formatYearMonth } from '@/core/format/date';
 import { formatPhone, hyphenatePhone } from '@/core/format/phone';
 import type { FormatHint } from '@/messaging/protocol';
 
@@ -95,6 +95,25 @@ describe('formatYearMonth', () => {
     expect(ym({ placeholder: '2020.01.01' })).toBe('2014-03');
     expect(ym({ widget: 'date', placeholder: 'YYYY.MM' })).toBe('2014-03');
     expect(ym({})).toBe('2014-03');
+  });
+});
+
+describe('formatPartialDate', () => {
+  it('연월 값은 연월 변환, 연월일 값은 날짜 변환', () => {
+    expect(formatPartialDate('2023-05', hint({ placeholder: 'YYYY.MM' }))).toBe('2023.05');
+    expect(formatPartialDate('2023-05-20', hint({ placeholder: 'YYYY.MM.DD' }))).toBe('2023.05.20');
+    expect(formatPartialDate('2023-05-20', hint({ maxLength: 8 }))).toBe('20230520');
+  });
+
+  it('연월일 값을 연월 입력란에 넣으면 연월만', () => {
+    expect(formatPartialDate('2023-05-20', hint({ placeholder: 'YYYY.MM' }))).toBe('2023.05');
+    expect(formatPartialDate('2023-05-20', hint({ placeholder: '예) 2020.01' }))).toBe('2023.05');
+  });
+
+  it('신호 없음·type=date는 그대로', () => {
+    expect(formatPartialDate('2023-05-20', hint())).toBe('2023-05-20');
+    expect(formatPartialDate('2023-05', hint())).toBe('2023-05');
+    expect(formatPartialDate('2023-05-20', hint({ widget: 'date', placeholder: 'YYYY.MM' }))).toBe('2023-05-20');
   });
 });
 

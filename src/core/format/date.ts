@@ -49,6 +49,16 @@ export function formatYearMonth(value: string, hint: FormatHint): string {
   return [year, m[2]].join(pattern.sep);
 }
 
+/** 연월 또는 연월일(PartialDate) → 입력란 형식. 연월일 값을 연월 입력란에 넣을 때는 연월만 */
+export function formatPartialDate(value: string, hint: FormatHint): string {
+  if (/^\d{4}-\d{2}$/.test(value)) return formatYearMonth(value, hint);
+  const date = formatDate(value, hint);
+  if (date !== value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return date;
+  const yearMonth = value.slice(0, 7);
+  const formatted = formatYearMonth(yearMonth, hint);
+  return formatted !== yearMonth ? formatted : value;
+}
+
 export function formatDate(value: string, hint: FormatHint): string {
   const m = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!m || hint.widget === 'date') return value;

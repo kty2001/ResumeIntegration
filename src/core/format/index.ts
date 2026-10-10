@@ -1,5 +1,5 @@
 import type { FormatHint } from '@/messaging/protocol';
-import { formatDate, formatYearMonth } from './date';
+import { formatDate, formatPartialDate, formatYearMonth } from './date';
 import { formatPhone } from './phone';
 
 // 저장 형식 → 입력란 형식 변환 (docs/design/resume_schema_v1.md 2장: 변환은 입력 시점)
@@ -13,6 +13,14 @@ const FORMATTERS: Record<string, (value: string, hint: FormatHint) => string> = 
   'education.*.endDate': formatYearMonth,
   'work.*.startDate': formatYearMonth,
   'work.*.endDate': formatYearMonth,
+  'activities.*.startDate': formatYearMonth,
+  'activities.*.endDate': formatYearMonth,
+  'projects.*.startDate': formatYearMonth,
+  'projects.*.endDate': formatYearMonth,
+  'certificates.*.date': formatPartialDate,
+  'languageTests.*.date': formatPartialDate,
+  'languageTests.*.expiresAt': formatPartialDate,
+  'awards.*.date': formatPartialDate,
 };
 
 export function formatValue(schemaKey: string, value: string, hint: FormatHint): string {
