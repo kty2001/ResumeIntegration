@@ -18,7 +18,7 @@ export function RulesSection() {
 
   return (
     <>
-      <p className="desc">사이드 패널에서 직접 고른 결과입니다. 같은 사이트 재방문 시 우선 적용됩니다.</p>
+      <p className="desc">사이드 패널에서 직접 고르거나 페이지에서 이력서 값으로 직접 고친 결과입니다. 같은 사이트 재방문 시 우선 적용됩니다.</p>
       <div className="card">
         {rules.length ? (
           <table>
