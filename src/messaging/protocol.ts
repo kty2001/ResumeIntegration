@@ -92,6 +92,8 @@ interface ProtocolMap {
   fill(plan: FillPlan): FillResult;
   /** optionValue: select 선택지 직접 선택 (이력서 값 대신 해당 선택지 입력 + 학습) */
   fillOne(data: { fieldId: string; schemaKey: string; optionValue?: string }): ActionResponse;
+  /** 자기소개서 라이브러리 답변 입력 (사이드 패널 '자기소개서 추천', 학습 없음) */
+  fillAnswer(data: { fieldId: string; coverLetterId: string }): ActionResponse;
   focusField(data: { fieldId: string }): ActionResponse;
   /** 입력란 위치 표시, 빈 배열이면 해제 */
   highlight(data: { fields: Pick<ReportField, 'fieldId' | 'status'>[] }): ActionResponse;

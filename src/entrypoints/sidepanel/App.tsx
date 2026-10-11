@@ -1,12 +1,13 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { COVER_LETTER_KEY, countLength, detectLimit, recommendAnswers } from '@/core/coverLetter';
 import { isChoiceWidget, resolveValue } from '@/core/mapping/match';
 import { skipField } from '@/core/mapping/report';
-import type { Resume } from '@/core/schema/resume';
-import { schemaKeyLabel, schemaKeyOptions } from '@/core/schema/labels';
+import type { CoverLetterEntry, Resume } from '@/core/schema/resume';
+import { LENGTH_UNIT_LABELS, schemaKeyLabel, schemaKeyOptions } from '@/core/schema/labels';
 import { describeStartFill, sendMessage, type ActionResponse, type FillReport, type ReportField } from '@/messaging/protocol';
-import { fillReportItem, resumeItem } from '@/storage/items';
+import { coverLettersItem, fillReportItem, resumeItem } from '@/storage/items';
 
-// 화면 설계: docs/design/screens.md 3장 (현재: 입력 결과 목록·복사·직접 입력·선택지 직접 선택·이동·건너뛰기·다시 작성·되돌리기·위치 표시)
+// 화면 설계: docs/design/screens.md 3장 (현재: 입력 결과 목록·복사·직접 입력·선택지 직접 선택·이동·건너뛰기·다시 작성·되돌리기·위치 표시·자기소개서 추천)
 
 const REASON_LABELS: Record<string, string> = {
   'not-found': '입력란을 찾을 수 없음',
@@ -15,7 +16,8 @@ const REASON_LABELS: Record<string, string> = {
   'no-option': '맞는 선택지 없음',
 };
 
-const keyLabel = (schemaKey?: string) => (schemaKey ? schemaKeyLabel(schemaKey) : '');
+const keyLabel = (schemaKey?: string) =>
+  schemaKey === COVER_LETTER_KEY ? '자기소개서' : schemaKey ? schemaKeyLabel(schemaKey) : '';
 
 function CopyButton({ value }: { value: string }) {
   const [copied, setCopied] = useState(false);
@@ -93,20 +95,58 @@ function OptionControls({ field, notify }: { field: ReportField & { schemaKey: s
   );
 }
 
+/** 서술형 입력란 문항과 비슷한 자기소개서 답변 추천 → 미리 보기·글자수 확인 후 '입력'(fillAnswer) */
+const questionOf = (f: ReportField) => [f.label, f.hint.placeholder].filter(Boolean).join(' ');
+
+function AnswerSuggestions({ field, answers, notify }: { field: ReportField; answers: CoverLetterEntry[]; notify: Notify }) {
+  const limit = detectLimit(questionOf(field), field.hint.maxLength);
+  const fill = async (coverLetterId: string) =>
+    notifyError(notify, await sendMessage('fillAnswer', { fieldId: field.fieldId, coverLetterId }));
+  return (
+    <li style={{ marginBottom: 6 }}>
+      <strong>{field.label}</strong>
+      {limit && ` (${LENGTH_UNIT_LABELS[limit.unit]} ${limit.count.toLocaleString()}자 이내)`}{' '}
+      <FocusButton fieldId={field.fieldId} notify={notify} />
+      <ul>
+        {answers.map((a) => {
+          const count = countLength(a.answer, limit?.unit ?? 'chars_with_space');
+          const over = limit && count > limit.count;
+          return (
+            <li key={a.id}>
+              {a.question} · {count.toLocaleString()}
+              {limit && ` / ${limit.count.toLocaleString()}`}자{over && <strong> 초과</strong>}{' '}
+              <button onClick={() => void fill(a.id)}>입력</button>
+              <details>
+                <summary>미리 보기</summary>
+                <p style={{ whiteSpace: 'pre-wrap' }}>{a.answer}</p>
+              </details>
+            </li>
+          );
+        })}
+      </ul>
+    </li>
+  );
+}
+
 export default function App() {
   const [resume, setResume] = useState<Resume | null>(null);
   const [report, setReport] = useState<FillReport | null>(null);
   const [notice, setNotice] = useState('');
   const [highlightOn, setHighlightOn] = useState(false);
 
+  const [coverLetters, setCoverLetters] = useState<CoverLetterEntry[]>([]);
+
   useEffect(() => {
     resumeItem.getValue().then(setResume);
     fillReportItem.getValue().then(setReport);
+    coverLettersItem.getValue().then(setCoverLetters);
     const unwatchResume = resumeItem.watch(setResume);
     const unwatchReport = fillReportItem.watch(setReport);
+    const unwatchCoverLetters = coverLettersItem.watch(setCoverLetters);
     return () => {
       unwatchResume();
       unwatchReport();
+      unwatchCoverLetters();
     };
   }, []);
 
@@ -136,6 +176,12 @@ export default function App() {
   // checkbox 입력란은 boolean 값이 있는 항목만 선택 (텍스트 값 항목은 입력 불가)
   const checkable = resume ? schemaKeyOptions(resume).filter(([key]) => resolveValue(resume, key, { widget: 'checkbox' })) : [];
   const fillOptions = (f: ReportField) => (f.hint.widget === 'checkbox' ? checkable : copyable);
+  // 아직 입력하지 않은 서술형 입력란 중 비슷한 자기소개서 답변이 있는 것
+  const suggestions = (report?.fields ?? []).flatMap((f) => {
+    if (f.hint.widget !== 'textarea' || f.status === 'filled') return [];
+    const answers = recommendAnswers(coverLetters, questionOf(f));
+    return answers.length ? [{ field: f, answers }] : [];
+  });
 
   const undo = async () => {
     const r = await sendMessage('undo');
@@ -177,6 +223,17 @@ export default function App() {
             <p>
               <small>테두리: 초록 입력 완료 · 주황 확인 필요 · 회색 해당 없음</small>
             </p>
+          )}
+
+          {suggestions.length > 0 && (
+            <section>
+              <h2 style={{ fontSize: 14 }}>자기소개서 추천</h2>
+              <ul>
+                {suggestions.map(({ field, answers }) => (
+                  <AnswerSuggestions key={field.fieldId} field={field} answers={answers} notify={setNotice} />
+                ))}
+              </ul>
+            </section>
           )}
 
           {failed.length > 0 && (

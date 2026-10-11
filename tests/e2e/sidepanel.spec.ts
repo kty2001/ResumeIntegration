@@ -396,6 +396,39 @@ test('checkbox 그룹 다중 선택 + 선택지 불일치 직접 선택·학습 
   await expect(checked('job')).toHaveCount(0);
 });
 
+test('자기소개서 추천: 문항 매칭·글자수 표시 → 입력, 제한 초과 안내', async ({ context, worker, extensionId }) => {
+  const entry = (id: string, question: string, tags: string[], answer: string) => ({
+    id, question, tags, answer, usages: [], createdAt: '2026-10-01T00:00:00.000Z', updatedAt: '2026-10-01T00:00:00.000Z',
+  });
+  const coverLetters = [
+    entry('c1', '지원 동기', ['motivation'], '데이터로 문제를 푸는 개발자'),
+    entry('c2', '입사 후 포부를 쓰시오', [], '팀의 핵심 백엔드 개발자로 성장하겠습니다'),
+  ];
+  await worker.evaluate((value) => chrome.storage.local.set({ coverLetters: value, coverLetters$: { v: 1 } }), coverLetters);
+  const { page } = await runFill(context, worker, extensionId, 'coverletter.html', '입력 완료 1개 · 입력 실패 0개 · 해당 없음 3개');
+
+  const panel = await context.newPage();
+  await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+  const section = panel.locator('section').filter({ has: panel.getByRole('heading', { name: '자기소개서 추천' }) });
+  const q1 = section.getByRole('listitem').filter({ hasText: '1. 지원 동기' }).first();
+  const q2 = section.getByRole('listitem').filter({ hasText: '2. 입사 후 포부' }).first();
+  await expect(q1).toContainText('(공백 포함 20자 이내)');
+  await expect(q1).toContainText('지원 동기 · 15 / 20자');
+  await expect(q2).toContainText('입사 후 포부를 쓰시오 · 22 / 10자 초과');
+  await expect(section.getByText('3. 기타 하고 싶은 말')).toHaveCount(0);
+
+  await q1.getByRole('button', { name: '입력' }).click();
+  await expect(page.locator('#q1')).toHaveValue('데이터로 문제를 푸는 개발자');
+  await expect(panel.getByText('1. 지원 동기를 작성해 주세요 (최대 20자) → 자기소개서')).toBeVisible();
+  await expect(section.getByText('1. 지원 동기')).toHaveCount(0);
+
+  // 입력란 maxlength 초과 → 안내 + 확인 필요
+  await q2.getByRole('button', { name: '입력' }).click();
+  await expect(panel.getByRole('status')).toHaveText('입력란 글자수 제한을 초과합니다');
+  await expect(page.locator('#q2')).toHaveValue('');
+  await expect(panel.getByText('입력 완료 2 · 확인 필요 1 · 해당 없음 1')).toBeVisible();
+});
+
 test('checkbox boolean 항목 체크·해제 + 직접 입력 선택 목록 + 되돌리기', async ({ context, worker, extensionId }) => {
   const data: Resume = {
     ...resume,

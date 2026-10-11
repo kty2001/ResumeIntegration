@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>자기소개서 fixture</title>
+</head>
+<body>
+  <form onsubmit="return false">
+    <p><label for="nm">이름</label> <input id="nm" name="nm"></p>
+    <h2>자기소개서</h2>
+    <!-- 글자수 제한: 문구(최대 20자)·maxlength(10) -->
+    <p><label for="q1">1. 지원 동기를 작성해 주세요 (최대 20자)</label><br><textarea id="q1" name="q1"></textarea></p>
+    <p><label for="q2">2. 입사 후 포부</label><br><textarea id="q2" name="q2" maxlength="10"></textarea></p>
+    <!-- 비슷한 저장 답변 없음 → 추천 없음 -->
+    <p><label for="q3">3. 기타 하고 싶은 말</label><br><textarea id="q3" name="q3"></textarea></p>
+  </form>
+</body>
+</html>

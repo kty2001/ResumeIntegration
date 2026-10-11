@@ -1,3 +1,4 @@
+import { COVER_LETTER_KEY } from '@/core/coverLetter';
 import { rulesForOrigin, upsertRule, type LearnedRule } from '@/core/mapping/learned';
 import { getValueByKey, keyForValue, mapFields, resolveValue } from '@/core/mapping/match';
 import { applyFillOne, buildFillReport } from '@/core/mapping/report';
@@ -8,14 +9,15 @@ import {
   type ActionResponse,
   type ErrorResponse,
   type FillReport,
+  type FillResult,
   type ReportField,
   type StartFillResponse,
   type UndoResponse,
 } from '@/messaging/protocol';
-import { fillReportItem, learnedRulesItem, resumeItem } from '@/storage/items';
+import { coverLettersItem, fillReportItem, learnedRulesItem, resumeItem } from '@/storage/items';
 
 // 자동 입력 흐름: docs/design/architecture.md 7.1 (현재 최상위 프레임만 처리)
-// 사이드 패널 동작(fillOne·focusField·highlight·undo): 7.2·7.3, 대상 탭은 session:fillReport의 tabId
+// 사이드 패널 동작(fillOne·fillAnswer·focusField·highlight·undo): 7.2·7.3, 대상 탭은 session:fillReport의 tabId
 // fillOne 성공·페이지 직접 수정(userEdit) 시 학습 규칙 저장 → 다음 startFill에서 매핑 1순위
 
 async function startFill(tabId: number): Promise<StartFillResponse> {
@@ -56,6 +58,25 @@ async function requireReport(): Promise<FillReport> {
   return report;
 }
 
+/** 사이드 패널 직접 입력: 한 입력란에 값 입력 후 결과 반영 */
+async function fillManual(report: FillReport, fieldId: string, schemaKey: string, value: string): Promise<FillResult> {
+  const plan = { items: [{ fieldId, schemaKey, value, source: 'manual' as const }], unmatched: [] };
+  const result = await sendMessage('fill', plan, { tabId: report.tabId, frameId: 0 });
+  await fillReportItem.setValue(applyFillOne(report, fieldId, schemaKey, result));
+  return result;
+}
+
+/** 자기소개서 라이브러리 답변 입력 (문항 매칭은 사이드 패널, 학습 없음) */
+async function fillAnswer(fieldId: string, coverLetterId: string): Promise<ActionResponse> {
+  const report = await requireReport();
+  const entry = (await coverLettersItem.getValue()).find((e) => e.id === coverLetterId);
+  if (!entry?.answer) return { status: 'error', message: '자기소개서 답변을 찾을 수 없음' };
+  const result = await fillManual(report, fieldId, COVER_LETTER_KEY, entry.answer);
+  const failed = result.failed[0];
+  if (failed?.reason === 'too-long') return { status: 'error', message: '입력란 글자수 제한을 초과합니다' };
+  return { status: 'ok' };
+}
+
 /** optionValue: select 선택지 직접 선택 → 그 선택지를 입력하고 '이력서 값 → 선택지 텍스트'도 학습 */
 async function fillOne(fieldId: string, schemaKey: string, optionValue?: string): Promise<ActionResponse> {
   const report = await requireReport();
@@ -75,10 +96,7 @@ async function fillOne(fieldId: string, schemaKey: string, optionValue?: string)
   }
   if (!value) return { status: 'error', message: '이력서 값 없음' };
 
-  const plan = { items: [{ fieldId, schemaKey, value, source: 'manual' as const }], unmatched: [] };
-  const result = await sendMessage('fill', plan, { tabId: report.tabId, frameId: 0 });
-  await fillReportItem.setValue(applyFillOne(report, fieldId, schemaKey, result));
-
+  const result = await fillManual(report, fieldId, schemaKey, value);
   if (field.fingerprint && result.filled.length > 0) {
     const rule = {
       origin: new URL(report.url).origin,
@@ -136,6 +154,7 @@ export default defineBackground(() => {
 
   onMessage('startFill', ({ data }) => withErrors(() => startFill(data.tabId)));
   onMessage('fillOne', ({ data }) => withErrors(() => fillOne(data.fieldId, data.schemaKey, data.optionValue)));
+  onMessage('fillAnswer', ({ data }) => withErrors(() => fillAnswer(data.fieldId, data.coverLetterId)));
   onMessage('focusField', ({ data }) =>
     withErrors(async () => {
       const report = await requireReport();
