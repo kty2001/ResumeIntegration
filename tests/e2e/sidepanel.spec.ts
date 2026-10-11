@@ -218,6 +218,18 @@ test('입력란 형식 신호에 따라 날짜·전화번호 변환 + 분리 입
   await expect(page.locator('#bd')).toHaveValue('15');
 });
 
+test('달력 팝업형 readonly 날짜 입력란: 날짜만 직접 설정, 주소 등은 수집 안 함', async ({ context, worker, extensionId }) => {
+  const data: Resume = {
+    ...resume,
+    work: [{ id: 'w1', company: { ko: '가나다전자' }, startDate: '2022-03', current: false }],
+  };
+  const { page } = await runFill(context, worker, extensionId, 'datepicker.html', '입력 완료 3개 · 입력 실패 0개 · 해당 없음 0개', data);
+  await expect(page.locator('#birth')).toHaveValue('1995-03-15');
+  await expect(page.locator('#start')).toHaveValue('2022.03');
+  await expect(page.locator('#start-sync')).toHaveValue('2022.03');
+  await expect(page.locator('#addr')).toHaveValue('');
+});
+
 test('입력 마스크: 서식 변경 허용 + 키 입력 마스크는 문자 단위 입력', async ({ context, worker, extensionId }) => {
   const { page } = await runFill(context, worker, extensionId, 'masks.html', '입력 완료 2개 · 입력 실패 0개 · 해당 없음 0개');
   await expect(page.locator('#phone')).toHaveValue('010-1234-5678');

@@ -20,6 +20,7 @@ export interface FieldDescriptor {
   options?: { value: string; text: string }[]; // select·radio·checkbox 그룹 선택지 (페이지 정보, 이력서 값 아님)
   cluster?: string;         // 같은 묶음(가까운 공통 조상)의 입력란 식별자 — 분리 입력(전화번호 3칸 등) 판별용
   accept?: string;          // 파일 입력란 accept 속성
+  readOnly?: boolean;       // 달력 팝업형 날짜 입력란 (readonly, 날짜 키만 입력)
 }
 
 /** 형식 변환(core/format)·첨부 파일 선택 판단에 쓰는 입력란 정보 */

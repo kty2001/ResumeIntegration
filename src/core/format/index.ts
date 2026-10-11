@@ -26,6 +26,14 @@ const FORMATTERS: Record<string, (value: string, hint: FormatHint) => string> = 
   'desired.availableFrom': formatPartialDate,
 };
 
+const formatterOf = (schemaKey: string) => FORMATTERS[schemaKey.replace(/\.\d+\./, '.*.')];
+
 export function formatValue(schemaKey: string, value: string, hint: FormatHint): string {
-  return FORMATTERS[schemaKey.replace(/\.\d+\./, '.*.')]?.(value, hint) ?? value;
+  return formatterOf(schemaKey)?.(value, hint) ?? value;
+}
+
+/** 날짜(연월·연월일) 키 — 달력 팝업형 readonly 입력란은 이 키만 입력 */
+export function isDateKey(schemaKey: string): boolean {
+  const formatter = formatterOf(schemaKey);
+  return !!formatter && formatter !== formatPhone;
 }

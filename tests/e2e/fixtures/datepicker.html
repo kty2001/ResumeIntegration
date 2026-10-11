@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>달력 팝업형 날짜 fixture</title>
+</head>
+<body>
+  <!-- 직접 입력을 막은 readonly 입력란: 날짜로 보이면 값 직접 설정, 그 외(주소 검색 결과 등)는 수집하지 않음 -->
+  <form onsubmit="return false">
+    <p><label for="birth">생년월일</label> <input id="birth" class="datepicker" readonly placeholder="YYYY-MM-DD"></p>
+    <p><label for="addr">주소</label> <input id="addr" readonly> <button type="button">주소 검색</button></p>
+    <h2>경력사항</h2>
+    <p><label for="company">회사명</label> <input id="company"></p>
+    <p>
+      <label for="start">입사일</label> <input id="start" class="datepicker" readonly placeholder="YYYY.MM">
+      <input type="hidden" id="start-sync">
+    </p>
+  </form>
+  <script>
+    // 달력 위젯 흉내: change 이벤트로 내부 상태 동기화
+    const start = document.getElementById('start');
+    start.addEventListener('change', () => (document.getElementById('start-sync').value = start.value));
+  </script>
+</body>
+</html>

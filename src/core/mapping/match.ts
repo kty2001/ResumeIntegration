@@ -1,5 +1,5 @@
 import type { Resume } from '@/core/schema/resume';
-import { formatValue } from '@/core/format';
+import { formatValue, isDateKey } from '@/core/format';
 import { schemaKeyOptions } from '@/core/schema/labels';
 import { isSplitPart, partValue, splitValue } from '@/core/format/split';
 import type { FieldDescriptor, FillPlan, FormatHint, MatchSource, WidgetKind } from '@/messaging/protocol';
@@ -195,7 +195,11 @@ export function mapFields(
 ): FillPlan {
   const skipped: NonNullable<FillPlan['skipped']> = [];
   const plan: FillPlan = { items: [], unmatched: [], skipped };
-  const matches = fields.map((field) => matchField(field, learned, sensitive));
+  // 달력 팝업형 readonly 입력란은 날짜 키만 입력
+  const matches = fields.map((field) => {
+    const match = matchField(field, learned, sensitive);
+    return match && field.readOnly && !isDateKey(match.schemaKey) ? null : match;
+  });
   const runOf = splitRuns(fields, matches);
   // 반복 항목 키('education.*.school.ko')는 페이지 등장 순서대로 인덱스 부여 (분리 입력 묶음은 하나로)
   const counts = new Map<string, number>();

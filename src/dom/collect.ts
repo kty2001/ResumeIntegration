@@ -74,10 +74,21 @@ function isFillable(el: FormControl): boolean {
   // 커스텀 디자인은 radio·checkbox·파일 입력란을 숨기고 label만 표시 → label이 보여도 입력 가능
   if (isRadio(el) || isCheckbox(el) || isFile(el)) return isVisible(el) || [...(el.labels ?? [])].some(isVisible);
   if (el instanceof HTMLInputElement && !TEXT_INPUT_TYPES.has(el.type)) return false;
-  if (!(el instanceof HTMLSelectElement) && el.readOnly) return false;
+  if (!(el instanceof HTMLSelectElement) && el.readOnly && !isDatePicker(el)) return false;
   // 커스텀 위젯 내부의 보조 입력란(aria-hidden)은 제외
   if (el.getAttribute('aria-hidden') === 'true') return false;
   return isVisible(el);
+}
+
+const DATE_LIKE = /date|calendar|picker|ymd|yyyy|birth|날짜|일자|연월|년월|생년|기간|입학|졸업|입사|퇴사|취득|응시/i;
+
+/**
+ * 달력 팝업형 날짜 입력란(docs/reports/06_generic_widget_strategy.md 3.4): 직접 입력을 막은 readonly input 중
+ * placeholder·name·id·class·label이 날짜로 보이는 것 → 값 직접 설정 (매핑은 날짜 키만, match.ts)
+ */
+function isDatePicker(el: TextElement): boolean {
+  if (!(el instanceof HTMLInputElement)) return false;
+  return [el.placeholder, el.name, el.id, el.className, resolveLabel(el)].some((t) => t && DATE_LIKE.test(t));
 }
 
 function isComboboxFillable(el: HTMLElement): boolean {
@@ -163,6 +174,7 @@ function describe(el: FormControl, heading: string | undefined): Omit<FieldDescr
     section: resolveSection(el, heading),
     options: select ? selectOptions(el) : undefined,
     accept: isFile(el) ? el.accept || undefined : undefined,
+    readOnly: !select && el.readOnly ? true : undefined,
   };
 }
 

@@ -420,6 +420,21 @@ describe('mapFields', () => {
     });
   });
 
+  it('readonly(달력 팝업형) 입력란은 날짜 키만 입력', () => {
+    const r = createEmptyResume();
+    r.basics.birthDate = '1995-03-15';
+    r.basics.address = { line1: '서울특별시 강남구' };
+    const plan = mapFields(
+      [
+        field({ fieldId: '0', label: '생년월일', placeholder: 'YYYY-MM-DD', readOnly: true }),
+        field({ fieldId: '1', label: '주소', readOnly: true }),
+      ],
+      r,
+    );
+    expect(plan.items.map((i) => [i.fieldId, i.value])).toEqual([['0', '1995-03-15']]);
+    expect(plan.unmatched).toEqual(['1']);
+  });
+
   it('select 학습 선택지: 이력서 값이 학습 당시와 같을 때만 적용, 선택지 없으면 사전 매칭', () => {
     const r = createEmptyResume();
     r.education = [{ id: 'e1', level: 'university', school: { ko: '한국대학교' }, status: 'graduated' }];
