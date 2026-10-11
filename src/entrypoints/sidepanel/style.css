@@ -1,0 +1,52 @@
+/* 사이드 패널 전용 레이아웃 (400px). 공통 토큰·컴포넌트: src/assets/theme.css (docs/design/style_guide.md 6장) */
+
+.panel-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 14px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+}
+.panel-head h1 { font-size: var(--fs-lg); font-weight: 600; }
+.panel-head small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.panel-body { display: flex; flex-direction: column; gap: 16px; padding: 16px; font-size: var(--fs-md); }
+.panel-body .msg, .panel-body .card { margin: 0; }
+.empty { margin: 0; color: var(--text-sub); }
+
+/* 결과 요약 (5.10) */
+.summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.summary .card { padding: 10px 12px; }
+.summary strong { display: block; font-size: var(--fs-2xl); font-weight: 700; font-variant-numeric: tabular-nums; }
+.summary span { display: flex; align-items: center; gap: 6px; font-size: var(--fs-sm); color: var(--text-sub); }
+.summary .zero strong { color: var(--text-mute); }
+
+.actions { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.sec-title { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: var(--fs-md); font-weight: 600; color: var(--text-sub); }
+.stack { display: flex; flex-direction: column; gap: 8px; }
+
+/* 항목 카드·행 */
+.item-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.item-label { font-weight: 600; overflow-wrap: anywhere; }
+.item-note { margin-top: 2px; font-size: var(--fs-sm); color: var(--text-sub); }
+.item-value { display: flex; align-items: center; gap: 8px; margin-top: 6px; overflow-wrap: anywhere; }
+.item-value span { flex: 1; min-width: 0; }
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
+.controls select { flex: 1; min-width: 0; height: 30px; font-size: var(--fs-md); }
+
+.row-list { padding: 0; overflow: hidden; }
+.row-list > li { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 40px; padding: 6px 12px; border-bottom: 1px solid var(--line); }
+.row-list > li:last-child { border-bottom: none; }
+.row-list > li.stacked { display: block; padding: 10px 12px; }
+.row-list > li.stacked .item-value { margin-top: 2px; }
+.row-text { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; min-width: 0; overflow-wrap: anywhere; }
+details.card .row-list > li { padding-left: 0; padding-right: 0; }
+
+/* 자기소개서 추천 */
+.answers { margin-top: 8px; }
+.answers > li { padding: 8px 0; border-top: 1px solid var(--line); }
+.answer { margin: 4px 0 0; padding: 8px 10px; border-radius: var(--r-sm); background: var(--surface-2); white-space: pre-wrap; }

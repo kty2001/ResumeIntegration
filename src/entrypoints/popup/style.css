@@ -1,0 +1,14 @@
+/* 팝업 전용 레이아웃 (360px). 공통 토큰·컴포넌트: src/assets/theme.css (docs/design/style_guide.md 6장) */
+
+body { background: var(--surface); }
+.popup { width: 360px; }
+.popup-head { display: flex; align-items: center; height: 52px; padding: 0 16px; border-bottom: 1px solid var(--line); }
+.popup-head h1 { font-size: var(--fs-lg); font-weight: 600; }
+.popup-body { display: flex; flex-direction: column; gap: 12px; padding: 16px; }
+.popup-body .card, .popup-body .msg { margin: 0; }
+.profile { display: flex; flex-direction: column; border-radius: var(--r-md); box-shadow: none; }
+.profile b { font-weight: 600; }
+.profile small { font-variant-numeric: tabular-nums; }
+.empty { margin: 0; font-size: var(--fs-md); color: var(--text-sub); }
+.actions { display: flex; gap: 6px; margin-top: 8px; }
+.popup-foot { display: flex; padding: 6px 8px; border-top: 1px solid var(--line); }

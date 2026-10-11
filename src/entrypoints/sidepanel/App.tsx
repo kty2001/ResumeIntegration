@@ -28,16 +28,34 @@ function CopyButton({ value }: { value: string }) {
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
-  return <button onClick={copy}>{copied ? '복사됨' : '복사'}</button>;
+  return (
+    <button className="btn sm" onClick={copy}>
+      {copied ? '복사됨' : '복사'}
+    </button>
+  );
 }
 
-function ValueRow({ label, note, value, children }: { label: string; note?: string; value?: string; children?: ReactNode }) {
+function ValueRow({
+  label,
+  note,
+  value,
+  className,
+  children,
+}: {
+  label: string;
+  note?: string;
+  value?: string;
+  className?: string;
+  children?: ReactNode;
+}) {
   return (
-    <li style={{ marginBottom: 6 }}>
-      <strong>{label}</strong> {note}
-      <br />
-      {value ? <>{value} <CopyButton value={value} /></> : '이력서 값 없음'}
-      {children && <div>{children}</div>}
+    <li className={className}>
+      <div className="item-label">{label}</div>{' '}
+      {note && <div className="item-note">{note}</div>}
+      <div className="item-value">
+        {value ? <><span>{value}</span> <CopyButton value={value} /></> : <small>이력서 값 없음</small>}
+      </div>
+      {children && <div className="controls">{children}</div>}
     </li>
   );
 }
@@ -49,7 +67,11 @@ const notifyError = (notify: Notify, r: ActionResponse) => notify(r.status === '
 
 function FocusButton({ fieldId, notify }: { fieldId: string; notify: Notify }) {
   const focus = async () => notifyError(notify, await sendMessage('focusField', { fieldId }));
-  return <button onClick={focus}>이동</button>;
+  return (
+    <button className="btn sm" onClick={focus}>
+      이동
+    </button>
+  );
 }
 
 /** 이력서 항목 선택 → '입력'(fillOne) */
@@ -66,7 +88,7 @@ function FillControls({ field, options, notify }: { field: ReportField; options:
           </option>
         ))}
       </select>{' '}
-      <button disabled={!schemaKey} onClick={fill}>
+      <button className="btn sm" disabled={!schemaKey} onClick={fill}>
         입력
       </button>{' '}
       <FocusButton fieldId={field.fieldId} notify={notify} />
@@ -89,7 +111,7 @@ function OptionControls({ field, notify }: { field: ReportField & { schemaKey: s
           </option>
         ))}
       </select>{' '}
-      <button disabled={!optionValue} onClick={choose}>
+      <button className="btn sm" disabled={!optionValue} onClick={choose}>
         선택
       </button>{' '}
       <FocusButton fieldId={field.fieldId} notify={notify} />
@@ -105,22 +127,39 @@ function AnswerSuggestions({ field, answers, notify }: { field: ReportField; ans
   const fill = async (coverLetterId: string) =>
     notifyError(notify, await sendMessage('fillAnswer', { fieldId: field.fieldId, coverLetterId }));
   return (
-    <li style={{ marginBottom: 6 }}>
-      <strong>{field.label}</strong>
-      {limit && ` (${LENGTH_UNIT_LABELS[limit.unit]} ${limit.count.toLocaleString()}자 이내)`}{' '}
-      <FocusButton fieldId={field.fieldId} notify={notify} />
-      <ul>
+    <li className="card compact">
+      <div className="item-head">
+        <div>
+          <div className="item-label">{field.label}</div>
+          {limit && (
+            <div className="item-note">
+              ({LENGTH_UNIT_LABELS[limit.unit]} {limit.count.toLocaleString()}자 이내)
+            </div>
+          )}
+        </div>
+        <FocusButton fieldId={field.fieldId} notify={notify} />
+      </div>
+      <ul className="answers">
         {answers.map((a) => {
           const count = countLength(a.answer, limit?.unit ?? 'chars_with_space');
           const over = limit && count > limit.count;
           return (
             <li key={a.id}>
-              {a.question} · {count.toLocaleString()}
-              {limit && ` / ${limit.count.toLocaleString()}`}자{over && <strong> 초과</strong>}{' '}
-              <button onClick={() => void fill(a.id)}>입력</button>
+              <div className="item-head">
+                <span>
+                  {a.question}{' '}
+                  <span className={over ? 'count over' : 'count'}>
+                    · {count.toLocaleString()}
+                    {limit && ` / ${limit.count.toLocaleString()}`}자{over && ' 초과'}
+                  </span>
+                </span>
+                <button className="btn sm" onClick={() => void fill(a.id)}>
+                  입력
+                </button>
+              </div>
               <details>
                 <summary>미리 보기</summary>
-                <p style={{ whiteSpace: 'pre-wrap' }}>{a.answer}</p>
+                <p className="answer">{a.answer}</p>
               </details>
             </li>
           );
@@ -217,112 +256,155 @@ export default function App() {
     if (current) await fillReportItem.setValue(skipField(current, fieldId));
   };
 
+  const summary = `입력 완료 ${filled.length} · 확인 필요 ${failed.length} · 해당 없음 ${unmatched.length}`;
+
   return (
-    <main style={{ padding: 16 }}>
-      <h1 style={{ fontSize: 16, margin: 0 }}>입력 결과</h1>
-      {notice && <p role="status">{notice}</p>}
-      {report ? (
-        <>
-          <p>
-            입력 완료 {filled.length} · 확인 필요 {failed.length} · 해당 없음 {unmatched.length}
-            <br />
-            <small>
-              {report.url} · {new Date(report.at).toLocaleTimeString()}
-            </small>
-          </p>
-          {report.fields.length > 0 && (
-            <button onClick={() => setHighlightOn(!highlightOn)}>
-              {highlightOn ? '위치 표시 끄기' : '입력 항목 위치 보기'}
-            </button>
-          )}{' '}
-          <button onClick={() => void refill(report.tabId)}>다시 작성</button>{' '}
-          {filled.length > 0 && <button onClick={undo}>되돌리기</button>}
-          {highlightOn && (
-            <p>
-              <small>테두리: 초록 입력 완료 · 주황 확인 필요 · 회색 해당 없음</small>
-            </p>
-          )}
-
-          {suggestions.length > 0 && (
-            <section>
-              <h2 style={{ fontSize: 14 }}>자기소개서 추천</h2>
-              <ul>
-                {suggestions.map(({ field, answers }) => (
-                  <AnswerSuggestions key={field.fieldId} field={field} answers={answers} notify={setNotice} />
-                ))}
-              </ul>
-            </section>
-          )}
-
-          {failed.length > 0 && (
-            <section>
-              <h2 style={{ fontSize: 14 }}>확인 필요</h2>
-              <ul>
-                {failed.map((f) => (
-                  <ValueRow
-                    key={rowKey(f)}
-                    label={f.label}
-                    note={`→ ${keyLabel(f.schemaKey)} (${REASON_LABELS[f.reason ?? ''] ?? f.reason})`}
-                    value={failedValue(f)}
-                  >
-                    {f.schemaKey && f.hint.options?.length ? (
-                      <OptionControls field={{ ...f, schemaKey: f.schemaKey }} notify={setNotice} />
-                    ) : (
-                      <FillControls field={f} options={fillOptions(f)} notify={setNotice} />
-                    )}{' '}
-                    <button onClick={() => void skip(f.fieldId)}>건너뛰기</button>
-                  </ValueRow>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          {filled.length > 0 && (
-            <section>
-              <h2 style={{ fontSize: 14 }}>입력 완료</h2>
-              <ul>
-                {filled.map((f) => (
-                  <li key={f.fieldId}>
-                    {f.label} → {keyLabel(f.schemaKey)}
-                    {f.source === 'learned' && ' (학습)'} <FocusButton fieldId={f.fieldId} notify={setNotice} />
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          {unmatched.length > 0 && (
-            <details>
-              <summary>해당 없음 {unmatched.length}개</summary>
-              <ul>
-                {unmatched.map((f) => (
-                  <li key={rowKey(f)} style={{ marginBottom: 6 }}>
-                    {f.label}
-                    <div>
-                      <FillControls field={f} options={fillOptions(f)} notify={setNotice} />
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </details>
-          )}
-        </>
-      ) : (
-        <p>'작성'을 누르면 결과가 표시됩니다.</p>
-      )}
-
-      <section>
-        <h2 style={{ fontSize: 14 }}>이력서 항목 복사</h2>
-        {copyable.length > 0 ? (
-          <ul>
-            {copyable.map(([key, label]) => (
-              <ValueRow key={key} label={label} value={valueOf(key)} />
-            ))}
-          </ul>
-        ) : (
-          <p>저장된 이력서 값이 없습니다.</p>
+    <main className="panel">
+      <header className="panel-head">
+        <h1>입력 결과</h1>
+        {report && (
+          <small>
+            {report.url} · {new Date(report.at).toLocaleTimeString()}
+          </small>
         )}
-      </section>
+      </header>
+      <div className="panel-body">
+        {notice && (
+          <p className="msg" role="status">
+            {notice}
+          </p>
+        )}
+        {report ? (
+          <>
+            <div className="summary" role="group" aria-label={summary}>
+              <SummaryCard count={filled.length} label="입력 완료" tone="ok" />
+              <SummaryCard count={failed.length} label="확인 필요" tone="warn" />
+              <SummaryCard count={unmatched.length} label="해당 없음" />
+            </div>
+            <div className="actions">
+              <button className="btn primary" onClick={() => void refill(report.tabId)}>
+                다시 작성
+              </button>
+              {report.fields.length > 0 && (
+                <button className="btn" onClick={() => setHighlightOn(!highlightOn)}>
+                  {highlightOn ? '위치 표시 끄기' : '입력 항목 위치 보기'}
+                </button>
+              )}
+              {filled.length > 0 && (
+                <button className="btn ghost" onClick={undo}>
+                  되돌리기
+                </button>
+              )}
+            </div>
+            {highlightOn && <small>테두리: 초록 입력 완료 · 주황 확인 필요 · 회색 해당 없음</small>}
+
+            {suggestions.length > 0 && (
+              <section>
+                <h2 className="sec-title">
+                  자기소개서 추천 <span className="badge">{suggestions.length}</span>
+                </h2>
+                <ul className="stack">
+                  {suggestions.map(({ field, answers }) => (
+                    <AnswerSuggestions key={field.fieldId} field={field} answers={answers} notify={setNotice} />
+                  ))}
+                </ul>
+              </section>
+            )}
+
+            {failed.length > 0 && (
+              <section>
+                <h2 className="sec-title">
+                  확인 필요 <span className="badge warn">{failed.length}</span>
+                </h2>
+                <ul className="stack">
+                  {failed.map((f) => (
+                    <ValueRow
+                      key={rowKey(f)}
+                      className="card compact status-warn"
+                      label={f.label}
+                      note={`→ ${keyLabel(f.schemaKey)} (${REASON_LABELS[f.reason ?? ''] ?? f.reason})`}
+                      value={failedValue(f)}
+                    >
+                      {f.schemaKey && f.hint.options?.length ? (
+                        <OptionControls field={{ ...f, schemaKey: f.schemaKey }} notify={setNotice} />
+                      ) : (
+                        <FillControls field={f} options={fillOptions(f)} notify={setNotice} />
+                      )}
+                      <button className="btn sm ghost" onClick={() => void skip(f.fieldId)}>
+                        건너뛰기
+                      </button>
+                    </ValueRow>
+                  ))}
+                </ul>
+              </section>
+            )}
+
+            {filled.length > 0 && (
+              <section>
+                <h2 className="sec-title">
+                  입력 완료 <span className="badge ok">{filled.length}</span>
+                </h2>
+                <ul className="card row-list">
+                  {filled.map((f) => (
+                    <li key={f.fieldId}>
+                      <span className="row-text">
+                        <span>
+                          {f.label} → {keyLabel(f.schemaKey)}
+                        </span>
+                        {f.source === 'learned' && <span className="badge neutral">학습</span>}
+                      </span>
+                      <FocusButton fieldId={f.fieldId} notify={setNotice} />
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
+            {unmatched.length > 0 && (
+              <details className="card compact">
+                <summary>해당 없음 {unmatched.length}개</summary>
+                <ul className="row-list">
+                  {unmatched.map((f) => (
+                    <li key={rowKey(f)} className="stacked">
+                      <div className="item-label">{f.label}</div>
+                      <div className="controls">
+                        <FillControls field={f} options={fillOptions(f)} notify={setNotice} />
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
+          </>
+        ) : (
+          <p className="empty">'작성'을 누르면 결과가 표시됩니다.</p>
+        )}
+
+        <section>
+          <h2 className="sec-title">이력서 항목 복사</h2>
+          {copyable.length > 0 ? (
+            <ul className="card row-list">
+              {copyable.map(([key, label]) => (
+                <ValueRow key={key} className="stacked" label={label} value={valueOf(key)} />
+              ))}
+            </ul>
+          ) : (
+            <p className="empty">저장된 이력서 값이 없습니다.</p>
+          )}
+        </section>
+      </div>
     </main>
+  );
+}
+
+function SummaryCard({ count, label, tone }: { count: number; label: string; tone?: 'ok' | 'warn' }) {
+  return (
+    <div className={count ? 'card' : 'card zero'}>
+      <strong>{count}</strong>
+      <span>
+        <i className={tone ? `dot ${tone}` : 'dot'} />
+        {label}
+      </span>
+    </div>
   );
 }

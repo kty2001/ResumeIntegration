@@ -18,6 +18,7 @@
 - [x] 필드 키워드·옵션 동의어 사전 v1 (한/영) → [dictionary_v1](design/dictionary_v1.md)
 - [x] 확장 프로그램 구조·메시지 흐름 설계 → [architecture](design/architecture.md)
 - [x] 화면 설계·와이어프레임 → [screens](design/screens.md), [mockups](design/mockups/)
+- [x] 스타일 가이드(색·글꼴·컴포넌트·다크 모드) → [style_guide](design/style_guide.md), [견본](design/mockups/style.html)
 
 ## 구현 (MVP)
 - [x] 프로젝트 초기 설정 (WXT + TypeScript + React, manifest 권한, 엔트리포인트, 스키마 타입, 저장소 정의)
@@ -31,6 +32,7 @@
 - [x] 사용자 수정 결과 학습: 직접 입력·선택지 선택·페이지에서 직접 고친 값
 - [ ] 사이드 패널 복사 전용 모드 (제외 사이트용, [screens](design/screens.md) 3장 ②)
 - [ ] 동의 모달 (최초 실행·LLM 첫 사용, [screens](design/screens.md) 5장)
+- [x] 스타일 가이드 적용 (옵션·팝업·사이드 패널, [style_guide](design/style_guide.md) 8장)
 
 ## 구현 (후속)
 - [ ] BYOK LLM 매핑 보조 + 옵션 설정(제공자·API 키)

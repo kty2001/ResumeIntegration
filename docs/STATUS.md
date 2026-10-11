@@ -12,6 +12,9 @@
 - 레퍼런스 조사 보고서 6종 ([reports](reports/README.md)), 링크드인 이용약관 확인 ([05](reports/05_privacy_and_policy.md) 4.1)
 - 기술 스택·구조·메시지 흐름·화면(목업 4종)·이력서 스키마 v1·키워드·옵션 동의어 사전 v1 문서
 
+### 디자인
+- 스타일 가이드([style_guide](design/style_guide.md), 견본 목업) 작성 후 옵션·팝업·사이드 패널에 적용: 공통 `src/assets/theme.css`(토큰·컴포넌트) + 화면별 레이아웃 CSS, 시스템 설정 따른 다크 모드
+
 ### 기반
 - WXT 0.21 + TypeScript + React 19, 엔트리포인트 5개(background·filler·popup·options·sidepanel), `@webext-core/messaging`
 - 테스트: Vitest 단위 테스트, Playwright E2E(`npm run test:e2e`, e2e 빌드 전용 호스트 권한 + fixture route 응답)

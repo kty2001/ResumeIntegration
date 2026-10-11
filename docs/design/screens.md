@@ -5,7 +5,7 @@
 - 와이어프레임 수준 정적 HTML 목업, 로컬에서 파일을 직접 열어 확인 (외부 리소스 없음)
 - 입력 항목은 [04 보고서](../reports/04_target_sites_and_data_model.md) 3장 기준으로 작성. 스키마 v1과의 차이는 [resume_schema_v1.md](resume_schema_v1.md) 10장
 - 표시 데이터는 모두 가상 값
-- 실제 화면은 기능 위주 기본 스타일로 구현. 표의 '구현' 열·(미구현) 표시로 목업 대비 현황 구분
+- 실제 화면 스타일은 [style_guide.md](style_guide.md) 기준 (견본 [style.html](mockups/style.html)). 표의 '구현' 열·(미구현) 표시로 목업 대비 기능 현황 구분
 
 ## 1. 화면 목록
 
@@ -74,5 +74,5 @@
 - 문구는 초안, 개인정보처리방침 작성 시 확정 ([05 보고서](../reports/05_privacy_and_policy.md))
 
 ## 6. 미결 사항
-- 디자인 적용 (현재 기능 위주 기본 스타일)
+- ~~디자인 적용~~ → [style_guide.md](style_guide.md) 기준으로 적용 (라이트·다크)
 - ~~증명사진·첨부 파일 저장 용량~~ → IndexedDB 저장으로 해결 ([resume_schema_v1.md](resume_schema_v1.md) 6장)

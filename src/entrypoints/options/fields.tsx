@@ -53,8 +53,9 @@ function Field({ label, required, sensitive, wide, children }: FieldProps) {
     <label className={wide ? 'field wide' : 'field'}>
       <span className="field-label">
         {label}
-        {required && <em className="req"> 필수</em>}
-        {sensitive && <em className="sens"> 민감</em>}
+        {/* 앞 공백: 접근성 이름을 '라벨 필수'로 유지 (flex 간격이라 화면에는 영향 없음) */}
+        {required && <> <em className="badge">필수</em></>}
+        {sensitive && <> <em className="badge warn">민감</em></>}
       </span>
       {children}
     </label>
@@ -232,21 +233,21 @@ export function RepeatList<T>({
       {items.map((item, i) => (
         <div className="card" key={getKey ? getKey(item, i) : i}>
           <div className="card-head">
-            <b>{title(item, i)}</b>
+            <h3>{title(item, i)}</h3>
             <span className="card-actions">
-              <button type="button" className="btn" disabled={i === 0} onClick={() => move(i, -1)} aria-label="위로">
+              <button type="button" className="btn sm" disabled={i === 0} onClick={() => move(i, -1)} aria-label="위로">
                 ↑
               </button>
               <button
                 type="button"
-                className="btn"
+                className="btn sm"
                 disabled={i === items.length - 1}
                 onClick={() => move(i, 1)}
                 aria-label="아래로"
               >
                 ↓
               </button>
-              <button type="button" className="btn danger" onClick={() => onChange(items.filter((_, j) => j !== i))}>
+              <button type="button" className="btn sm danger" onClick={() => onChange(items.filter((_, j) => j !== i))}>
                 삭제
               </button>
             </span>

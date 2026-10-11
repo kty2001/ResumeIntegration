@@ -85,7 +85,7 @@ export function AttachmentSection({ resume, update }: SectionProps) {
                   <td>{ATTACHMENT_KIND_LABELS[a.kind]}</td>
                   <td>
                     {a.fileName}
-                    {stored && !stored.has(a.id) && <small style={{ color: 'var(--err)' }}> (파일 없음 — 다시 추가해 주세요)</small>}
+                    {stored && !stored.has(a.id) && <small style={{ color: 'var(--err-text)' }}> (파일 없음 — 다시 추가해 주세요)</small>}
                   </td>
                   <td>{formatSize(a.size)}</td>
                   <td>{new Date(a.addedAt).toLocaleDateString('ko-KR')}</td>

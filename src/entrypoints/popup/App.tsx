@@ -56,41 +56,52 @@ export default function App() {
   };
 
   return (
-    <main style={{ width: 360, padding: 16 }}>
-      <h1 style={{ fontSize: 16, margin: 0 }}>이력서 자동 입력</h1>
-      {resume === undefined ? null : resume ? (
-        <>
-          <p>
-            {resume.basics.name.ko || '이름 없음'} · 수정 {new Date(resume.meta.updatedAt).toLocaleDateString()}
-          </p>
-          <button onClick={() => void fill()} disabled={running}>
-            {running ? '입력 중…' : '작성'}
-          </button>
-          {blocked.length > 0 && (
-            <div role="alert">
-              <p>
+    <main className="popup">
+      <header className="popup-head">
+        <h1>이력서 자동 입력</h1>
+      </header>
+      <div className="popup-body">
+        {resume === undefined ? null : resume ? (
+          <>
+            <div className="card compact profile">
+              <b>{resume.basics.name.ko || '이름 없음'}</b>
+              <small>수정 {new Date(resume.meta.updatedAt).toLocaleDateString()}</small>
+            </div>
+            <button className="btn primary lg" onClick={() => void fill()} disabled={running}>
+              {running ? '입력 중…' : '작성'}
+            </button>
+            {blocked.length > 0 && (
+              <div className="msg warn" role="alert">
                 이 페이지의 일부 입력 영역이 다른 사이트({blocked.join(', ')})에 있습니다. 접근을 허용하면 그 영역도
                 입력합니다.
-              </p>
-              <button onClick={() => void allow()} disabled={running}>
-                접근 허용
-              </button>{' '}
-              <button onClick={() => void fill(true)} disabled={running}>
-                이 페이지 부분만 입력
-              </button>
-            </div>
-          )}
-        </>
-      ) : (
-        <>
-          <p>저장된 이력서가 없습니다. 먼저 이력서를 입력해 주세요.</p>
-          <button onClick={openOptions}>이력서 입력하러 가기</button>{' '}
-          <button onClick={openBackup}>JSON 가져오기</button>
-        </>
-      )}
-      {message && <p>{message}</p>}
-      <footer style={{ marginTop: 16 }}>
-        <button onClick={openOptions}>이력서 편집</button>
+                <div className="actions">
+                  <button className="btn sm" onClick={() => void allow()} disabled={running}>
+                    접근 허용
+                  </button>
+                  <button className="btn sm ghost" onClick={() => void fill(true)} disabled={running}>
+                    이 페이지 부분만 입력
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            <p className="empty">저장된 이력서가 없습니다. 먼저 이력서를 입력해 주세요.</p>
+            <button className="btn primary lg" onClick={openOptions}>
+              이력서 입력하러 가기
+            </button>
+            <button className="btn lg" onClick={openBackup}>
+              JSON 가져오기
+            </button>
+          </>
+        )}
+        {message && <p className="msg">{message}</p>}
+      </div>
+      <footer className="popup-foot">
+        <button className="btn ghost sm" onClick={openOptions}>
+          이력서 편집
+        </button>
       </footer>
     </main>
   );

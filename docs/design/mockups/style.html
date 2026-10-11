@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>목업 - 스타일 가이드</title>
+<style>
+  /* 토큰: docs/design/style_guide.md 2~4장 */
+  :root {
+    color-scheme: light;
+    --bg:#f6f7f9; --surface:#ffffff; --surface-2:#f1f3f6; --line:#e3e6eb; --line-strong:#cfd4dc;
+    --text:#1a1d23; --text-sub:#5f6673; --text-mute:#9ca3af;
+    --primary:#4f46e5; --primary-hover:#4338ca; --primary-fg:#4f46e5; --primary-soft:#eef2ff; --on-primary:#ffffff;
+    --ok:#16a34a; --ok-text:#15803d; --ok-soft:#e9f7ef;
+    --warn:#ea580c; --warn-text:#c2410c; --warn-soft:#fff1e8;
+    --err:#dc2626; --err-text:#b91c1c; --err-soft:#fdecec;
+    --neutral:#9ca3af; --neutral-text:#5f6673; --neutral-soft:#f1f3f6;
+    --info:#2563eb; --info-text:#1d4ed8; --info-soft:#eaf1fe;
+    --shadow-sm:0 1px 2px rgba(16,24,40,.06); --shadow-md:0 4px 12px rgba(16,24,40,.08);
+    --fs-xs:11px; --fs-sm:12px; --fs-md:13px; --fs-base:14px; --fs-lg:16px; --fs-xl:18px; --fs-2xl:20px;
+    --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:20px; --sp-6:24px; --sp-8:32px;
+    --r-sm:6px; --r-md:8px; --r-lg:12px; --r-pill:999px;
+    --focus:0 0 0 3px var(--primary-soft);
+    --ease:120ms ease;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg:#0f1115; --surface:#171a21; --surface-2:#1f232c; --line:#2a2f3a; --line-strong:#3a404d;
+      --text:#e7e9ee; --text-sub:#9aa1ad; --text-mute:#6b7280;
+      --primary:#6366f1; --primary-hover:#818cf8; --primary-fg:#a5b4fc; --primary-soft:rgba(129,140,248,.16);
+      --ok:#22c55e; --ok-text:#4ade80; --ok-soft:rgba(34,197,94,.14);
+      --warn:#fb923c; --warn-text:#fdba74; --warn-soft:rgba(251,146,60,.14);
+      --err:#f87171; --err-text:#fca5a5; --err-soft:rgba(248,113,113,.14);
+      --neutral:#6b7280; --neutral-text:#9aa1ad; --neutral-soft:#1f232c;
+      --info:#60a5fa; --info-text:#93c5fd; --info-soft:rgba(96,165,250,.14);
+      --shadow-sm:0 1px 2px rgba(0,0,0,.4); --shadow-md:0 4px 16px rgba(0,0,0,.5);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg:#0f1115; --surface:#171a21; --surface-2:#1f232c; --line:#2a2f3a; --line-strong:#3a404d;
+    --text:#e7e9ee; --text-sub:#9aa1ad; --text-mute:#6b7280;
+    --primary:#6366f1; --primary-hover:#818cf8; --primary-fg:#a5b4fc; --primary-soft:rgba(129,140,248,.16);
+    --ok:#22c55e; --ok-text:#4ade80; --ok-soft:rgba(34,197,94,.14);
+    --warn:#fb923c; --warn-text:#fdba74; --warn-soft:rgba(251,146,60,.14);
+    --err:#f87171; --err-text:#fca5a5; --err-soft:rgba(248,113,113,.14);
+    --neutral:#6b7280; --neutral-text:#9aa1ad; --neutral-soft:#1f232c;
+    --info:#60a5fa; --info-text:#93c5fd; --info-soft:rgba(96,165,250,.14);
+    --shadow-sm:0 1px 2px rgba(0,0,0,.4); --shadow-md:0 4px 16px rgba(0,0,0,.5);
+  }
+
+  /* 기본 요소 */
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:var(--fs-base)/1.55 system-ui, -apple-system, "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif; word-break:keep-all; }
+  h1, h2, h3 { margin:0; line-height:1.3; }
+  input, select, textarea, button { font:inherit; color:inherit; }
+  .num { font-variant-numeric:tabular-nums; }
+
+  /* 버튼 */
+  .btn { display:inline-flex; align-items:center; justify-content:center; gap:6px; height:32px; padding:0 12px; border-radius:var(--r-sm); border:1px solid var(--line-strong); background:var(--surface); color:var(--text); font-size:var(--fs-md); font-weight:500; cursor:pointer; transition:background var(--ease), border-color var(--ease), color var(--ease); }
+  .btn:hover { background:var(--surface-2); }
+  .btn:focus-visible { outline:none; border-color:var(--primary); box-shadow:var(--focus); }
+  .btn:disabled { opacity:.45; cursor:default; }
+  .btn.primary { background:var(--primary); border-color:var(--primary); color:var(--on-primary); font-weight:600; }
+  .btn.primary:hover { background:var(--primary-hover); border-color:var(--primary-hover); }
+  .btn.ghost { background:none; border-color:transparent; color:var(--text-sub); }
+  .btn.ghost:hover { background:var(--surface-2); color:var(--text); }
+  .btn.danger { color:var(--err-text); }
+  .btn.danger:hover { background:var(--err-soft); }
+  .btn.add { width:100%; height:40px; border-style:dashed; color:var(--text-sub); background:none; }
+  .btn.add:hover { color:var(--primary-fg); border-color:var(--primary); background:var(--primary-soft); }
+  .btn.sm { height:26px; padding:0 8px; font-size:var(--fs-sm); }
+  .btn.lg { width:100%; height:40px; font-size:var(--fs-base); font-weight:600; }
+
+  /* 입력란 */
+  .field { display:block; }
+  .field-label { display:flex; align-items:center; gap:4px; font-size:var(--fs-sm); font-weight:500; color:var(--text-sub); margin-bottom:4px; }
+  input:not([type=checkbox]):not([type=radio]), select, textarea { width:100%; height:36px; padding:0 10px; border:1px solid var(--line-strong); border-radius:var(--r-sm); background:var(--surface); transition:border-color var(--ease), box-shadow var(--ease); }
+  textarea { height:auto; min-height:90px; padding:8px 10px; resize:vertical; }
+  input::placeholder, textarea::placeholder { color:var(--text-mute); }
+  input:hover, select:hover, textarea:hover { border-color:var(--text-mute); }
+  input:focus, select:focus, textarea:focus { outline:none; border-color:var(--primary); box-shadow:var(--focus); }
+  input:disabled, select:disabled, textarea:disabled { background:var(--surface-2); color:var(--text-mute); }
+  input.invalid { border-color:var(--err); }
+  .field-error { margin-top:4px; font-size:var(--fs-sm); color:var(--err-text); }
+  input[type=checkbox], input[type=radio] { width:16px; height:16px; margin:0; accent-color:var(--primary); }
+  .check { display:inline-flex; align-items:center; gap:8px; font-size:var(--fs-base); cursor:pointer; }
+  .count { font-size:var(--fs-sm); color:var(--text-sub); font-variant-numeric:tabular-nums; }
+  .count.over { color:var(--err-text); font-weight:600; }
+
+  /* 카드 */
+  .card { background:var(--surface); border:1px solid var(--line); border-radius:var(--r-lg); box-shadow:var(--shadow-sm); padding:16px; }
+  .card.compact { padding:12px; }
+  .card.status-warn { border-left:3px solid var(--warn); }
+  .card-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+  .card-head h3 { font-size:var(--fs-base); font-weight:600; }
+  .card-actions { display:flex; gap:4px; }
+
+  /* 배지·메시지 */
+  .badge { display:inline-flex; align-items:center; height:20px; padding:0 8px; border-radius:var(--r-pill); font-size:var(--fs-xs); font-weight:500; background:var(--primary-soft); color:var(--primary-fg); white-space:nowrap; }
+  .badge.ok { background:var(--ok-soft); color:var(--ok-text); }
+  .badge.warn { background:var(--warn-soft); color:var(--warn-text); }
+  .badge.err { background:var(--err-soft); color:var(--err-text); }
+  .badge.neutral { background:var(--neutral-soft); color:var(--neutral-text); }
+  .dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--neutral); }
+  .dot.ok { background:var(--ok); } .dot.warn { background:var(--warn); } .dot.err { background:var(--err); }
+  .msg { padding:10px 12px; border-radius:var(--r-sm); border-left:3px solid var(--info); background:var(--info-soft); font-size:var(--fs-md); }
+  .msg.ok { border-color:var(--ok); background:var(--ok-soft); }
+  .msg.warn { border-color:var(--warn); background:var(--warn-soft); }
+  .msg.err { border-color:var(--err); background:var(--err-soft); }
+
+  /* 표 */
+  table { width:100%; border-collapse:collapse; font-size:var(--fs-md); }
+  th, td { text-align:left; height:40px; padding:0 12px; border-bottom:1px solid var(--line); }
+  th { background:var(--surface-2); font-size:var(--fs-sm); font-weight:600; color:var(--text-sub); }
+  tbody tr:hover td { background:var(--surface-2); }
+  tbody tr.on td { background:var(--primary-soft); }
+
+  /* 내비 */
+  .nav { display:flex; flex-direction:column; gap:2px; width:208px; }
+  .nav button { height:36px; padding:0 12px; border:none; border-radius:var(--r-sm); background:none; color:var(--text-sub); text-align:left; cursor:pointer; transition:background var(--ease), color var(--ease); }
+  .nav button:hover { background:var(--surface-2); color:var(--text); }
+  .nav button.on { background:var(--primary-soft); color:var(--primary-fg); font-weight:600; }
+
+  /* 진행 막대·접이식 */
+  .bar { height:6px; background:var(--surface-2); border-radius:var(--r-pill); overflow:hidden; }
+  .bar i { display:block; height:100%; width:60%; background:var(--primary); border-radius:inherit; }
+  details summary { display:flex; align-items:center; gap:6px; height:36px; font-size:var(--fs-md); font-weight:500; cursor:pointer; list-style:none; }
+  details summary::-webkit-details-marker { display:none; }
+  details summary::before { content:"▸"; color:var(--text-mute); }
+  details[open] summary::before { content:"▾"; }
+
+  /* 견본 페이지 레이아웃 */
+  .page { max-width:1100px; margin:0 auto; padding:24px 16px 64px; }
+  .page-head { display:flex; flex-wrap:wrap; gap:12px; justify-content:space-between; align-items:center; margin-bottom:8px; }
+  .page-head h1 { font-size:var(--fs-2xl); font-weight:700; }
+  .note { font-size:var(--fs-sm); color:var(--text-sub); margin:0 0 32px; }
+  .seg { display:inline-flex; padding:3px; gap:2px; background:var(--surface-2); border-radius:var(--r-pill); }
+  .seg button { height:28px; padding:0 12px; border:none; border-radius:var(--r-pill); background:none; color:var(--text-sub); font-size:var(--fs-sm); font-weight:500; cursor:pointer; }
+  .seg button.on { background:var(--surface); color:var(--text); box-shadow:var(--shadow-sm); }
+  .block { margin-bottom:40px; }
+  .block > h2 { font-size:var(--fs-xl); font-weight:700; margin-bottom:4px; }
+  .block > p { margin:0 0 16px; font-size:var(--fs-md); color:var(--text-sub); }
+  .row { display:flex; flex-wrap:wrap; gap:12px; align-items:center; }
+  .swatches { display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:12px; }
+  .swatch { border:1px solid var(--line); border-radius:var(--r-md); overflow:hidden; background:var(--surface); }
+  .swatch i { display:block; height:48px; border-bottom:1px solid var(--line); }
+  .swatch div { padding:8px 10px; font-size:var(--fs-sm); }
+  .swatch code { display:block; color:var(--text-sub); font-size:var(--fs-xs); }
+  .type-row { display:flex; align-items:baseline; gap:16px; padding:8px 0; border-bottom:1px solid var(--line); }
+  .type-row code { width:150px; flex:none; font-size:var(--fs-xs); color:var(--text-sub); }
+  .grid2 { display:grid; grid-template-columns:repeat(2, 1fr); gap:16px; }
+  .grid3 { display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; align-items:end; }
+  .stack { display:flex; flex-direction:column; gap:12px; }
+  .screens { display:flex; flex-wrap:wrap; gap:24px; align-items:flex-start; }
+  .screens figure { margin:0; }
+  .screens figcaption { font-size:var(--fs-sm); color:var(--text-sub); margin-bottom:8px; }
+  .options-demo { display:flex; gap:24px; background:var(--bg); border:1px solid var(--line); border-radius:var(--r-lg); padding:16px; }
+  @media (max-width: 720px) {
+    .grid2 { grid-template-columns:1fr; }
+    .grid3 { grid-template-columns:repeat(2, 1fr); }
+    .options-demo { flex-direction:column; }
+    .nav { width:auto; }
+  }
+
+  /* 화면 예시: 팝업 */
+  .popup { width:360px; max-width:100%; background:var(--surface); border:1px solid var(--line); border-radius:var(--r-lg); box-shadow:var(--shadow-md); overflow:hidden; }
+  .popup-head { display:flex; justify-content:space-between; align-items:center; height:52px; padding:0 8px 0 16px; border-bottom:1px solid var(--line); }
+  .popup-head h1 { font-size:var(--fs-lg); font-weight:600; }
+  .popup-body { display:flex; flex-direction:column; gap:12px; padding:16px; }
+  .site { display:flex; align-items:center; justify-content:space-between; font-size:var(--fs-sm); color:var(--text-sub); }
+  .profile { display:flex; align-items:center; gap:12px; padding:12px; border:1px solid var(--line); border-radius:var(--r-md); }
+  .avatar { width:36px; height:36px; flex:none; border-radius:50%; display:grid; place-items:center; background:var(--primary-soft); color:var(--primary-fg); font-weight:700; }
+  .profile b { display:block; font-size:var(--fs-base); font-weight:600; }
+  .profile small { font-size:var(--fs-sm); color:var(--text-sub); }
+  .popup-foot { display:flex; justify-content:space-between; padding:6px 8px; border-top:1px solid var(--line); }
+
+  /* 화면 예시: 사이드 패널 */
+  .panel { width:400px; max-width:100%; background:var(--bg); border:1px solid var(--line); border-radius:var(--r-lg); box-shadow:var(--shadow-md); overflow:hidden; }
+  .panel-head { padding:14px 16px; background:var(--surface); border-bottom:1px solid var(--line); }
+  .panel-head h1 { font-size:var(--fs-lg); font-weight:600; }
+  .panel-head small { font-size:var(--fs-sm); color:var(--text-sub); }
+  .panel-body { display:flex; flex-direction:column; gap:16px; padding:16px; }
+  .summary { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; }
+  .summary .card { padding:10px 12px; }
+  .summary strong { display:block; font-size:var(--fs-2xl); font-weight:700; font-variant-numeric:tabular-nums; }
+  .summary span { display:flex; align-items:center; gap:6px; font-size:var(--fs-sm); color:var(--text-sub); }
+  .sec-title { display:flex; align-items:center; gap:8px; font-size:var(--fs-md); font-weight:600; color:var(--text-sub); margin-bottom:8px; }
+  .item-label { font-size:var(--fs-md); font-weight:600; }
+  .item-note { font-size:var(--fs-sm); color:var(--text-sub); margin:2px 0 8px; }
+  .item-controls { display:flex; gap:6px; }
+  .item-controls select { height:32px; font-size:var(--fs-md); }
+  .done-list { padding:0; overflow:hidden; }
+  .done-list div { display:flex; justify-content:space-between; align-items:center; height:40px; padding:0 12px; font-size:var(--fs-md); border-bottom:1px solid var(--line); }
+  .done-list div:last-child { border-bottom:none; }
+  .done-list em { font-style:normal; color:var(--text-sub); }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="page-head">
+    <h1>스타일 가이드 견본</h1>
+    <div class="seg" id="theme">
+      <button data-theme="" class="on">시스템</button>
+      <button data-theme="light">라이트</button>
+      <button data-theme="dark">다크</button>
+    </div>
+  </div>
+  <p class="note">기준 문서: style_guide.md · 오른쪽 버튼으로 라이트/다크 전환 · 표시 데이터는 모두 가상 값.</p>
+
+  <!-- 1. 색 -->
+  <section class="block">
+    <h2>색</h2>
+    <p>현재 테마의 토큰 값. 상태 색은 페이지 하이라이트 색과 동일.</p>
+    <div class="swatches" id="swatches"></div>
+  </section>
+
+  <!-- 2. 타이포그래피 -->
+  <section class="block">
+    <h2>타이포그래피</h2>
+    <p>시스템 글꼴, 굵기 400·500·600·700.</p>
+    <div class="card">
+      <div class="type-row"><code>--fs-2xl 20 / 700</code><span style="font-size:20px;font-weight:700">홍길동 이력서</span></div>
+      <div class="type-row"><code>--fs-xl 18 / 700</code><span style="font-size:18px;font-weight:700">기본 정보</span></div>
+      <div class="type-row"><code>--fs-lg 16 / 600</code><span style="font-size:16px;font-weight:600">이력서 자동 입력</span></div>
+      <div class="type-row"><code>--fs-base 14 / 400</code><span style="font-size:14px">입력 즉시 자동 저장됩니다.</span></div>
+      <div class="type-row"><code>--fs-md 13 / 400</code><span style="font-size:13px">학교명 → 학력 · 학교명 (선택지 불일치)</span></div>
+      <div class="type-row"><code>--fs-sm 12 / 500</code><span style="font-size:12px;font-weight:500;color:var(--text-sub)">입학 연월</span></div>
+      <div class="type-row" style="border-bottom:none"><code>--fs-xs 11 / 500</code><span class="badge ok">입력 완료</span></div>
+    </div>
+  </section>
+
+  <!-- 3. 버튼 -->
+  <section class="block">
+    <h2>버튼</h2>
+    <p>화면당 primary 1개. hover·focus(Tab)·disabled 확인.</p>
+    <div class="stack">
+      <div class="row">
+        <button class="btn primary">작성</button>
+        <button class="btn">복사</button>
+        <button class="btn ghost">건너뛰기</button>
+        <button class="btn danger">삭제</button>
+        <button class="btn" disabled>입력 중…</button>
+      </div>
+      <div class="row">
+        <button class="btn sm">▲</button>
+        <button class="btn sm">▼</button>
+        <button class="btn sm danger">삭제</button>
+        <button class="btn sm">복사</button>
+      </div>
+      <div style="max-width:360px"><button class="btn primary lg">작성</button></div>
+      <button class="btn add">+ 학력 추가</button>
+    </div>
+  </section>
+
+  <!-- 4. 입력란 -->
+  <section class="block">
+    <h2>입력란</h2>
+    <p>높이 36px, focus 시 포인트 테두리 + 포커스 링.</p>
+    <div class="card">
+      <div class="grid3">
+        <label class="field"><span class="field-label">이름(한글) <span class="badge">필수</span></span><input value="홍길동"></label>
+        <label class="field"><span class="field-label">이름(영문)</span><input placeholder="Hong Gildong"></label>
+        <label class="field"><span class="field-label">졸업 상태</span><select><option>졸업</option><option>졸업 예정</option><option>재학</option></select></label>
+        <label class="field"><span class="field-label">입학 연월</span><input type="month" value="2018-03"></label>
+        <label class="field"><span class="field-label">휴대폰</span><input class="invalid" value="010-12"><div class="field-error">전화번호 형식이 아닙니다.</div></label>
+        <label class="field"><span class="field-label">보훈 대상 <span class="badge warn">민감</span></span><select disabled><option>해당 없음</option></select></label>
+        <label class="field" style="grid-column:1/-1"><span class="field-label">답변</span><textarea>저는 문제를 구조적으로 정리하는 것을 좋아합니다.</textarea></label>
+        <div class="count" style="grid-column:1/-1">28 / 500자 (공백 포함)</div>
+        <div class="row" style="grid-column:1/-1">
+          <label class="check"><input type="checkbox" checked> 재직 중</label>
+          <label class="check"><input type="radio" name="r" checked> 정규직</label>
+          <label class="check"><input type="radio" name="r"> 계약직</label>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. 배지·메시지 -->
+  <section class="block">
+    <h2>배지·메시지</h2>
+    <p>색 + 문구 함께 표시.</p>
+    <div class="stack">
+      <div class="row">
+        <span class="badge ok">입력 가능</span>
+        <span class="badge warn">확인 필요</span>
+        <span class="badge err">오류</span>
+        <span class="badge neutral">학습</span>
+        <span class="badge">#협업</span>
+        <span class="row" style="gap:6px;font-size:13px"><i class="dot ok"></i>입력 완료 <i class="dot warn"></i>확인 필요 <i class="dot"></i>해당 없음</span>
+      </div>
+      <div class="msg">입력 결과는 사이드 패널에서 확인해 주세요.</div>
+      <div class="msg ok">가져오기를 완료했습니다.</div>
+      <div class="msg warn">이 페이지의 일부 입력 영역이 다른 사이트(apply.example.net)에 있습니다.</div>
+      <div class="msg err">저장에 실패했습니다. 저장 공간을 확인해 주세요.</div>
+      <div class="bar"><i></i></div>
+    </div>
+  </section>
+
+  <!-- 6. 카드·표·내비 (옵션 화면) -->
+  <section class="block">
+    <h2>옵션 화면 요소</h2>
+    <p>좌측 내비 + 반복 카드 + 표.</p>
+    <div class="options-demo">
+      <nav class="nav">
+        <button>기본 정보</button>
+        <button class="on">학력</button>
+        <button>경력</button>
+        <button>어학·자격증</button>
+        <button>자기소개서</button>
+        <button>설정</button>
+      </nav>
+      <div class="stack" style="flex:1;min-width:0">
+        <div class="card">
+          <div class="card-head">
+            <h3>학력 1</h3>
+            <div class="card-actions"><button class="btn sm" disabled>▲</button><button class="btn sm">▼</button><button class="btn sm danger">삭제</button></div>
+          </div>
+          <div class="grid3">
+            <label class="field"><span class="field-label">학교 구분</span><select><option>대학교(4년)</option></select></label>
+            <label class="field"><span class="field-label">학교명</span><input value="한국대학교"></label>
+            <label class="field"><span class="field-label">전공</span><input value="컴퓨터공학"></label>
+          </div>
+        </div>
+        <button class="btn add">+ 학력 추가</button>
+        <div class="card" style="padding:0;overflow:hidden">
+          <table>
+            <thead><tr><th>사이트</th><th>입력란</th><th>이력서 항목</th><th></th></tr></thead>
+            <tbody>
+              <tr><td>recruit.example.com</td><td>최종학력</td><td>학력 · 학교 구분</td><td><button class="btn sm danger">삭제</button></td></tr>
+              <tr class="on"><td>jobs.example.org</td><td>연락처</td><td>기본 정보 · 휴대폰</td><td><button class="btn sm danger">삭제</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. 화면 예시 -->
+  <section class="block">
+    <h2>화면 예시</h2>
+    <p>팝업 360px · 사이드 패널 400px.</p>
+    <div class="screens">
+      <figure>
+        <figcaption>팝업 ① 작성 가능</figcaption>
+        <div class="popup">
+          <div class="popup-head"><h1>이력서 자동 입력</h1><button class="btn ghost sm">⚙ 설정</button></div>
+          <div class="popup-body">
+            <div class="site"><span>recruit.example.com</span><span class="badge ok">입력 가능</span></div>
+            <div class="profile">
+              <div class="avatar">홍</div>
+              <div><b>홍길동</b><small class="num">수정 2026-10-01 · 학력 2 · 경력 1</small></div>
+            </div>
+            <button class="btn primary lg">작성</button>
+            <div class="msg warn">일부 입력 영역이 다른 사이트(apply.example.net)에 있습니다.
+              <div class="row" style="gap:6px;margin-top:8px"><button class="btn sm">접근 허용</button><button class="btn sm ghost">이 페이지 부분만 입력</button></div>
+            </div>
+          </div>
+          <div class="popup-foot"><button class="btn ghost sm">이력서 편집</button><button class="btn ghost sm">도움말</button></div>
+        </div>
+      </figure>
+
+      <figure>
+        <figcaption>사이드 패널 ① 입력 결과</figcaption>
+        <div class="panel">
+          <div class="panel-head"><h1>입력 결과</h1><small class="num">recruit.example.com · 오후 3:12</small></div>
+          <div class="panel-body">
+            <div class="summary">
+              <div class="card"><strong>18</strong><span><i class="dot ok"></i>입력 완료</span></div>
+              <div class="card"><strong>3</strong><span><i class="dot warn"></i>확인 필요</span></div>
+              <div class="card"><strong>5</strong><span><i class="dot"></i>해당 없음</span></div>
+            </div>
+            <div class="row" style="gap:6px">
+              <button class="btn primary">다시 작성</button><button class="btn">위치 보기</button><button class="btn ghost">되돌리기</button>
+            </div>
+            <section>
+              <div class="sec-title">확인 필요 <span class="badge warn">3</span></div>
+              <div class="stack" style="gap:8px">
+                <div class="card compact status-warn">
+                  <div class="item-label">최종학력</div>
+                  <div class="item-note">→ 학력 · 학교 구분 (선택지 불일치) · 저장 값: 대학교(4년)</div>
+                  <div class="item-controls"><select><option>4년제 대학 졸업</option></select><button class="btn">선택</button><button class="btn ghost">건너뛰기</button></div>
+                </div>
+                <div class="card compact status-warn">
+                  <div class="item-label">입사 가능일</div>
+                  <div class="item-note">→ 희망 조건 · 입사 가능일 (달력 입력 불가)</div>
+                  <div class="item-controls"><span class="num" style="flex:1;align-self:center">2026.11.01</span><button class="btn">복사</button><button class="btn">이동</button></div>
+                </div>
+              </div>
+            </section>
+            <section>
+              <div class="sec-title">입력 완료 <span class="badge ok">18</span></div>
+              <div class="card done-list">
+                <div><span>성명 <em>→ 이름(한글)</em></span><button class="btn sm">이동</button></div>
+                <div><span>휴대전화 <em>→ 휴대폰</em> <span class="badge neutral">학습</span></span><button class="btn sm">이동</button></div>
+                <div><span>이메일 <em>→ 이메일</em></span><button class="btn sm">이동</button></div>
+              </div>
+            </section>
+            <details class="card compact" style="padding-top:0;padding-bottom:0"><summary>해당 없음 5개</summary><p class="item-note">취미, 특기, 종교 …</p></details>
+          </div>
+        </div>
+      </figure>
+    </div>
+  </section>
+</div>
+
+<script>
+  const tokens = [
+    ['--bg', '페이지 배경'], ['--surface', '카드·입력란'], ['--surface-2', '보조 면'], ['--line', '구분선'], ['--line-strong', '입력란 테두리'],
+    ['--text', '본문'], ['--text-sub', '보조 문구'], ['--text-mute', '비활성'],
+    ['--primary', '포인트'], ['--primary-fg', '포인트 글자'], ['--primary-soft', '선택 배경'],
+    ['--ok', '입력 완료'], ['--warn', '확인 필요'], ['--err', '오류'], ['--neutral', '해당 없음'], ['--info', '안내'],
+  ];
+  const box = document.getElementById('swatches');
+  box.innerHTML = tokens.map(([t, label]) =>
+    `<div class="swatch"><i style="background:var(${t})"></i><div>${label}<code>${t}</code><code data-token="${t}"></code></div></div>`).join('');
+  const refresh = () => {
+    const cs = getComputedStyle(document.documentElement);
+    box.querySelectorAll('[data-token]').forEach((el) => { el.textContent = cs.getPropertyValue(el.dataset.token).trim(); });
+  };
+  document.getElementById('theme').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    if (b.dataset.theme) document.documentElement.dataset.theme = b.dataset.theme;
+    else delete document.documentElement.dataset.theme;
+    document.querySelectorAll('#theme button').forEach((x) => x.classList.toggle('on', x === b));
+    refresh();
+  });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', refresh);
+  refresh();
+</script>
+</body>
+</html>

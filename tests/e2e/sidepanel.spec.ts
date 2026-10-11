@@ -53,7 +53,7 @@ test('작성 → 페이지 입력 + 사이드 패널 결과·복사·재실행 �
   // 사이드 패널 결과
   const panel = await context.newPage();
   await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
-  await expect(panel.getByText('입력 완료 9 · 확인 필요 1 · 해당 없음 1')).toBeVisible();
+  await expect(panel.getByLabel('입력 완료 9 · 확인 필요 1 · 해당 없음 1')).toBeVisible();
   await expect(panel.getByText('→ 우편번호 (글자수 제한 초과)')).toBeVisible();
   await expect(panel.getByText('성명 * → 이름')).toBeVisible();
   await panel.getByText('해당 없음 1개').click();
@@ -74,14 +74,14 @@ test('작성 → 페이지 입력 + 사이드 패널 결과·복사·재실행 �
   await page.bringToFront();
   await popup.getByRole('button', { name: '작성' }).click();
   await expect(popup.getByText('입력 완료 10개 · 입력 실패 0개 · 해당 없음 1개')).toBeVisible();
-  await expect(panel.getByText('입력 완료 10 · 확인 필요 0 · 해당 없음 1')).toBeVisible();
+  await expect(panel.getByLabel('입력 완료 10 · 확인 필요 0 · 해당 없음 1')).toBeVisible();
 });
 
 test('사이드 패널 직접 입력·입력란 이동·위치 표시·되돌리기', async ({ context, worker, extensionId }) => {
   const { page } = await runFill(context, worker, extensionId);
   const panel = await context.newPage();
   await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
-  await expect(panel.getByText('입력 완료 9 · 확인 필요 1 · 해당 없음 1')).toBeVisible();
+  await expect(panel.getByLabel('입력 완료 9 · 확인 필요 1 · 해당 없음 1')).toBeVisible();
 
   // 위치 표시 (highlight): Shadow Root 안 상태별 테두리 박스 (Playwright CSS 선택자는 open shadow root 관통)
   const boxes = page.locator('[data-status]');
@@ -94,7 +94,7 @@ test('사이드 패널 직접 입력·입력란 이동·위치 표시·되돌리
   await panel.getByText('해당 없음 1개').click();
   await panel.getByLabel('회사 이름 이력서 항목').selectOption({ label: '이메일' });
   await panel.getByRole('listitem').filter({ hasText: '회사 이름' }).getByRole('button', { name: '입력' }).click();
-  await expect(panel.getByText('입력 완료 10 · 확인 필요 1 · 해당 없음 0')).toBeVisible();
+  await expect(panel.getByLabel('입력 완료 10 · 확인 필요 1 · 해당 없음 0')).toBeVisible();
   await expect(page.locator('#company')).toHaveValue('gildong@example.com');
   await expect(page.locator('[data-status=filled]')).toHaveCount(10);
 
@@ -130,7 +130,7 @@ test('같은 출처 iframe: 수집·입력, 사이드 패널 직접 입력·위�
   await panel.getByText('해당 없음 1개').click();
   await panel.getByLabel('회사 이름 이력서 항목').selectOption({ label: '이메일' });
   await panel.getByRole('listitem').filter({ hasText: '회사 이름' }).getByRole('button', { name: '입력' }).click();
-  await expect(panel.getByText('입력 완료 4 · 확인 필요 0 · 해당 없음 0')).toBeVisible();
+  await expect(panel.getByLabel('입력 완료 4 · 확인 필요 0 · 해당 없음 0')).toBeVisible();
   await expect(frame.locator('#company')).toHaveValue('gildong@example.com');
 
   // 위치 표시: iframe 안 입력란도 표시
@@ -190,11 +190,11 @@ test('사이드 패널 건너뛰기·다시 작성', async ({ context, worker, e
   const { page } = await runFill(context, worker, extensionId);
   const panel = await context.newPage();
   await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
-  await expect(panel.getByText('입력 완료 9 · 확인 필요 1 · 해당 없음 1')).toBeVisible();
+  await expect(panel.getByLabel('입력 완료 9 · 확인 필요 1 · 해당 없음 1')).toBeVisible();
 
   // 건너뛰기: 확인 필요 → 해당 없음
   await panel.getByRole('listitem').filter({ hasText: '우편번호 앞 3자리' }).getByRole('button', { name: '건너뛰기' }).click();
-  await expect(panel.getByText('입력 완료 9 · 확인 필요 0 · 해당 없음 2')).toBeVisible();
+  await expect(panel.getByLabel('입력 완료 9 · 확인 필요 0 · 해당 없음 2')).toBeVisible();
   await panel.getByText('해당 없음 2개').click();
   await expect(panel.getByRole('listitem').filter({ hasText: '우편번호 앞 3자리' })).toBeVisible();
 
@@ -203,7 +203,7 @@ test('사이드 패널 건너뛰기·다시 작성', async ({ context, worker, e
   await panel.bringToFront();
   await panel.getByRole('button', { name: '다시 작성' }).click();
   await expect(panel.getByRole('status')).toHaveText('입력 완료 9개 · 입력 실패 1개 · 해당 없음 1개');
-  await expect(panel.getByText('입력 완료 9 · 확인 필요 1 · 해당 없음 1')).toBeVisible();
+  await expect(panel.getByLabel('입력 완료 9 · 확인 필요 1 · 해당 없음 1')).toBeVisible();
   await expect(page.locator('#nm')).toHaveValue('홍길동');
 });
 
@@ -301,7 +301,7 @@ test('직접 입력 → 학습 규칙 저장 → 재실행 시 자동 입력', a
   await panel.getByText('해당 없음 1개').click();
   await panel.getByLabel('회사 이름 이력서 항목').selectOption({ label: '이메일' });
   await panel.getByRole('listitem').filter({ hasText: '회사 이름' }).getByRole('button', { name: '입력' }).click();
-  await expect(panel.getByText('입력 완료 10 · 확인 필요 1 · 해당 없음 0')).toBeVisible();
+  await expect(panel.getByLabel('입력 완료 10 · 확인 필요 1 · 해당 없음 0')).toBeVisible();
 
   const rules = await worker.evaluate(async () => (await chrome.storage.local.get('learnedRules')).learnedRules);
   expect(rules).toMatchObject([
@@ -314,7 +314,7 @@ test('직접 입력 → 학습 규칙 저장 → 재실행 시 자동 입력', a
   await popup.getByRole('button', { name: '작성' }).click();
   await expect(popup.getByText('입력 완료 10개 · 입력 실패 1개 · 해당 없음 0개')).toBeVisible();
   await expect(page.locator('#company')).toHaveValue('gildong@example.com');
-  await expect(panel.getByText('회사 이름 → 이메일 (학습)')).toBeVisible();
+  await expect(panel.getByRole('listitem').filter({ hasText: '회사 이름 → 이메일' })).toContainText('학습');
 
   // 옵션 화면 학습 규칙 조회·삭제
   const options = await context.newPage();
@@ -372,7 +372,7 @@ test('선택지 불일치 → 사이드 패널에서 사이트 선택지 선택 
   await expect(row).toContainText('대학교(4년)');
   await panel.getByLabel('학력 구분 선택지').selectOption({ label: '일반대학' });
   await row.getByRole('button', { name: '선택' }).click();
-  await expect(panel.getByText('입력 완료 2 · 확인 필요 0 · 해당 없음 0')).toBeVisible();
+  await expect(panel.getByLabel('입력 완료 2 · 확인 필요 0 · 해당 없음 0')).toBeVisible();
   await expect(page.locator('#level')).toHaveValue('30');
 
   // 학습 규칙: 이력서 원래 값 → 고른 선택지 텍스트
@@ -414,7 +414,7 @@ test('radio 그룹 자동 선택 + 선택지 불일치 직접 선택·학습 + �
   await expect(row).toContainText('학력 구분 → 학력 1 학력 구분');
   await panel.getByLabel('학력 구분 선택지').selectOption({ label: '일반대학' });
   await row.getByRole('button', { name: '선택' }).click();
-  await expect(panel.getByText('입력 완료 4 · 확인 필요 0 · 해당 없음 0')).toBeVisible();
+  await expect(panel.getByLabel('입력 완료 4 · 확인 필요 0 · 해당 없음 0')).toBeVisible();
   await expect(page.locator('input[name=level][value="30"]')).toBeChecked();
   const rules = await worker.evaluate(async () => (await chrome.storage.local.get('learnedRules')).learnedRules);
   expect(rules).toMatchObject([{ schemaKey: 'education.0.level', option: { value: 'university', text: '일반대학' } }]);
@@ -448,7 +448,7 @@ test('ARIA 콤보박스: 열어서 선택지 수집·선택 + 선택지 불일�
   await expect(row).toContainText('학력 구분 → 학력 1 학력 구분');
   await panel.getByLabel('학력 구분 선택지').selectOption({ label: '일반대학' });
   await row.getByRole('button', { name: '선택' }).click();
-  await expect(panel.getByText('입력 완료 4 · 확인 필요 0 · 해당 없음 0')).toBeVisible();
+  await expect(panel.getByLabel('입력 완료 4 · 확인 필요 0 · 해당 없음 0')).toBeVisible();
   await expect(page.locator('#level')).toHaveText('일반대학');
   const rules = await worker.evaluate(async () => (await chrome.storage.local.get('learnedRules')).learnedRules);
   expect(rules).toMatchObject([{ schemaKey: 'education.0.level', option: { value: 'university', text: '일반대학' } }]);
@@ -562,7 +562,7 @@ test('checkbox 그룹 다중 선택 + 선택지 불일치 직접 선택·학습 
   await expect(row).toContainText('희망 직무 → 희망 직무');
   await panel.getByLabel('희망 직무 선택지').selectOption({ label: '데이터 분석' });
   await row.getByRole('button', { name: '선택' }).click();
-  await expect(panel.getByText('입력 완료 3 · 확인 필요 0 · 해당 없음 0')).toBeVisible();
+  await expect(panel.getByLabel('입력 완료 3 · 확인 필요 0 · 해당 없음 0')).toBeVisible();
   await expect(page.locator('input[name=job][value=d]')).toBeChecked();
   const rules = await worker.evaluate(async () => (await chrome.storage.local.get('learnedRules')).learnedRules);
   expect(rules).toMatchObject([{ schemaKey: 'desired.jobs', option: { value: '백엔드 개발', text: '데이터 분석' } }]);
@@ -606,7 +606,7 @@ test('자기소개서 추천: 문항 매칭·글자수 표시 → 입력, 제한
   await q2.getByRole('button', { name: '입력' }).click();
   await expect(panel.getByRole('status')).toHaveText('입력란 글자수 제한을 초과합니다');
   await expect(page.locator('#q2')).toHaveValue('');
-  await expect(panel.getByText('입력 완료 2 · 확인 필요 1 · 해당 없음 1')).toBeVisible();
+  await expect(panel.getByLabel('입력 완료 2 · 확인 필요 1 · 해당 없음 1')).toBeVisible();
 });
 
 test('checkbox boolean 항목 체크·해제 + 직접 입력 선택 목록 + 되돌리기', async ({ context, worker, extensionId }) => {
@@ -632,7 +632,7 @@ test('checkbox boolean 항목 체크·해제 + 직접 입력 선택 목록 + 되
   await expect(select.locator('option')).toHaveText(['이력서 항목 선택', '학력 1 편입', '경력 1 재직 중']);
   await select.selectOption({ label: '경력 1 재직 중' });
   await panel.getByRole('listitem').filter({ hasText: '개인정보 수집 동의' }).getByRole('button', { name: '입력' }).click();
-  await expect(panel.getByText('입력 완료 5 · 확인 필요 0 · 해당 없음 0')).toBeVisible();
+  await expect(panel.getByLabel('입력 완료 5 · 확인 필요 0 · 해당 없음 0')).toBeVisible();
   await expect(page.locator('#agree')).toBeChecked();
 
   // 되돌리기: 입력 전 체크 상태 복원
