@@ -202,5 +202,5 @@ Popup '작성' 클릭 (activeTab 부여)
 
 ## 10. 확인 필요 사항
 - Isolated world(content script 기본 실행 환경)에서 React 제어 input 값 반영 여부 → fixture로 검증, 필요 시 해당 로직만 main world 주입
-- `allFrames: true` 주입 시 iframe별 `frameId`로 PageDetails를 나눠 받는 처리
+- ~~`allFrames: true` 주입 시 iframe별 `frameId`로 PageDetails를 나눠 받는 처리~~ → 같은 출처 iframe 구현(`core/frames.ts`, fieldId '프레임id:로컬id'). 교차 출처 iframe은 권한 요청 흐름(`needs-permission`) 미구현
 - 사이드 패널 열기를 popup 클릭 처리 중 비동기 작업 이후 호출할 때 사용자 제스처 유지 여부

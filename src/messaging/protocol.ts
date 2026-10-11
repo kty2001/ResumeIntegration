@@ -1,7 +1,7 @@
 import { defineExtensionMessaging } from '@webext-core/messaging';
 
 // 메시지 규격: docs/design/architecture.md 5·6장
-// 현재 범위: 최상위 프레임의 text·textarea·date 입력란, 기본 select, radio 그룹, 단일 checkbox, checkbox 그룹, ARIA 콤보박스, 파일
+// 현재 범위: 최상위 프레임 + 주입 가능한(같은 출처) iframe의 text·textarea·date 입력란, 기본 select, radio 그룹, 단일 checkbox, checkbox 그룹, ARIA 콤보박스, 파일
 
 export type WidgetKind = 'text' | 'textarea' | 'date' | 'select' | 'radio' | 'checkbox' | 'checkboxes' | 'combobox' | 'file';
 
@@ -58,6 +58,7 @@ export interface ReportField {
 
 export interface FillReport {
   tabId: number;            // fillOne·focusField·undo 대상 탭
+  frameIds?: number[];      // filler를 주입한 프레임 (highlight·undo 대상, 없으면 최상위 프레임만)
   url: string;
   at: string;               // ISO 시각
   fields: ReportField[];    // 페이지 순서

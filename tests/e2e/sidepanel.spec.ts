@@ -118,6 +118,34 @@ test('설정에서 제외한 사이트는 입력하지 않음', async ({ context
   await expect(page.locator('#nm')).toHaveValue('');
 });
 
+test('같은 출처 iframe: 수집·입력, 사이드 패널 직접 입력·위치 표시·되돌리기', async ({ context, worker, extensionId }) => {
+  const { page } = await runFill(context, worker, extensionId, 'iframe.html', '입력 완료 3개 · 입력 실패 0개 · 해당 없음 1개');
+  const frame = page.frameLocator('iframe');
+  await expect(page.locator('#nm')).toHaveValue('홍길동');
+  await expect(frame.locator('#email')).toHaveValue('gildong@example.com');
+  await expect(frame.locator('#phone')).toHaveValue('010-1234-5678');
+
+  const panel = await context.newPage();
+  await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+  await panel.getByText('해당 없음 1개').click();
+  await panel.getByLabel('회사 이름 이력서 항목').selectOption({ label: '이메일' });
+  await panel.getByRole('listitem').filter({ hasText: '회사 이름' }).getByRole('button', { name: '입력' }).click();
+  await expect(panel.getByText('입력 완료 4 · 확인 필요 0 · 해당 없음 0')).toBeVisible();
+  await expect(frame.locator('#company')).toHaveValue('gildong@example.com');
+
+  // 위치 표시: iframe 안 입력란도 표시
+  await panel.getByRole('button', { name: '입력 항목 위치 보기' }).click();
+  await expect
+    .poll(() => page.frames()[1]!.evaluate(() => document.documentElement.lastElementChild?.shadowRoot?.querySelectorAll('div').length ?? 0))
+    .toBe(3);
+
+  await panel.getByRole('button', { name: '되돌리기' }).click();
+  await expect(panel.getByText('4개 되돌림')).toBeVisible();
+  await expect(page.locator('#nm')).toHaveValue('');
+  await expect(frame.locator('#email')).toHaveValue('');
+  await expect(frame.locator('#company')).toHaveValue('');
+});
+
 test('민감정보: 설정을 켰을 때만 입력', async ({ context, worker, extensionId }) => {
   const data: Resume = {
     ...resume,

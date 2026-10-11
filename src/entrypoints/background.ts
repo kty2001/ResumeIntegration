@@ -1,5 +1,6 @@
 import type { FilePayload } from '@/core/attachments';
 import { COVER_LETTER_KEY } from '@/core/coverLetter';
+import { globalFieldId, mergeFrames, mergeResults, planByFrame, splitFieldId } from '@/core/frames';
 import { rulesForOrigin, upsertRule, type LearnedRule } from '@/core/mapping/learned';
 import { getValueByKey, keyForValue, mapFields, resolveValue } from '@/core/mapping/match';
 import { applyFillOne, buildFillReport } from '@/core/mapping/report';
@@ -13,6 +14,7 @@ import {
   type FillPlan,
   type FillReport,
   type FillResult,
+  type PageDetails,
   type ReportField,
   type StartFillResponse,
   type UndoResponse,
@@ -21,7 +23,7 @@ import type { Resume } from '@/core/schema/resume';
 import { getFile } from '@/storage/files';
 import { coverLettersItem, fillReportItem, learnedRulesItem, resumeItem, settingsItem } from '@/storage/items';
 
-// 자동 입력 흐름: docs/design/architecture.md 7.1 (현재 최상위 프레임만 처리)
+// 자동 입력 흐름: docs/design/architecture.md 7.1 (최상위 프레임 + 주입 가능한 같은 출처 iframe)
 // 사이드 패널 동작(fillOne·fillAnswer·focusField·highlight·undo): 7.2·7.3, 대상 탭은 session:fillReport의 tabId
 // fillOne 성공·페이지 직접 수정(userEdit) 시 학습 규칙 저장 → 다음 startFill에서 매핑 1순위
 
@@ -58,6 +60,36 @@ async function withFilePayloads(plan: FillPlan, fields: FieldDescriptor[], resum
   return { ...plan, items, skipped };
 }
 
+const FILLER: ['/filler.js'] = ['/filler.js'];
+
+/**
+ * 최상위 프레임 + 주입 가능한(같은 출처) iframe에 filler 주입 → 주입된 frameId 목록
+ * 사이드 패널 '다시 작성'은 activeTab 부여가 없어 페이지 이동 후 실패 → 안내 문구, 기존 결과는 유지
+ */
+async function injectFiller(tabId: number): Promise<number[]> {
+  try {
+    await browser.scripting.executeScript({ target: { tabId }, files: FILLER });
+  } catch {
+    throw new Error("페이지 접근 권한 없음: 툴바 아이콘의 '작성'으로 다시 실행해 주세요");
+  }
+  // 권한 없는(교차 출처) iframe 때문에 실패하면 최상위 프레임만 처리
+  try {
+    const results = await browser.scripting.executeScript({ target: { tabId, allFrames: true }, files: FILLER });
+    return [...new Set([0, ...results.map((r) => r.frameId)])].sort((a, b) => a - b);
+  } catch {
+    return [0];
+  }
+}
+
+/** 프레임별로 나눠 입력 후 결과 합침 (전체 fieldId 기준) */
+async function sendFill(tabId: number, plan: FillPlan): Promise<FillResult> {
+  const results: { frameId: number; result: FillResult }[] = [];
+  for (const [frameId, part] of planByFrame(plan)) {
+    results.push({ frameId, result: await sendMessage('fill', part, { tabId, frameId }) });
+  }
+  return mergeResults(results);
+}
+
 async function startFill(tabId: number): Promise<StartFillResponse> {
   const tab = await browser.tabs.get(tabId);
   if (tab.url && isExcluded(tab.url)) {
@@ -75,20 +107,23 @@ async function startFill(tabId: number): Promise<StartFillResponse> {
     return { status: 'no-resume' };
   }
 
-  // 사이드 패널 '다시 작성'은 activeTab 부여가 없어 페이지 이동 후 실패 → 안내 문구, 기존 결과는 유지
-  try {
-    await browser.scripting.executeScript({ target: { tabId }, files: ['/filler.js'] });
-  } catch {
-    throw new Error("페이지 접근 권한 없음: 툴바 아이콘의 '작성'으로 다시 실행해 주세요");
-  }
+  const frameIds = await injectFiller(tabId);
   await fillReportItem.setValue(null);
-  const target = { tabId, frameId: 0 };
-  const details = await sendMessage('collect', undefined, target);
+  const frames: { frameId: number; details: PageDetails }[] = [];
+  for (const frameId of frameIds) {
+    // 수집 중 이동·제거된 iframe은 건너뜀 (최상위 프레임 실패는 오류)
+    try {
+      frames.push({ frameId, details: await sendMessage('collect', undefined, { tabId, frameId }) });
+    } catch (e) {
+      if (frameId === 0) throw e;
+    }
+  }
+  const details = mergeFrames(frames);
   const learned = rulesForOrigin(await learnedRulesItem.getValue(), new URL(details.url).origin);
   const mapped = mapFields(details.fields, resume, learned, settings.sensitiveAutofill ?? false);
   const plan = await withFilePayloads(mapped, details.fields, resume);
-  const result = await sendMessage('fill', plan, target);
-  const report = buildFillReport(details, plan, result, tabId);
+  const result = await sendFill(tabId, plan);
+  const report = { ...buildFillReport(details, plan, result, tabId), frameIds: frames.map((f) => f.frameId) };
   await fillReportItem.setValue(report);
 
   // 선택지 불일치(plan.skipped)도 '입력 실패'에 포함되도록 보고서 상태 기준으로 집계
@@ -105,7 +140,7 @@ async function requireReport(): Promise<FillReport> {
 /** 사이드 패널 직접 입력: 한 입력란에 값 입력 후 결과 반영 */
 async function fillManual(report: FillReport, fieldId: string, schemaKey: string, value: string): Promise<FillResult> {
   const plan = { items: [{ fieldId, schemaKey, value, source: 'manual' as const }], unmatched: [] };
-  const result = await sendMessage('fill', plan, { tabId: report.tabId, frameId: 0 });
+  const result = await sendFill(report.tabId, plan);
   await fillReportItem.setValue(applyFillOne(report, fieldId, schemaKey, result));
   return result;
 }
@@ -179,12 +214,32 @@ async function userEdit(tabId: number | undefined, fieldId: string, value: strin
   }
 }
 
+/** 모든 프레임 되돌리기, 복원 개수 합계 */
 async function undo(): Promise<UndoResponse> {
   const report = await requireReport();
-  const response = await sendMessage('undo', undefined, { tabId: report.tabId, frameId: 0 });
+  let restored = 0;
+  for (const frameId of report.frameIds ?? [0]) {
+    const response = await sendMessage('undo', undefined, { tabId: report.tabId, frameId });
+    if (response.status === 'error') return response;
+    restored += response.restored;
+  }
   // 입력 전 상태로 돌아갔으므로 결과 초기화
-  if (response.status === 'ok') await fillReportItem.setValue(null);
-  return response;
+  await fillReportItem.setValue(null);
+  return { status: 'ok', restored };
+}
+
+/** 입력란 위치 표시: 프레임별로 나눠 전달 (표시할 입력란이 없는 프레임은 해제) */
+async function highlight(fields: Pick<ReportField, 'fieldId' | 'status'>[]): Promise<ActionResponse> {
+  const report = await requireReport();
+  for (const frameId of report.frameIds ?? [0]) {
+    const own = fields.flatMap((f) => {
+      const { frameId: owner, localId } = splitFieldId(f.fieldId);
+      return owner === frameId ? [{ ...f, fieldId: localId }] : [];
+    });
+    const response = await sendMessage('highlight', { fields: own }, { tabId: report.tabId, frameId });
+    if (response.status === 'error') return response;
+  }
+  return { status: 'ok' };
 }
 
 async function withErrors<T>(run: () => Promise<T>): Promise<T | ErrorResponse> {
@@ -206,15 +261,14 @@ export default defineBackground(() => {
   onMessage('focusField', ({ data }) =>
     withErrors(async () => {
       const report = await requireReport();
-      return sendMessage('focusField', data, { tabId: report.tabId, frameId: 0 });
+      const { frameId, localId } = splitFieldId(data.fieldId);
+      return sendMessage('focusField', { fieldId: localId }, { tabId: report.tabId, frameId });
     }),
   );
-  onMessage('highlight', ({ data }) =>
-    withErrors(async () => {
-      const report = await requireReport();
-      return sendMessage('highlight', data, { tabId: report.tabId, frameId: 0 });
-    }),
-  );
+  onMessage('highlight', ({ data }) => withErrors(() => highlight(data.fields)));
   onMessage('undo', () => withErrors(undo));
-  onMessage('userEdit', ({ data, sender }) => userEdit(sender.tab?.id, data.fieldId, data.value));
+  // iframe의 filler는 로컬 id를 보냄 → 보낸 프레임 기준 전체 id
+  onMessage('userEdit', ({ data, sender }) =>
+    userEdit(sender.tab?.id, globalFieldId(sender.frameId ?? 0, data.fieldId), data.value),
+  );
 });
