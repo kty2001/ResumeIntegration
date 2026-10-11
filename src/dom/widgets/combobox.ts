@@ -1,9 +1,11 @@
 // ARIA 콤보박스(선택 전용 커스텀 드롭다운): docs/reports/06_generic_widget_strategy.md 2.2
 // 열기(실제 클릭과 같은 포인터·마우스 이벤트) → role=option 출현 대기 → 선택지 텍스트가 같은 항목 클릭 → 표시 텍스트로 검증
 // 선택지 value는 표시 텍스트 (ARIA option에는 value가 없음)
+// 검색형 콤보박스(자동완성 입력란, 2.3)는 텍스트 입력 후 후보 목록에서 일치 항목 클릭 (pickSuggestion)
 
 const OPEN_TIMEOUT_MS = 1000;
 const SELECT_TIMEOUT_MS = 500;
+const SUGGEST_TIMEOUT_MS = 800;
 
 const textOf = (el: Element) => el.textContent?.replace(/\s+/g, ' ').trim() ?? '';
 const isShown = (el: Element) => el.getClientRects().length > 0 && getComputedStyle(el).visibility !== 'hidden';
@@ -76,6 +78,31 @@ export async function comboboxOptions(el: HTMLElement): Promise<{ value: string;
 /** 현재 표시 값 */
 export function readCombobox(el: HTMLElement): string {
   return el instanceof HTMLInputElement ? el.value : textOf(el);
+}
+
+/** 검색형 콤보박스: input[role=combobox] 또는 aria-autocomplete=list|both */
+export function isSearchable(el: HTMLInputElement): boolean {
+  return el.getAttribute('role') === 'combobox' || /^(list|both)$/.test(el.getAttribute('aria-autocomplete') ?? '');
+}
+
+const normalize = (text: string) => text.toLowerCase().replace(/\s+/g, '');
+
+/**
+ * 검색어 입력 후 후보 목록에서 확정: 텍스트가 같은 후보 → 검색어를 포함하는 후보가 하나뿐이면 그 후보 클릭
+ * 후보가 안 뜨거나 맞는 후보가 없으면 입력한 텍스트 그대로 둠 (자유 입력 허용 위젯, Esc는 입력값을 지우는 위젯이 있어 보내지 않음)
+ * 반환: 후보를 클릭했는지
+ */
+export async function pickSuggestion(el: HTMLInputElement, value: string): Promise<boolean> {
+  const target = normalize(value);
+  const choose = () => {
+    const options = optionsIn(listboxOf(el, true)).filter(isShown);
+    if (!options.length) return undefined;
+    const contains = options.filter((o) => normalize(textOf(o)).includes(target));
+    return options.find((o) => normalize(textOf(o)) === target) ?? (contains.length === 1 ? contains[0] : null);
+  };
+  const option = await waitFor(choose, SUGGEST_TIMEOUT_MS);
+  if (option) press(option);
+  return !!option;
 }
 
 export async function fillCombobox(el: HTMLElement, value: string): Promise<boolean> {

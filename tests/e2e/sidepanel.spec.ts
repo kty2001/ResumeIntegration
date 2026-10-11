@@ -368,6 +368,19 @@ test('ARIA 콤보박스: 열어서 선택지 수집·선택 + 선택지 불일�
   expect(rules).toMatchObject([{ schemaKey: 'education.0.level', option: { value: 'university', text: '일반대학' } }]);
 });
 
+test('검색형 콤보박스: 입력 후 일치 후보(정확히 같음 → 포함 후보 하나) 확정', async ({ context, worker, extensionId }) => {
+  const data: Resume = {
+    ...resume,
+    education: [{ id: 'e1', level: 'university', school: { ko: '한국대학교' }, status: 'graduated', major: { ko: '컴퓨터공학' } }],
+  };
+  const { page } = await runFill(context, worker, extensionId, 'searchable.html', '입력 완료 2개 · 입력 실패 0개 · 해당 없음 0개', data);
+  await expect(page.locator('#school')).toHaveValue('한국대학교');
+  await expect(page.locator('#school-code')).toHaveValue('K001');
+  await expect(page.locator('#major')).toHaveValue('컴퓨터공학과');
+  await expect(page.locator('#major-code')).toHaveValue('C10');
+  await expect(page.locator('#school-list')).toBeHidden();
+});
+
 test('희망 조건: 연봉·내규 checkbox·근무지·직무(배열 결합)·고용 형태 select·입사 가능일', async ({ context, worker, extensionId }) => {
   const data: Resume = {
     ...resume,

@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>검색형 콤보박스 fixture</title>
+</head>
+<body>
+  <!-- 입력하면 후보 목록이 뜨고, 후보를 골라야 코드(hidden)가 정해지는 자동완성 입력란 -->
+  <form onsubmit="return false">
+    <h2>학력사항</h2>
+    <p>
+      <label for="school">학교명</label>
+      <input id="school" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="school-list" autocomplete="off">
+      <input type="hidden" id="school-code" name="school_code">
+      <ul id="school-list" role="listbox" hidden></ul>
+    </p>
+    <p>
+      <label for="major">전공</label>
+      <input id="major" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="major-list" autocomplete="off">
+      <input type="hidden" id="major-code" name="major_code">
+      <ul id="major-list" role="listbox" hidden></ul>
+    </p>
+  </form>
+  <script>
+    function autocomplete(input, list, code, items) {
+      input.addEventListener('input', () => {
+        const query = input.value.trim();
+        list.replaceChildren();
+        for (const [text, value] of items) {
+          if (!query || !text.includes(query)) continue;
+          const li = document.createElement('li');
+          li.setAttribute('role', 'option');
+          li.textContent = text;
+          li.addEventListener('click', () => {
+            input.value = text;
+            code.value = value;
+            list.hidden = true;
+            input.setAttribute('aria-expanded', 'false');
+          });
+          list.append(li);
+        }
+        // 서버 검색처럼 약간 늦게 표시
+        setTimeout(() => {
+          list.hidden = list.children.length === 0;
+          input.setAttribute('aria-expanded', String(!list.hidden));
+        }, 100);
+      });
+    }
+    const $ = (id) => document.getElementById(id);
+    autocomplete($('school'), $('school-list'), $('school-code'), [['한국대학교', 'K001'], ['한국대학교 세종캠퍼스', 'K002'], ['서울대학교', 'S001']]);
+    autocomplete($('major'), $('major-list'), $('major-code'), [['컴퓨터공학과', 'C10'], ['전자공학과', 'E20']]);
+  </script>
+</body>
+</html>
