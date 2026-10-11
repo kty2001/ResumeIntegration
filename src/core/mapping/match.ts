@@ -83,9 +83,9 @@ export function getValueByKey(resume: Resume, schemaKey: string): string | undef
   return values.length > 0 ? values.join(', ') : undefined;
 }
 
-/** 선택지 중 하나를 고르는 입력란 (값 = 선택지 value) */
+/** 선택지를 고르는 입력란 (값 = 선택지 value, checkbox 그룹은 value JSON 배열) */
 export function isChoiceWidget(widget: WidgetKind): boolean {
-  return widget === 'select' || widget === 'radio';
+  return widget === 'select' || widget === 'radio' || widget === 'checkboxes';
 }
 
 /** 학습한 선택지: 이력서 값이 학습 당시와 같을 때만, 같은 텍스트의 선택지가 있으면 그 value */
@@ -99,6 +99,7 @@ function learnedOptionValue(value: string, hint: FormatHint, option?: LearnedMat
  * 이력서 값을 입력란 형식으로 변환해 조회. select·radio는 선택지 value(학습 선택지 우선), 텍스트 입력란의 enum 값은 표시명
  * checkbox는 boolean 값만 'true'/'false'
  * 배열 값: select·radio는 원소 순서대로 첫 일치 선택지, 텍스트는 원소별 변환 후 ', ' 결합
+ * checkbox 그룹은 원소별 일치 선택지 전부의 JSON 배열 (하나도 없으면 undefined)
  * option: 학습 규칙의 선택지 (matchField 반환값)
  */
 export function resolveValue(
@@ -116,12 +117,10 @@ export function resolveValue(
   if (isChoiceWidget(hint.widget)) {
     // 학습 선택지는 학습 당시 값(getValueByKey, 배열은 결합 문자열)과 비교
     const learnedHit = learnedOptionValue(values.join(', '), hint, option);
-    if (learnedHit) return learnedHit;
-    for (const value of values) {
-      const hit = matchOption(schemaKey, value, hint.options ?? []);
-      if (hit) return hit;
-    }
-    return undefined;
+    const hits = learnedHit ? [learnedHit] : values.map((value) => matchOption(schemaKey, value, hint.options ?? []));
+    const matched = [...new Set(hits.filter((v): v is string => !!v))];
+    if (matched.length === 0) return undefined;
+    return hint.widget === 'checkboxes' ? JSON.stringify(matched) : matched[0];
   }
   return values.map((value) => enumLabel(schemaKey, value) ?? formatValue(schemaKey, value, hint)).join(', ');
 }

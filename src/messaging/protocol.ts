@@ -1,9 +1,9 @@
 import { defineExtensionMessaging } from '@webext-core/messaging';
 
 // 메시지 규격: docs/design/architecture.md 5·6장
-// 현재 범위: 최상위 프레임의 text·textarea·date 입력란, 기본 select, radio 그룹, 단일 checkbox
+// 현재 범위: 최상위 프레임의 text·textarea·date 입력란, 기본 select, radio 그룹, 단일 checkbox, checkbox 그룹
 
-export type WidgetKind = 'text' | 'textarea' | 'date' | 'select' | 'radio' | 'checkbox';
+export type WidgetKind = 'text' | 'textarea' | 'date' | 'select' | 'radio' | 'checkbox' | 'checkboxes';
 
 /** content script → background: 페이지에서 수집한 필드 정보 (값 미포함) */
 export interface FieldDescriptor {
@@ -17,7 +17,7 @@ export interface FieldDescriptor {
   ariaLabel?: string;
   maxLength?: number;
   section?: string;         // 소속 섹션 텍스트 (fieldset legend → 직전 제목)
-  options?: { value: string; text: string }[]; // select·radio 선택지 (페이지 정보, 이력서 값 아님)
+  options?: { value: string; text: string }[]; // select·radio·checkbox 그룹 선택지 (페이지 정보, 이력서 값 아님)
 }
 
 /** 형식 변환(core/format) 판단에 쓰는 입력란 정보 */

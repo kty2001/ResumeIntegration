@@ -297,6 +297,25 @@ describe('mapFields', () => {
     expect(plan.unmatched).toEqual(['6']);
   });
 
+  it('checkbox 그룹은 원소별 일치 선택지 전부(JSON 배열), 하나도 없으면 skipped', () => {
+    const r = createEmptyResume();
+    r.desired = { locations: ['서울', '부산', '제주'], jobs: [], employmentTypes: ['full_time', 'intern'] };
+    const plan = mapFields(
+      [
+        field({ fieldId: '0', label: '희망 고용 형태', widget: 'checkboxes', options: [
+          { value: 'P', text: '정규직' }, { value: 'C', text: '계약직' }, { value: 'I', text: '인턴' },
+        ] }),
+        field({ fieldId: '1', label: '희망 근무지', widget: 'checkboxes', options: [
+          { value: '11', text: '서울특별시' }, { value: '26', text: '부산광역시' }, { value: '41', text: '경기도' },
+        ] }),
+        field({ fieldId: '2', label: '희망 직무', widget: 'checkboxes', options: [{ value: 'a', text: '개발' }] }),
+      ],
+      r,
+    );
+    expect(plan.items.map((i) => i.value)).toEqual(['["P","I"]', '["11","26"]']);
+    expect(plan.unmatched).toEqual(['2']);
+  });
+
   it('select 학습 선택지: 이력서 값이 학습 당시와 같을 때만 적용, 선택지 없으면 사전 매칭', () => {
     const r = createEmptyResume();
     r.education = [{ id: 'e1', level: 'university', school: { ko: '한국대학교' }, status: 'graduated' }];

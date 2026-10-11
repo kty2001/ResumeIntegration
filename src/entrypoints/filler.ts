@@ -1,4 +1,4 @@
-import { collectPageDetails, getElement, isCheckbox, isRadio } from '@/dom/collect';
+import { collectPageDetails, getElement, isCheckbox, isCheckboxGroup, isRadio } from '@/dom/collect';
 import { clearHighlights, showHighlights } from '@/dom/highlight';
 import { restoreAll, saveSnapshot } from '@/dom/snapshot';
 import { fillElement } from '@/dom/widgets';
@@ -35,7 +35,15 @@ export default defineUnlistedScript(() => {
       } else {
         saveSnapshot(el);
         const strategy =
-          el instanceof HTMLSelectElement ? 'select' : isRadio(el) ? 'radio' : isCheckbox(el) ? 'checkbox' : 'text';
+          el instanceof HTMLSelectElement
+            ? 'select'
+            : isRadio(el)
+              ? 'radio'
+              : isCheckboxGroup(el)
+                ? 'checkboxes'
+                : isCheckbox(el)
+                  ? 'checkbox'
+                  : 'text';
         if (fillElement(el, value)) result.filled.push({ fieldId, strategy });
         else result.failed.push({ fieldId, reason: 'not-applied' });
       }

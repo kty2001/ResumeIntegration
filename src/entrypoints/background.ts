@@ -67,7 +67,7 @@ async function fillOne(fieldId: string, schemaKey: string, optionValue?: string)
   if (optionValue !== undefined) {
     const chosen = field.hint.options?.find((o) => o.value === optionValue);
     if (!chosen) return { status: 'error', message: '선택지를 찾을 수 없음' };
-    value = chosen.value;
+    value = field.hint.widget === 'checkboxes' ? JSON.stringify([chosen.value]) : chosen.value;
     const original = resume && getValueByKey(resume, schemaKey);
     if (original) option = { value: original, text: chosen.text };
   } else {

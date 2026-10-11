@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>checkbox 그룹 fixture</title>
+</head>
+<body>
+  <form onsubmit="return false">
+    <h2>희망 근무 조건</h2>
+    <!-- 기존 체크(계약직) → 이력서 값과 정확히 일치하도록 체크·해제 -->
+    <fieldset>
+      <legend>희망 고용 형태</legend>
+      <label><input type="checkbox" name="emp" value="P"> 정규직</label>
+      <label><input type="checkbox" name="emp" value="C" checked> 계약직</label>
+      <label><input type="checkbox" name="emp" value="I"> 인턴</label>
+    </fieldset>
+    <!-- 일부만 일치 (제주 선택지 없음) -->
+    <fieldset>
+      <legend>희망 근무지</legend>
+      <label><input type="checkbox" name="loc" value="11"> 서울특별시</label>
+      <label><input type="checkbox" name="loc" value="26"> 부산광역시</label>
+      <label><input type="checkbox" name="loc" value="41"> 경기도</label>
+    </fieldset>
+    <!-- 선택지 불일치 → 사이드 패널에서 직접 선택 -->
+    <fieldset>
+      <legend>희망 직무</legend>
+      <label><input type="checkbox" name="job" value="d"> 데이터 분석</label>
+      <label><input type="checkbox" name="job" value="x"> 디자인</label>
+    </fieldset>
+  </form>
+</body>
+</html>

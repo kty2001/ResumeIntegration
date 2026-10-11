@@ -2,10 +2,10 @@ import type { FieldDescriptor, PageDetails } from '@/messaging/protocol';
 
 // 필드 수집 (Page Details): docs/design/architecture.md 5장
 // 현재 범위: 최상위 문서의 text·textarea·date 입력란, 기본 select, radio 그룹(같은 form·name → 입력란 1개),
-// 단일 checkbox(개별 입력란, 값 'true'/'false')
+// 단일 checkbox(값 'true'/'false'), 다중 선택 checkbox 그룹(같은 form·name 2개 이상, 값 = 체크된 value JSON 배열)
 
 export type TextElement = HTMLInputElement | HTMLTextAreaElement;
-/** radio 그룹은 그룹의 첫 radio로 보관 */
+/** radio·checkbox 그룹은 그룹의 첫 입력란으로 보관 */
 export type FillElement = TextElement | HTMLSelectElement;
 
 const TEXT_INPUT_TYPES = new Set(['text', 'email', 'tel', 'url', 'search', 'date']);
@@ -13,8 +13,15 @@ const TEXT_INPUT_TYPES = new Set(['text', 'email', 'tel', 'url', 'search', 'date
 /** fieldId → 요소. DOM에 식별 속성을 추가하지 않고 메모리에만 보관 */
 const elements = new Map<string, FillElement>();
 
+/** checkbox 그룹으로 수집한 첫 checkbox (단일 checkbox와 구분) */
+const checkboxGroups = new WeakSet<Element>();
+
 export function getElement(fieldId: string): FillElement | undefined {
   return elements.get(fieldId);
+}
+
+export function isCheckboxGroup(el: Element): el is HTMLInputElement & { type: 'checkbox' } {
+  return checkboxGroups.has(el);
 }
 
 // false 분기에서 HTMLInputElement 전체가 제외되지 않도록 type까지 좁힘
@@ -26,9 +33,9 @@ export function isCheckbox(el: Element): el is HTMLInputElement & { type: 'check
   return el instanceof HTMLInputElement && el.type === 'checkbox';
 }
 
-/** 같은 form·name의 radio (문서 순서) */
-export function radioGroup(el: HTMLInputElement): HTMLInputElement[] {
-  return Array.from(document.querySelectorAll<HTMLInputElement>('input[type=radio]')).filter(
+/** 같은 type·form·name의 입력란 (radio·checkbox 그룹, 문서 순서) */
+export function inputGroup(el: HTMLInputElement): HTMLInputElement[] {
+  return Array.from(document.querySelectorAll<HTMLInputElement>(`input[type=${el.type}]`)).filter(
     (r) => r.name === el.name && r.form === el.form,
   );
 }
@@ -111,18 +118,22 @@ function describe(el: FillElement, heading: string | undefined): Omit<FieldDescr
 }
 
 /**
- * radio 그룹: 표시 텍스트는 role=radiogroup의 aria 이름 → 그룹 radio만 담은 fieldset의 legend
+ * radio·checkbox 그룹: 표시 텍스트는 role=radiogroup·group의 aria 이름 → 그룹 입력란만 담은 fieldset의 legend
  * (다른 입력란이 섞인 fieldset의 legend는 섹션명). id는 선택지별 값이라 제외
  */
-function describeRadio(group: HTMLInputElement[], heading: string | undefined): Omit<FieldDescriptor, 'fieldId'> {
+function describeGroup(
+  group: HTMLInputElement[],
+  heading: string | undefined,
+  widget: 'radio' | 'checkboxes',
+): Omit<FieldDescriptor, 'fieldId'> {
   const first = group[0]!;
-  const container = first.closest('[role=radiogroup]');
+  const container = first.closest('[role=radiogroup], [role=group]');
   const fieldset = first.closest('fieldset');
   const ownFieldset =
     fieldset && [...fieldset.querySelectorAll('input, textarea, select')].every((c) => group.includes(c as HTMLInputElement));
   const legend = ownFieldset ? cleanText(fieldset.querySelector(':scope > legend')?.textContent) : undefined;
   return {
-    widget: 'radio',
+    widget,
     label: (container && labelledByText(container)) ?? legend,
     name: first.name,
     autocomplete: first.getAttribute('autocomplete') || undefined,
@@ -150,12 +161,16 @@ export function collectPageDetails(): PageDetails {
     const el = node as FillElement;
     if (!isFillable(el)) return;
     let descriptor: Omit<FieldDescriptor, 'fieldId'>;
+    // 그룹은 첫 입력란에서만 입력란 1개로 수집
+    // (name 없는 radio는 그룹을 알 수 없어 제외, name 없거나 하나뿐인 checkbox는 단일 checkbox)
+    const group = (isRadio(el) || isCheckbox(el)) && el.name ? inputGroup(el).filter(isFillable) : undefined;
     if (isRadio(el)) {
-      if (!el.name) return;
-      // 그룹의 첫 radio에서만 입력란 1개로 수집
-      const group = radioGroup(el).filter(isFillable);
+      if (group?.[0] !== el) return;
+      descriptor = describeGroup(group, heading, 'radio');
+    } else if (group && group.length > 1) {
       if (group[0] !== el) return;
-      descriptor = describeRadio(group, heading);
+      checkboxGroups.add(el);
+      descriptor = describeGroup(group, heading, 'checkboxes');
     } else {
       descriptor = describe(el, heading);
     }

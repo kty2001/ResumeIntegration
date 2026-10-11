@@ -326,6 +326,41 @@ test('희망 조건: 연봉·내규 checkbox·근무지·직무(배열 결합)·
   await expect(panel.getByText('희망 근무지 → 희망 근무지')).toBeVisible();
 });
 
+test('checkbox 그룹 다중 선택 + 선택지 불일치 직접 선택·학습 + 되돌리기', async ({ context, worker, extensionId }) => {
+  const data: Resume = {
+    ...resume,
+    desired: { locations: ['서울', '제주'], jobs: ['백엔드 개발'], employmentTypes: ['full_time', 'intern'] },
+  };
+  const { page } = await runFill(context, worker, extensionId, 'checkbox-groups.html', '입력 완료 2개 · 입력 실패 1개 · 해당 없음 0개', data);
+
+  const checked = (name: string) => page.locator(`input[name=${name}]:checked`);
+  await expect(checked('emp')).toHaveCount(2);
+  await expect(page.locator('input[name=emp][value=P]')).toBeChecked();
+  await expect(page.locator('input[name=emp][value=I]')).toBeChecked();
+  await expect(checked('loc')).toHaveCount(1);
+  await expect(page.locator('input[name=loc][value="11"]')).toBeChecked();
+  await expect(checked('job')).toHaveCount(0);
+
+  const panel = await context.newPage();
+  await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+  const row = panel.getByRole('listitem').filter({ hasText: '맞는 선택지 없음' });
+  await expect(row).toContainText('희망 직무 → 희망 직무');
+  await panel.getByLabel('희망 직무 선택지').selectOption({ label: '데이터 분석' });
+  await row.getByRole('button', { name: '선택' }).click();
+  await expect(panel.getByText('입력 완료 3 · 확인 필요 0 · 해당 없음 0')).toBeVisible();
+  await expect(page.locator('input[name=job][value=d]')).toBeChecked();
+  const rules = await worker.evaluate(async () => (await chrome.storage.local.get('learnedRules')).learnedRules);
+  expect(rules).toMatchObject([{ schemaKey: 'desired.jobs', option: { value: '백엔드 개발', text: '데이터 분석' } }]);
+
+  // 되돌리기: 기존 체크(계약직)만 남고 나머지 해제
+  await panel.getByRole('button', { name: '되돌리기' }).click();
+  await expect(panel.getByText('3개 되돌림')).toBeVisible();
+  await expect(checked('emp')).toHaveCount(1);
+  await expect(page.locator('input[name=emp][value=C]')).toBeChecked();
+  await expect(checked('loc')).toHaveCount(0);
+  await expect(checked('job')).toHaveCount(0);
+});
+
 test('checkbox boolean 항목 체크·해제 + 직접 입력 선택 목록 + 되돌리기', async ({ context, worker, extensionId }) => {
   const data: Resume = {
     ...resume,
