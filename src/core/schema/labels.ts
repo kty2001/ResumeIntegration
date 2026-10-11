@@ -279,3 +279,25 @@ export function schemaKeyOptions(resume: Pick<Resume, SectionKey>): [string, str
   }
   return keys.map((key) => [key, schemaKeyLabel(key)]);
 }
+
+// 반복 항목 외 최상위 키 접두 → 묶음 표시명 (사이드 패널 섹션별 복사 목록)
+const GROUP_LABELS: Record<string, string> = {
+  basics: '기본 정보',
+  military: '병역',
+  desired: '희망 조건',
+  preference: '취업우대',
+  attachments: '첨부 파일',
+};
+
+/** 선택·복사 대상 키 목록 → 섹션별 묶음 ('기본 정보', '학력 1' …), 묶음 안 표시명은 섹션 접두 없이 */
+export function groupKeyOptions(options: [string, string][]): { title: string; items: [string, string][] }[] {
+  const groups = new Map<string, [string, string][]>();
+  for (const [key, label] of options) {
+    const m = key.match(ITEM_KEY);
+    const item = m && ITEM_KEY_LABELS[`${m[1]}.*.${m[3]}`];
+    const title = m && item ? `${SECTION_LABELS[m[1] as SectionKey]} ${Number(m[2]) + 1}` : (GROUP_LABELS[key.split('.')[0]!] ?? '기타');
+    if (!groups.has(title)) groups.set(title, []);
+    groups.get(title)!.push([key, m && item ? item : label]);
+  }
+  return [...groups].map(([title, items]) => ({ title, items }));
+}

@@ -112,9 +112,31 @@ test('사이드 패널 직접 입력·입력란 이동·위치 표시·되돌리
   await expect(boxes).toHaveCount(0);
 });
 
-test('설정에서 제외한 사이트는 입력하지 않음', async ({ context, worker, extensionId }) => {
+test('설정에서 제외한 사이트: 작성 비활성, 복사 전용 모드', async ({ context, worker, extensionId }) => {
   await worker.evaluate(() => chrome.storage.local.set({ settings: { excludedSites: ['localhost'] } }));
-  const { page } = await runFill(context, worker, extensionId, 'basics.html', '설정에서 자동 입력을 제외한 사이트입니다.');
+  await worker.evaluate((value) => chrome.storage.local.set({ resume: value, resume$: { v: 1 } }), resume);
+  const page = await context.newPage();
+  await page.goto(`${FIXTURE_ORIGIN}/basics.html`);
+  await page.bringToFront();
+  const popupOpened = context.waitForEvent('page');
+  await worker.evaluate((url) => chrome.tabs.create({ url, active: false }), `chrome-extension://${extensionId}/popup.html`);
+  const popup = await popupOpened;
+
+  // 팝업을 열자마자 제외 안내, '작성' 비활성
+  await expect(popup.getByText('설정에서 자동 입력을 제외한 사이트입니다.', { exact: false })).toBeVisible();
+  await expect(popup.getByRole('button', { name: '작성' })).toBeDisabled();
+
+  // '복사 전용 모드 열기' → 사이드 패널 열림, 페이지 조작 없음
+  await popup.getByRole('button', { name: '복사 전용 모드 열기' }).click();
+  await expect
+    .poll(() => worker.evaluate(async () => (await chrome.runtime.getContexts({ contextTypes: ['SIDE_PANEL'] })).length))
+    .toBe(1);
+  const panel = await context.newPage();
+  await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+  await expect(panel.getByRole('heading', { name: '복사 전용 모드' })).toBeVisible();
+  await expect(panel.getByText('localhost · 자동 입력 제외 사이트')).toBeVisible();
+  const basics = panel.locator('details').filter({ has: panel.getByText('기본 정보', { exact: true }) });
+  await expect(basics.getByRole('listitem').filter({ hasText: '이름' }).first()).toContainText('홍길동');
   await expect(page.locator('#nm')).toHaveValue('');
 });
 

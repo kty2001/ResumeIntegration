@@ -41,3 +41,8 @@ export const pendingPermissionItem = storage.defineItem<{ tabId: number; origins
   'session:pendingPermission',
   { fallback: null },
 );
+
+// 제외 사이트 복사 전용 모드 (팝업 '복사 전용 모드 열기' → 사이드 패널, '작성' 시 해제)
+export const copyOnlyItem = storage.defineItem<{ tabId: number; url: string } | null>('session:copyOnly', {
+  fallback: null,
+});

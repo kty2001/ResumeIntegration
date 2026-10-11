@@ -22,6 +22,7 @@ import {
 import type { Resume } from '@/core/schema/resume';
 import { getFile } from '@/storage/files';
 import {
+  copyOnlyItem,
   coverLettersItem,
   fillReportItem,
   learnedRulesItem,
@@ -126,6 +127,7 @@ async function sendFill(tabId: number, plan: FillPlan): Promise<FillResult> {
 /** partial: 권한 없는 교차 출처 iframe을 건너뛰고 입력 (아니면 needs-permission 반환, 기존 결과 유지) */
 async function startFill(tabId: number, partial = false): Promise<StartFillResponse> {
   await pendingPermissionItem.setValue(null);
+  await copyOnlyItem.setValue(null);
   const tab = await browser.tabs.get(tabId);
   if (tab.url && isExcluded(tab.url)) {
     await fillReportItem.setValue(null);

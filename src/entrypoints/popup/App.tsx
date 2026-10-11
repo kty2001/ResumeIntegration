@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import type { Resume } from '@/core/schema/resume';
+import { isExcluded } from '@/core/site-policy';
 import { describeStartFill as describe, sendMessage } from '@/messaging/protocol';
-import { resumeItem } from '@/storage/items';
+import { copyOnlyItem, resumeItem, settingsItem } from '@/storage/items';
 
 // 화면 설계: docs/design/screens.md 2장 (현재: 작성 가능·이력서 미입력(JSON 가져오기 포함)·제외 사이트·권한 필요 상태)
 
@@ -10,13 +11,29 @@ export default function App() {
   const [running, setRunning] = useState(false);
   const [message, setMessage] = useState<string>();
   const [tabId, setTabId] = useState<number>();
+  const [tabUrl, setTabUrl] = useState<string>();
+  const [excluded, setExcluded] = useState<'excluded' | 'user-excluded'>();
   const [blocked, setBlocked] = useState<string[]>([]);
 
   useEffect(() => {
     resumeItem.getValue().then(setResume, () => setResume(null));
     // 사이드 패널 열기는 사용자 제스처 안에서 호출해야 하므로 탭 ID를 미리 조회
-    browser.tabs.query({ active: true, currentWindow: true }).then(([tab]) => setTabId(tab?.id));
+    // 제외 사이트는 '작성' 전에 판정 (URL을 못 읽으면 일반 상태, 제외 검사는 background startFill에도 있음)
+    Promise.all([browser.tabs.query({ active: true, currentWindow: true }), settingsItem.getValue()]).then(([[tab], settings]) => {
+      setTabId(tab?.id);
+      setTabUrl(tab?.url);
+      if (!tab?.url) return;
+      if (isExcluded(tab.url)) setExcluded('excluded');
+      else if (isExcluded(tab.url, settings.excludedSites)) setExcluded('user-excluded');
+    });
   }, []);
+
+  // 복사 전용 모드: 페이지 조작 없이 사이드 패널만 열기 (open을 먼저 호출해 사용자 제스처 유지)
+  const openCopyOnly = () => {
+    if (tabId == null || !tabUrl) return;
+    browser.sidePanel.open({ tabId }).catch(() => {});
+    void copyOnlyItem.setValue({ tabId, url: tabUrl });
+  };
 
   const openOptions = () => void browser.runtime.openOptionsPage();
   const openBackup = () => void browser.tabs.create({ url: browser.runtime.getURL('/options.html#backup') });
@@ -67,7 +84,20 @@ export default function App() {
               <b>{resume.basics.name.ko || '이름 없음'}</b>
               <small>수정 {new Date(resume.meta.updatedAt).toLocaleDateString()}</small>
             </div>
-            <button className="btn primary lg" onClick={() => void fill()} disabled={running}>
+            {excluded && (
+              <>
+                <div className="site">
+                  현재 페이지: {new URL(tabUrl!).hostname} <span className="badge warn">자동 입력 제외</span>
+                </div>
+                <div className="msg warn">
+                  {describe({ status: excluded })} 사이드 패널에서 항목을 복사해 직접 붙여넣을 수 있습니다.
+                </div>
+                <button className="btn primary lg" onClick={openCopyOnly}>
+                  복사 전용 모드 열기
+                </button>
+              </>
+            )}
+            <button className={excluded ? 'btn lg' : 'btn primary lg'} onClick={() => void fill()} disabled={running || !!excluded}>
               {running ? '입력 중…' : '작성'}
             </button>
             {blocked.length > 0 && (

@@ -4,11 +4,11 @@ import { isSensitiveKey } from '@/core/mapping/dictionary';
 import { isChoiceWidget, resolveValue } from '@/core/mapping/match';
 import { skipField } from '@/core/mapping/report';
 import type { CoverLetterEntry, Resume } from '@/core/schema/resume';
-import { LENGTH_UNIT_LABELS, schemaKeyLabel, schemaKeyOptions } from '@/core/schema/labels';
+import { groupKeyOptions, LENGTH_UNIT_LABELS, schemaKeyLabel, schemaKeyOptions } from '@/core/schema/labels';
 import { describeStartFill, sendMessage, type ActionResponse, type FillReport, type ReportField } from '@/messaging/protocol';
-import { coverLettersItem, fillReportItem, resumeItem, settingsItem, type Settings } from '@/storage/items';
+import { copyOnlyItem, coverLettersItem, fillReportItem, resumeItem, settingsItem, type Settings } from '@/storage/items';
 
-// 화면 설계: docs/design/screens.md 3장 (현재: 입력 결과 목록·복사·직접 입력·선택지 직접 선택·이동·건너뛰기·다시 작성·되돌리기·위치 표시·자기소개서 추천)
+// 화면 설계: docs/design/screens.md 3장 (현재: 입력 결과 목록·복사·직접 입력·선택지 직접 선택·이동·건너뛰기·다시 작성·되돌리기·위치 표시·자기소개서 추천·복사 전용 모드)
 
 const REASON_LABELS: Record<string, string> = {
   'not-found': '입력란을 찾을 수 없음',
@@ -177,6 +177,7 @@ export default function App() {
 
   const [coverLetters, setCoverLetters] = useState<CoverLetterEntry[]>([]);
   const [sensitive, setSensitive] = useState(false);
+  const [copyOnly, setCopyOnly] = useState<{ tabId: number; url: string } | null>(null);
 
   useEffect(() => {
     resumeItem.getValue().then(setResume);
@@ -184,15 +185,18 @@ export default function App() {
     coverLettersItem.getValue().then(setCoverLetters);
     const onSettings = (s: Settings) => setSensitive(!!s.sensitiveAutofill);
     settingsItem.getValue().then(onSettings);
+    copyOnlyItem.getValue().then(setCopyOnly);
     const unwatchResume = resumeItem.watch(setResume);
     const unwatchReport = fillReportItem.watch(setReport);
     const unwatchCoverLetters = coverLettersItem.watch(setCoverLetters);
     const unwatchSettings = settingsItem.watch(onSettings);
+    const unwatchCopyOnly = copyOnlyItem.watch(setCopyOnly);
     return () => {
       unwatchResume();
       unwatchReport();
       unwatchCoverLetters();
       unwatchSettings();
+      unwatchCopyOnly();
     };
   }, []);
 
@@ -222,6 +226,7 @@ export default function App() {
   // 선택·복사 대상 항목: 민감정보는 설정 '민감정보 자동 입력 사용'을 켰을 때만
   const keyOptions = resume ? schemaKeyOptions(resume).filter(([key]) => sensitive || !isSensitiveKey(key)) : [];
   const copyable = keyOptions.filter(([key]) => valueOf(key));
+  const copyGroups = groupKeyOptions(copyable);
   // checkbox 입력란은 boolean 값이 있는 항목만 선택 (텍스트 값 항목은 입력 불가)
   const checkable = resume ? keyOptions.filter(([key]) => resolveValue(resume, key, { widget: 'checkbox' })) : [];
   // 파일 입력란은 accept에 맞는 첨부 파일이 있는 구분만
@@ -256,12 +261,16 @@ export default function App() {
     if (current) await fillReportItem.setValue(skipField(current, fieldId));
   };
 
+  // 제외 사이트: 페이지 조작 없이 이력서 항목 복사만 (팝업 '복사 전용 모드 열기', '작성' 시 background가 해제)
+  const copyOnlyHost = !report && copyOnly ? new URL(copyOnly.url).hostname : undefined;
+
   const summary = `입력 완료 ${filled.length} · 확인 필요 ${failed.length} · 해당 없음 ${unmatched.length}`;
 
   return (
     <main className="panel">
       <header className="panel-head">
-        <h1>입력 결과</h1>
+        <h1>{copyOnlyHost ? '복사 전용 모드' : '입력 결과'}</h1>
+        {copyOnlyHost && <small>{copyOnlyHost} · 자동 입력 제외 사이트</small>}
         {report && (
           <small>
             {report.url} · {new Date(report.at).toLocaleTimeString()}
@@ -376,18 +385,27 @@ export default function App() {
               </details>
             )}
           </>
+        ) : copyOnlyHost ? (
+          <p className="msg">이 사이트에서는 페이지를 조작하지 않습니다. 항목의 '복사'를 눌러 직접 붙여넣으세요.</p>
         ) : (
           <p className="empty">'작성'을 누르면 결과가 표시됩니다.</p>
         )}
 
         <section>
           <h2 className="sec-title">이력서 항목 복사</h2>
-          {copyable.length > 0 ? (
-            <ul className="card row-list">
-              {copyable.map(([key, label]) => (
-                <ValueRow key={key} className="stacked" label={label} value={valueOf(key)} />
+          {copyGroups.length > 0 ? (
+            <div className="stack">
+              {copyGroups.map(({ title, items }, i) => (
+                <details key={title} className="card compact" open={i === 0}>
+                  <summary>{title}</summary>
+                  <ul className="row-list">
+                    {items.map(([key, label]) => (
+                      <ValueRow key={key} className="stacked" label={label} value={valueOf(key)} />
+                    ))}
+                  </ul>
+                </details>
               ))}
-            </ul>
+            </div>
           ) : (
             <p className="empty">저장된 이력서 값이 없습니다.</p>
           )}

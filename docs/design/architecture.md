@@ -1,6 +1,6 @@
 # 구조·메시지 흐름 설계 v1
 
-최종 갱신: 2026-10-11 · 기술 스택: WXT + TypeScript ([tech_stack.md](tech_stack.md))
+최종 갱신: 2026-10-12 · 기술 스택: WXT + TypeScript ([tech_stack.md](tech_stack.md))
 
 - (미구현) 표시 항목은 설계만 있고 코드 없음 (주로 BYOK LLM)
 
@@ -171,7 +171,7 @@ Popup '작성' 클릭 (activeTab 부여) → sidePanel.open (클릭 제스처 �
 
 ## 9. 사이트 정책
 - 기본 제외 목록: `linkedin.com` (이용약관상 확장 프로그램의 활동 자동화·화면 변경 금지, [05 보고서](../reports/05_privacy_and_policy.md) 4.1)
-- 제외 사이트에서는 filler 미주입. 사이드 패널 복사 전용 모드는 미구현
+- 제외 사이트에서는 filler 미주입. 팝업 '복사 전용 모드 열기' → 사이드 패널 복사 전용 모드(이력서 항목 복사만)
 - 사용자 추가 제외 목록 (옵션 '설정' → `local:settings.excludedSites`, 하위 도메인 포함)
 
 ## 10. 확인 필요 사항

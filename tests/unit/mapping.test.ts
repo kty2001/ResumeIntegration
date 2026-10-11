@@ -3,7 +3,7 @@ import { acceptsFile } from '@/core/attachments';
 import { fieldFingerprint } from '@/core/mapping/learned';
 import { detectSection, getValueByKey, keyForValue, mapFields, matchField } from '@/core/mapping/match';
 import { createEmptyResume } from '@/core/schema/empty';
-import { schemaKeyLabel, schemaKeyOptions } from '@/core/schema/labels';
+import { groupKeyOptions, schemaKeyLabel, schemaKeyOptions } from '@/core/schema/labels';
 import { isExcluded, matchesHostPattern, normalizeDomain } from '@/core/site-policy';
 import type { FieldDescriptor } from '@/messaging/protocol';
 
@@ -519,6 +519,22 @@ describe('schemaKeyLabel·schemaKeyOptions', () => {
     expect(keys).toContain('projects.0.url');
     expect(keys.some((k) => k.startsWith('certificates.'))).toBe(false);
     expect(keys.some((k) => k.startsWith('education.') || k.startsWith('work.1.'))).toBe(false);
+  });
+
+  it('groupKeyOptions: 섹션별 묶음, 반복 항목은 순번별, 묶음 안 표시명은 접두 없이', () => {
+    const groups = groupKeyOptions([
+      ['basics.name.ko', '이름'],
+      ['education.0.school.ko', '학력 1 학교명'],
+      ['basics.email', '이메일'],
+      ['education.1.school.ko', '학력 2 학교명'],
+      ['military.status', '병역 구분'],
+    ]);
+    expect(groups).toEqual([
+      { title: '기본 정보', items: [['basics.name.ko', '이름'], ['basics.email', '이메일']] },
+      { title: '학력 1', items: [['education.0.school.ko', '학교명']] },
+      { title: '학력 2', items: [['education.1.school.ko', '학교명']] },
+      { title: '병역', items: [['military.status', '병역 구분']] },
+    ]);
   });
 });
 
