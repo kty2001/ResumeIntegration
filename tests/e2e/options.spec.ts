@@ -123,6 +123,31 @@ test('설정: 자동 입력 제외 사이트 추가·중복·형식 오류·삭�
   await expect.poll(sites).toEqual([]);
 });
 
+test('첨부 파일: 구분 선택 후 추가·증명사진 연결·삭제', async ({ context, worker, extensionId }, testInfo) => {
+  const stored = () =>
+    worker.evaluate(async () => {
+      const r = (await chrome.storage.local.get('resume')).resume as typeof resume | undefined;
+      return { files: r?.attachments.map((a) => [a.kind, a.fileName, a.size]) ?? [], photo: !!r?.basics.photo };
+    });
+  const pdf = testInfo.outputPath('resume.pdf');
+  const jpg = testInfo.outputPath('photo.jpg');
+  await writeFile(pdf, '%PDF-1.4 test');
+  await writeFile(jpg, Buffer.from([0xff, 0xd8, 0xff]));
+
+  const options = await context.newPage();
+  await options.goto(`chrome-extension://${extensionId}/options.html#files`);
+  await expect(options.getByText('추가한 파일이 없습니다.')).toBeVisible();
+  await options.getByLabel('첨부할 파일').setInputFiles(pdf);
+  await expect(options.getByRole('row').filter({ hasText: 'resume.pdf' })).toContainText('이력서');
+  await options.getByLabel('첨부 구분').selectOption({ label: '증명사진' });
+  await options.getByLabel('첨부할 파일').setInputFiles(jpg);
+  await expect(options.getByRole('row').filter({ hasText: 'photo.jpg' })).toContainText('증명사진');
+  await expect.poll(stored).toEqual({ files: [['resume', 'resume.pdf', 13], ['photo', 'photo.jpg', 3]], photo: true });
+
+  await options.getByRole('row').filter({ hasText: 'photo.jpg' }).getByRole('button', { name: '삭제' }).click();
+  await expect.poll(stored).toEqual({ files: [['resume', 'resume.pdf', 13]], photo: false });
+});
+
 test('팝업 이력서 없음 → JSON 가져오기 → 옵션 백업 화면', async ({ context, extensionId }) => {
   const popup = await context.newPage();
   await popup.goto(`chrome-extension://${extensionId}/popup.html`);

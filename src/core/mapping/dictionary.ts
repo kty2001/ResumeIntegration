@@ -341,6 +341,15 @@ export const SECTION_FIELD_RULES: FieldRule[] = [
   },
 ];
 
+// 파일 입력란 전용 (섹션 판별 없이 이 규칙만 검사, 키는 core/attachments.ts attachmentKey)
+export const FILE_RULES: FieldRule[] = [
+  { schemaKey: 'attachments.photo', autocomplete: [], pattern: /증명\s*사진|사진|photo|picture|profile\s*image/i },
+  { schemaKey: 'attachments.portfolio', autocomplete: [], pattern: /포트\s*폴리오|portfolio|작품/i },
+  { schemaKey: 'attachments.transcript', autocomplete: [], pattern: /성적\s*(증명|표)|transcript/i },
+  { schemaKey: 'attachments.certificate', autocomplete: [], pattern: /증명서|자격증|사본|certificate/i },
+  { schemaKey: 'attachments.resume', autocomplete: [], pattern: /이력서|경력\s*기술서|resume|\bcv\b/i },
+];
+
 export const FIELD_RULES: FieldRule[] = [
   {
     schemaKey: 'basics.name.en',

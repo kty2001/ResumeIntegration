@@ -1,3 +1,4 @@
+import type { FilePayload } from '@/core/attachments';
 import { COVER_LETTER_KEY } from '@/core/coverLetter';
 import { rulesForOrigin, upsertRule, type LearnedRule } from '@/core/mapping/learned';
 import { getValueByKey, keyForValue, mapFields, resolveValue } from '@/core/mapping/match';
@@ -8,17 +9,54 @@ import {
   sendMessage,
   type ActionResponse,
   type ErrorResponse,
+  type FieldDescriptor,
+  type FillPlan,
   type FillReport,
   type FillResult,
   type ReportField,
   type StartFillResponse,
   type UndoResponse,
 } from '@/messaging/protocol';
+import type { Resume } from '@/core/schema/resume';
+import { getFile } from '@/storage/files';
 import { coverLettersItem, fillReportItem, learnedRulesItem, resumeItem, settingsItem } from '@/storage/items';
 
 // 자동 입력 흐름: docs/design/architecture.md 7.1 (현재 최상위 프레임만 처리)
 // 사이드 패널 동작(fillOne·fillAnswer·focusField·highlight·undo): 7.2·7.3, 대상 탭은 session:fillReport의 tabId
 // fillOne 성공·페이지 직접 수정(userEdit) 시 학습 규칙 저장 → 다음 startFill에서 매핑 1순위
+
+function toBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(binary);
+}
+
+/** 첨부 파일 id → filler로 보낼 파일 본문(JSON). 메타나 본문이 없으면 undefined */
+async function filePayload(resume: Resume, id: string): Promise<string | undefined> {
+  const meta = resume.attachments.find((a) => a.id === id);
+  const blob = meta && (await getFile(id));
+  if (!meta || !blob) return undefined;
+  const payload: FilePayload = { fileName: meta.fileName, mimeType: meta.mimeType, data: toBase64(await blob.arrayBuffer()) };
+  return JSON.stringify(payload);
+}
+
+/** 파일 입력란 항목 값을 파일 본문으로 교체, 본문이 없으면 '확인 필요 · 첨부 파일 없음' */
+async function withFilePayloads(plan: FillPlan, fields: FieldDescriptor[], resume: Resume): Promise<FillPlan> {
+  const fileFields = new Set(fields.filter((f) => f.widget === 'file').map((f) => f.fieldId));
+  const items: FillPlan['items'] = [];
+  const skipped = [...(plan.skipped ?? [])];
+  for (const item of plan.items) {
+    if (!fileFields.has(item.fieldId)) {
+      items.push(item);
+      continue;
+    }
+    const value = await filePayload(resume, item.value);
+    if (value) items.push({ ...item, value });
+    else skipped.push({ fieldId: item.fieldId, schemaKey: item.schemaKey, reason: 'no-file' });
+  }
+  return { ...plan, items, skipped };
+}
 
 async function startFill(tabId: number): Promise<StartFillResponse> {
   const tab = await browser.tabs.get(tabId);
@@ -46,7 +84,7 @@ async function startFill(tabId: number): Promise<StartFillResponse> {
   const target = { tabId, frameId: 0 };
   const details = await sendMessage('collect', undefined, target);
   const learned = rulesForOrigin(await learnedRulesItem.getValue(), new URL(details.url).origin);
-  const plan = mapFields(details.fields, resume, learned);
+  const plan = await withFilePayloads(mapFields(details.fields, resume, learned), details.fields, resume);
   const result = await sendMessage('fill', plan, target);
   const report = buildFillReport(details, plan, result, tabId);
   await fillReportItem.setValue(report);
@@ -99,6 +137,10 @@ async function fillOne(fieldId: string, schemaKey: string, optionValue?: string)
     value = resume ? resolveValue(resume, schemaKey, field.hint) : undefined;
   }
   if (!value) return { status: 'error', message: '이력서 값 없음' };
+  if (field.hint.widget === 'file') {
+    value = resume ? await filePayload(resume, value) : undefined;
+    if (!value) return { status: 'error', message: '첨부 파일을 찾을 수 없음' };
+  }
 
   const result = await fillManual(report, fieldId, schemaKey, value);
   if (field.fingerprint && result.filled.length > 0) {

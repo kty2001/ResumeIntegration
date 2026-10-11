@@ -14,6 +14,7 @@ const REASON_LABELS: Record<string, string> = {
   'too-long': '글자수 제한 초과',
   'not-applied': '값이 반영되지 않음',
   'no-option': '맞는 선택지 없음',
+  'no-file': '첨부 파일 없음',
 };
 
 const keyLabel = (schemaKey?: string) =>
@@ -165,6 +166,7 @@ export default function App() {
   const failedValue = (f: ReportField) => {
     if (!resume || !f.schemaKey) return undefined;
     const value = resolveValue(resume, f.schemaKey, isChoiceWidget(f.hint.widget) ? { widget: 'text' } : f.hint);
+    if (f.hint.widget === 'file') return resume.attachments.find((a) => a.id === value)?.fileName;
     if (f.hint.widget !== 'checkbox' || !value) return value;
     return value === 'true' ? '체크' : '체크 해제';
   };
@@ -175,7 +177,12 @@ export default function App() {
   const copyable = resume ? schemaKeyOptions(resume).filter(([key]) => valueOf(key)) : [];
   // checkbox 입력란은 boolean 값이 있는 항목만 선택 (텍스트 값 항목은 입력 불가)
   const checkable = resume ? schemaKeyOptions(resume).filter(([key]) => resolveValue(resume, key, { widget: 'checkbox' })) : [];
-  const fillOptions = (f: ReportField) => (f.hint.widget === 'checkbox' ? checkable : copyable);
+  // 파일 입력란은 accept에 맞는 첨부 파일이 있는 구분만
+  const fillOptions = (f: ReportField) => {
+    if (f.hint.widget === 'checkbox') return checkable;
+    if (f.hint.widget === 'file') return resume ? schemaKeyOptions(resume).filter(([key]) => resolveValue(resume, key, f.hint)) : [];
+    return copyable;
+  };
   // 아직 입력하지 않은 서술형 입력란 중 비슷한 자기소개서 답변이 있는 것
   const suggestions = (report?.fields ?? []).flatMap((f) => {
     if (f.hint.widget !== 'textarea' || f.status === 'filled') return [];

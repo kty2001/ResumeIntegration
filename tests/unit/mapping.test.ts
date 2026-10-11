@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { acceptsFile } from '@/core/attachments';
 import { fieldFingerprint } from '@/core/mapping/learned';
 import { detectSection, getValueByKey, keyForValue, mapFields, matchField } from '@/core/mapping/match';
 import { createEmptyResume } from '@/core/schema/empty';
@@ -131,6 +132,15 @@ describe('matchField', () => {
     expect(keyOf({ label: '입사 가능일 메모', section: '희망 조건' })).toBe('desired.availableNote');
     // 경력 섹션 연봉은 희망 연봉과 구분
     expect(keyOf({ label: '연봉', section: '경력사항' })).toBe('work.*.salary');
+  });
+
+  it('파일 입력란은 섹션과 무관하게 첨부 파일 규칙만', () => {
+    expect(keyOf({ label: '증명사진', widget: 'file' })).toBe('attachments.photo');
+    expect(keyOf({ label: '이력서 첨부', widget: 'file' })).toBe('attachments.resume');
+    expect(keyOf({ label: '자격증 사본', section: '자격증', widget: 'file' })).toBe('attachments.certificate');
+    expect(keyOf({ label: '포트폴리오(PDF)', widget: 'file' })).toBe('attachments.portfolio');
+    expect(keyOf({ label: '이메일', widget: 'file' })).toBeUndefined();
+    expect(keyOf({ label: '이력서 제목' })).toBeUndefined();
   });
 
   it('라벨이 매칭되지 않으면 placeholder·name 순으로 검사', () => {
@@ -409,6 +419,31 @@ describe('mapFields', () => {
     // 학습한 텍스트의 선택지가 사라지면 사전 매칭
     const noLearnedText = { ...level, options: [{ value: 'B', text: '대학교(4년)' }] };
     expect(mapFields([noLearnedText], r, learned('university')).items[0]?.value).toBe('B');
+  });
+
+  it('파일 입력란: accept에 맞는 해당 구분 첫 첨부 파일 id', () => {
+    const r = createEmptyResume();
+    const meta = (id: string, kind: 'photo' | 'resume', fileName: string, mimeType: string) =>
+      ({ id, kind, fileName, mimeType, size: 1, addedAt: '2026-10-01T00:00:00.000Z' });
+    r.attachments = [meta('a1', 'resume', 'resume.docx', 'application/msword'), meta('a2', 'resume', 'resume.pdf', 'application/pdf'), meta('p1', 'photo', 'me.jpg', 'image/jpeg')];
+    const plan = mapFields(
+      [
+        field({ fieldId: '0', label: '이력서', widget: 'file', accept: '.pdf' }),
+        field({ fieldId: '1', label: '증명사진', widget: 'file', accept: 'image/*' }),
+        field({ fieldId: '2', label: '포트폴리오', widget: 'file' }),
+        field({ fieldId: '3', label: '이력서', widget: 'file', accept: '.hwp' }),
+      ],
+      r,
+    );
+    expect(plan.items.map((i) => [i.fieldId, i.value])).toEqual([['0', 'a2'], ['1', 'p1']]);
+    expect(plan.unmatched).toEqual(['2', '3']);
+  });
+
+  it('acceptsFile: 확장자·MIME 와일드카드·정확한 MIME', () => {
+    expect(acceptsFile(undefined, 'a.pdf', 'application/pdf')).toBe(true);
+    expect(acceptsFile('.PDF, .doc', 'a.pdf', 'application/pdf')).toBe(true);
+    expect(acceptsFile('image/*', 'a.png', 'image/png')).toBe(true);
+    expect(acceptsFile('application/pdf', 'a.png', 'image/png')).toBe(false);
   });
 
   it('keyForValue: 입력란 형식으로 같은 값인 이력서 항목이 하나일 때만', () => {

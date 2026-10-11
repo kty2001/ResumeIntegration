@@ -1,9 +1,9 @@
 import { defineExtensionMessaging } from '@webext-core/messaging';
 
 // 메시지 규격: docs/design/architecture.md 5·6장
-// 현재 범위: 최상위 프레임의 text·textarea·date 입력란, 기본 select, radio 그룹, 단일 checkbox, checkbox 그룹, ARIA 콤보박스
+// 현재 범위: 최상위 프레임의 text·textarea·date 입력란, 기본 select, radio 그룹, 단일 checkbox, checkbox 그룹, ARIA 콤보박스, 파일
 
-export type WidgetKind = 'text' | 'textarea' | 'date' | 'select' | 'radio' | 'checkbox' | 'checkboxes' | 'combobox';
+export type WidgetKind = 'text' | 'textarea' | 'date' | 'select' | 'radio' | 'checkbox' | 'checkboxes' | 'combobox' | 'file';
 
 /** content script → background: 페이지에서 수집한 필드 정보 (값 미포함) */
 export interface FieldDescriptor {
@@ -19,10 +19,11 @@ export interface FieldDescriptor {
   section?: string;         // 소속 섹션 텍스트 (fieldset legend → 직전 제목)
   options?: { value: string; text: string }[]; // select·radio·checkbox 그룹 선택지 (페이지 정보, 이력서 값 아님)
   cluster?: string;         // 같은 묶음(가까운 공통 조상)의 입력란 식별자 — 분리 입력(전화번호 3칸 등) 판별용
+  accept?: string;          // 파일 입력란 accept 속성
 }
 
-/** 형식 변환(core/format) 판단에 쓰는 입력란 정보 */
-export type FormatHint = Pick<FieldDescriptor, 'widget' | 'placeholder' | 'maxLength' | 'options'>;
+/** 형식 변환(core/format)·첨부 파일 선택 판단에 쓰는 입력란 정보 */
+export type FormatHint = Pick<FieldDescriptor, 'widget' | 'placeholder' | 'maxLength' | 'options' | 'accept'>;
 export interface PageDetails {
   url: string;              // origin + pathname만 (쿼리 제거)
   fields: FieldDescriptor[];
@@ -34,7 +35,7 @@ export type MatchSource = 'learned' | 'autocomplete' | 'rule' | 'manual';
 export interface FillPlan {
   items: { fieldId: string; schemaKey: string; value: string; source: MatchSource }[];
   unmatched: string[];      // 매핑 실패 또는 이력서 값 없음
-  skipped?: { fieldId: string; schemaKey: string; reason: 'no-option' }[]; // 매핑됐으나 입력 불가 (select 선택지 불일치)
+  skipped?: { fieldId: string; schemaKey: string; reason: 'no-option' | 'no-file' }[]; // 매핑됐으나 입력 불가 (선택지 불일치·첨부 파일 본문 없음)
 }
 
 /** content script → background: 입력 결과 */
@@ -49,7 +50,7 @@ export interface ReportField {
   label: string;            // label → ariaLabel → placeholder → name → id 순 대체
   status: 'filled' | 'failed' | 'unmatched';
   schemaKey?: string;
-  reason?: string;          // failed 사유 코드 (not-found·too-long·not-applied·no-option)
+  reason?: string;          // failed 사유 코드 (not-found·too-long·not-applied·no-option·no-file)
   hint: FormatHint;         // fillOne·복사 시 같은 형식 변환 적용
   fingerprint?: string;     // 학습 규칙 식별자 (core/mapping/learned.ts)
   source?: MatchSource;     // 입력 완료 시 매핑 출처

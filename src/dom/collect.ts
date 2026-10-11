@@ -4,7 +4,7 @@ import { comboboxOptions } from './widgets/combobox';
 // 필드 수집 (Page Details): docs/design/architecture.md 5장
 // 현재 범위: 최상위 문서의 text·textarea·date 입력란, 기본 select, radio 그룹(같은 form·name → 입력란 1개),
 // 단일 checkbox(값 'true'/'false'), 다중 선택 checkbox 그룹(같은 form·name 2개 이상, 값 = 체크된 value JSON 배열),
-// ARIA 콤보박스(선택 전용 커스텀 드롭다운, 선택지는 열어서 읽음)
+// ARIA 콤보박스(선택 전용 커스텀 드롭다운, 선택지는 열어서 읽음), 파일 입력란(accept 포함)
 
 export type TextElement = HTMLInputElement | HTMLTextAreaElement;
 /** 폼 입력 요소. radio·checkbox 그룹은 그룹의 첫 입력란으로 보관 */
@@ -54,6 +54,10 @@ export function isCheckbox(el: Element): el is HTMLInputElement & { type: 'check
   return el instanceof HTMLInputElement && el.type === 'checkbox';
 }
 
+export function isFile(el: Element): el is HTMLInputElement & { type: 'file' } {
+  return el instanceof HTMLInputElement && el.type === 'file';
+}
+
 /** 같은 type·form·name의 입력란 (radio·checkbox 그룹, 문서 순서) */
 export function inputGroup(el: HTMLInputElement): HTMLInputElement[] {
   return Array.from(document.querySelectorAll<HTMLInputElement>(`input[type=${el.type}]`)).filter(
@@ -67,8 +71,8 @@ function isVisible(el: Element): boolean {
 
 function isFillable(el: FormControl): boolean {
   if (el.disabled) return false;
-  // 커스텀 디자인은 radio·checkbox를 숨기고 label만 표시 → label이 보여도 입력 가능
-  if (isRadio(el) || isCheckbox(el)) return isVisible(el) || [...(el.labels ?? [])].some(isVisible);
+  // 커스텀 디자인은 radio·checkbox·파일 입력란을 숨기고 label만 표시 → label이 보여도 입력 가능
+  if (isRadio(el) || isCheckbox(el) || isFile(el)) return isVisible(el) || [...(el.labels ?? [])].some(isVisible);
   if (el instanceof HTMLInputElement && !TEXT_INPUT_TYPES.has(el.type)) return false;
   if (!(el instanceof HTMLSelectElement) && el.readOnly) return false;
   // 커스텀 위젯 내부의 보조 입력란(aria-hidden)은 제외
@@ -122,6 +126,7 @@ function widgetOf(el: FormControl): FieldDescriptor['widget'] {
   if (el instanceof HTMLSelectElement) return 'select';
   if (el instanceof HTMLTextAreaElement) return 'textarea';
   if (isCheckbox(el)) return 'checkbox';
+  if (isFile(el)) return 'file';
   return el.type === 'date' ? 'date' : 'text';
 }
 
@@ -157,6 +162,7 @@ function describe(el: FormControl, heading: string | undefined): Omit<FieldDescr
     maxLength: !select && el.maxLength > 0 ? el.maxLength : undefined,
     section: resolveSection(el, heading),
     options: select ? selectOptions(el) : undefined,
+    accept: isFile(el) ? el.accept || undefined : undefined,
   };
 }
 

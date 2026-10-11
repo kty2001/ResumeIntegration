@@ -478,9 +478,10 @@ interface CoverLetterEntry {
 |---|---|---|
 | `local:resume` | `Resume` | WXT `storage.defineItem`, `version: 1` |
 | `local:coverLetters` | `CoverLetterEntry[]` | 이력서와 독립 수정·검색 |
-| 첨부 파일 본문 | Blob/base64 | 메타데이터(`attachments[]`)와 분리 저장. 방식(storage 별도 키 vs IndexedDB)은 구현 시 결정 |
+| 첨부 파일 본문 | Blob | 메타데이터(`attachments[]`)와 분리 저장. 확장 프로그램 출처 IndexedDB `resume-files`의 `files` 저장소, 키 = 첨부 id (`src/storage/files.ts`) |
 
-- 용량: `storage.local` 기본 10MB. 증명사진·PDF 포함 시 초과 가능 → `unlimitedStorage` 권한(설치 경고 없음 여부는 구현 시 확인) 또는 IndexedDB 검토
+- 용량: `storage.local` 기본 10MB 한도를 피해 IndexedDB 사용 → 추가 권한(`unlimitedStorage`) 불필요
+- 백업 파일(JSON)에는 첨부 파일 본문 미포함 (메타만 이력서에 포함) → 가져온 뒤 옵션 '첨부 파일'에 '파일 없음' 표시, 다시 추가 필요
 
 ## 7. 버전·마이그레이션
 - `meta.schemaVersion`과 WXT storage item `version`을 같은 값으로 유지

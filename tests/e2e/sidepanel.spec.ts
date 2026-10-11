@@ -387,6 +387,55 @@ test('검색형 콤보박스: 입력 후 일치 후보(정확히 같음 → 포�
   await expect(page.locator('#school-list')).toBeHidden();
 });
 
+test('파일 업로드: accept에 맞는 첨부 파일 입력, 본문 없음은 확인 필요', async ({ context, worker, extensionId }) => {
+  // 첨부 파일 본문은 확장 프로그램 출처 IndexedDB (storage/files.ts와 같은 DB·저장소)
+  const ext = await context.newPage();
+  await ext.goto(`chrome-extension://${extensionId}/options.html`);
+  await ext.evaluate(async () => {
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      const req = indexedDB.open('resume-files', 1);
+      req.onupgradeneeded = () => req.result.createObjectStore('files');
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction('files', 'readwrite');
+      tx.objectStore('files').put(new Blob(['%PDF-1.4 test'], { type: 'application/pdf' }), 'att-resume');
+      tx.objectStore('files').put(new Blob([new Uint8Array([0xff, 0xd8, 0xff])], { type: 'image/jpeg' }), 'att-photo');
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+    });
+    db.close();
+  });
+  await ext.close();
+
+  const meta = (id: string, kind: Resume['attachments'][number]['kind'], fileName: string, mimeType: string) =>
+    ({ id, kind, fileName, mimeType, size: 1, addedAt: '2026-10-01T00:00:00.000Z' });
+  const data: Resume = {
+    ...resume,
+    attachments: [
+      meta('att-resume', 'resume', 'resume.pdf', 'application/pdf'),
+      meta('att-photo', 'photo', 'photo.jpg', 'image/jpeg'),
+      meta('att-cert', 'certificate', 'cert.pdf', 'application/pdf'),
+    ],
+  };
+  const { page } = await runFill(context, worker, extensionId, 'upload.html', '입력 완료 2개 · 입력 실패 1개 · 해당 없음 1개', data);
+
+  const fileOf = (id: string) =>
+    page.evaluate((sel) => {
+      const f = document.querySelector<HTMLInputElement>(sel)?.files?.[0];
+      return f && [f.name, f.size, f.type];
+    }, id);
+  expect(await fileOf('#cv')).toEqual(['resume.pdf', 13, 'application/pdf']);
+  await expect(page.locator('#cv-name')).toHaveText('resume.pdf');
+  expect(await fileOf('#pic')).toEqual(['photo.jpg', 3, 'image/jpeg']);
+  expect(await fileOf('#cert')).toBeUndefined();
+
+  const panel = await context.newPage();
+  await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+  await expect(panel.getByRole('listitem').filter({ hasText: '첨부 파일 없음' })).toContainText('자격증 사본 → 증명서 파일');
+});
+
 test('희망 조건: 연봉·내규 checkbox·근무지·직무(배열 결합)·고용 형태 select·입사 가능일', async ({ context, worker, extensionId }) => {
   const data: Resume = {
     ...resume,

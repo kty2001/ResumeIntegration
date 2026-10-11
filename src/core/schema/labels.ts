@@ -165,6 +165,12 @@ export const SCHEMA_KEY_LABELS: Record<string, string> = {
   'desired.jobs': '희망 직무',
   'desired.availableFrom': '입사 가능일',
   'desired.availableNote': '입사 가능일 메모',
+  'attachments.photo': '증명사진 파일',
+  'attachments.resume': '이력서 파일',
+  'attachments.portfolio': '포트폴리오 파일',
+  'attachments.transcript': '성적증명서 파일',
+  'attachments.certificate': '증명서 파일',
+  'attachments.other': '기타 첨부 파일',
 };
 
 // 반복 항목 섹션 (매핑 사전 SectionKey의 기준) → 표시명

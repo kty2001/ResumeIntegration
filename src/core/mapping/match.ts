@@ -3,7 +3,8 @@ import { formatValue } from '@/core/format';
 import { schemaKeyOptions } from '@/core/schema/labels';
 import { isSplitPart, partValue, splitValue } from '@/core/format/split';
 import type { FieldDescriptor, FillPlan, FormatHint, MatchSource, WidgetKind } from '@/messaging/protocol';
-import { FIELD_RULES, SECTION_FIELD_RULES, SECTION_RULES, type RuleSection } from './dictionary';
+import { attachmentFor } from '@/core/attachments';
+import { FIELD_RULES, FILE_RULES, SECTION_FIELD_RULES, SECTION_RULES, type RuleSection } from './dictionary';
 import { fieldFingerprint, type LearnedMatch } from './learned';
 import { enumLabel, matchOption, normalizeOption } from './options';
 
@@ -26,17 +27,21 @@ export function matchField(
   const rule = fingerprint && learned.get(fingerprint);
   if (rule) return { schemaKey: rule.schemaKey, source: 'learned', option: rule.option };
   const checkbox = field.widget === 'checkbox';
-  if (field.autocomplete && !checkbox) {
+  const file = field.widget === 'file';
+  if (field.autocomplete && !checkbox && !file) {
     const ac = normalizeAutocomplete(field.autocomplete);
     const rule = FIELD_RULES.find((r) => r.autocomplete.includes(ac));
     if (rule) return { schemaKey: rule.schemaKey, source: 'autocomplete' };
   }
   // 섹션이 판별되면 해당 섹션 규칙만, 아니면 basics 규칙만 검사 (섹션 안 '주소' 등의 basics 오입력 방지)
   // checkbox는 boolean 규칙만, 그 외는 boolean 규칙 제외 ('이메일 수신 동의' 오매칭·반복 인덱스 밀림 방지)
-  const section = detectSection(field);
-  const rules = (section ? SECTION_FIELD_RULES.filter((r) => r.section === section) : FIELD_RULES).filter(
-    (r) => !!r.checkbox === checkbox,
-  );
+  // 파일 입력란은 섹션과 무관하게 첨부 파일 규칙만 ('자격증 사본'이 자격증 섹션으로 판별되는 문제 방지)
+  const section = file ? undefined : detectSection(field);
+  const rules = file
+    ? FILE_RULES
+    : (section ? SECTION_FIELD_RULES.filter((r) => r.section === section) : FIELD_RULES).filter(
+        (r) => !!r.checkbox === checkbox,
+      );
   // 신뢰도 높은 텍스트부터 검사
   const texts = [field.label, field.ariaLabel, field.placeholder, field.name, field.id];
   for (const text of texts) {
@@ -99,7 +104,7 @@ function learnedOptionValue(value: string, hint: FormatHint, option?: LearnedMat
 
 /**
  * 이력서 값을 입력란 형식으로 변환해 조회. select·radio는 선택지 value(학습 선택지 우선), 텍스트 입력란의 enum 값은 표시명
- * checkbox는 boolean 값만 'true'/'false'
+ * checkbox는 boolean 값만 'true'/'false', 파일은 첨부 파일 id
  * 배열 값: select·radio는 원소 순서대로 첫 일치 선택지, 텍스트는 원소별 변환 후 ', ' 결합
  * checkbox 그룹은 원소별 일치 선택지 전부의 JSON 배열 (하나도 없으면 undefined)
  * option: 학습 규칙의 선택지 (matchField 반환값)
@@ -114,6 +119,8 @@ export function resolveValue(
     const flag = getByPath(resume, schemaKey);
     return typeof flag === 'boolean' ? String(flag) : undefined;
   }
+  // 파일: accept에 맞는 첨부 파일 id (본문은 background가 IndexedDB에서 읽어 전달)
+  if (hint.widget === 'file') return attachmentFor(resume, schemaKey, hint.accept)?.id;
   const values = listValues(resume, schemaKey);
   if (values.length === 0) return undefined;
   if (isChoiceWidget(hint.widget)) {

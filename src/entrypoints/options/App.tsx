@@ -1,6 +1,7 @@
 import { useState, type ComponentType } from 'react';
 import type { SectionProps } from './fields';
 import { ActivitySection } from './sections/ActivitySection';
+import { AttachmentSection } from './sections/AttachmentSection';
 import { BackupSection } from './sections/BackupSection';
 import { BasicSection } from './sections/BasicSection';
 import { CoverLetterSection } from './sections/CoverLetterSection';
@@ -25,6 +26,7 @@ const SECTIONS: { id: string; title: string; component: ComponentType<SectionPro
   { id: 'project', title: '프로젝트·기술', component: ProjectSection },
   { id: 'desired', title: '희망 조건', component: DesiredSection },
   { id: 'cover', title: '자기소개서', component: CoverLetterSection },
+  { id: 'files', title: '첨부 파일', component: AttachmentSection },
   { id: 'rules', title: '학습 규칙', component: RulesSection },
   { id: 'settings', title: '설정', component: SettingsSection },
   { id: 'backup', title: '백업', component: BackupSection },

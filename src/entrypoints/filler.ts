@@ -4,6 +4,7 @@ import {
   getElement,
   isCheckbox,
   isCheckboxGroup,
+  isFile,
   isFormControl,
   isRadio,
   type FillElement,
@@ -28,6 +29,7 @@ function strategyOf(el: FillElement): string {
   if (el instanceof HTMLSelectElement) return 'select';
   if (isRadio(el)) return 'radio';
   if (isCheckboxGroup(el)) return 'checkboxes';
+  if (isFile(el)) return 'file';
   return isCheckbox(el) ? 'checkbox' : 'text';
 }
 
@@ -87,7 +89,7 @@ export default defineUnlistedScript(() => {
     const el = getElement(data.fieldId);
     if (!el || !el.isConnected) return { status: 'error', message: '입력란을 찾을 수 없음' };
     // 숨긴 radio·checkbox는 스크롤되지 않으므로 label 기준
-    const target = isFormControl(el) && (isRadio(el) || isCheckbox(el)) ? (el.labels?.[0] ?? el) : el;
+    const target = isFormControl(el) && (isRadio(el) || isCheckbox(el) || isFile(el)) ? (el.labels?.[0] ?? el) : el;
     target.scrollIntoView({ block: 'center' });
     el.focus();
     return { status: 'ok' };

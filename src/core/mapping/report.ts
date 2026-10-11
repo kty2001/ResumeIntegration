@@ -23,7 +23,7 @@ export function buildFillReport(
   const isUnique = (fp?: string) => fingerprints.indexOf(fp) === fingerprints.lastIndexOf(fp);
 
   const fields = details.fields.map((field, i): ReportField => {
-    const hint = { widget: field.widget, placeholder: field.placeholder, maxLength: field.maxLength, options: field.options };
+    const hint = { widget: field.widget, placeholder: field.placeholder, maxLength: field.maxLength, options: field.options, accept: field.accept };
     const fingerprint = isUnique(fingerprints[i]) ? fingerprints[i] : undefined;
     const base = { fieldId: field.fieldId, label: displayLabel(field), hint, fingerprint };
     const skip = skipped.get(field.fieldId);

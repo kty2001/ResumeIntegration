@@ -1,5 +1,6 @@
 import { useState, type ChangeEvent } from 'react';
 import { backupFileName, createBackup, parseBackup, type Backup } from '@/core/backup';
+import { clearFiles } from '@/storage/files';
 import { coverLettersItem, fillReportItem, learnedRulesItem, resumeItem, settingsItem } from '@/storage/items';
 
 // 화면 설계: docs/design/screens.md 4장 '백업' (JSON 내보내기/가져오기, 전체 삭제)
@@ -56,6 +57,7 @@ export function BackupSection() {
       learnedRulesItem.removeValue(),
       fillReportItem.removeValue(),
       settingsItem.removeValue(),
+      clearFiles(),
     ]);
     setConfirmDelete(false);
     setMessage('모든 데이터를 삭제했습니다.');
@@ -125,7 +127,7 @@ export function BackupSection() {
             </button>
           )}
         </div>
-        <p className="desc">이력서·자기소개서·학습 규칙·설정·입력 결과를 모두 지웁니다. 되돌릴 수 없습니다.</p>
+        <p className="desc">이력서·자기소개서·학습 규칙·설정·첨부 파일·입력 결과를 모두 지웁니다. 되돌릴 수 없습니다.</p>
       </div>
     </>
   );
