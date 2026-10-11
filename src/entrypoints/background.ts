@@ -21,7 +21,14 @@ import {
 } from '@/messaging/protocol';
 import type { Resume } from '@/core/schema/resume';
 import { getFile } from '@/storage/files';
-import { coverLettersItem, fillReportItem, learnedRulesItem, resumeItem, settingsItem } from '@/storage/items';
+import {
+  coverLettersItem,
+  fillReportItem,
+  learnedRulesItem,
+  pendingPermissionItem,
+  resumeItem,
+  settingsItem,
+} from '@/storage/items';
 
 // 자동 입력 흐름: docs/design/architecture.md 7.1 (최상위 프레임 + 주입 가능한 같은 출처 iframe)
 // 사이드 패널 동작(fillOne·fillAnswer·focusField·highlight·undo): 7.2·7.3, 대상 탭은 session:fillReport의 tabId
@@ -118,6 +125,7 @@ async function sendFill(tabId: number, plan: FillPlan): Promise<FillResult> {
 
 /** partial: 권한 없는 교차 출처 iframe을 건너뛰고 입력 (아니면 needs-permission 반환, 기존 결과 유지) */
 async function startFill(tabId: number, partial = false): Promise<StartFillResponse> {
+  await pendingPermissionItem.setValue(null);
   const tab = await browser.tabs.get(tabId);
   if (tab.url && isExcluded(tab.url)) {
     await fillReportItem.setValue(null);
@@ -137,7 +145,10 @@ async function startFill(tabId: number, partial = false): Promise<StartFillRespo
   const frameIds = await injectFiller(tabId);
   if (!partial) {
     const origins = await blockedFrameOrigins(tabId);
-    if (origins.length) return { status: 'needs-permission', origins };
+    if (origins.length) {
+      await pendingPermissionItem.setValue({ tabId, origins });
+      return { status: 'needs-permission', origins };
+    }
   }
   await fillReportItem.setValue(null);
   const frames: { frameId: number; details: PageDetails }[] = [];
@@ -302,6 +313,11 @@ export default defineBackground(() => {
   });
 
   onMessage('startFill', ({ data }) => withErrors(() => startFill(data.tabId, data.partial)));
+  // 팝업 '접근 허용' → 권한 대화상자에서 허용: 팝업은 대화상자로 닫히므로 대기 중인 '작성'을 여기서 다시 실행
+  browser.permissions.onAdded.addListener(async () => {
+    const pending = await pendingPermissionItem.getValue();
+    if (pending) await withErrors(() => startFill(pending.tabId));
+  });
   onMessage('fillOne', ({ data }) => withErrors(() => fillOne(data.fieldId, data.schemaKey, data.optionValue)));
   onMessage('fillAnswer', ({ data }) => withErrors(() => fillAnswer(data.fieldId, data.coverLetterId)));
   onMessage('focusField', ({ data }) =>

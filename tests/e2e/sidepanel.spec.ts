@@ -154,10 +154,15 @@ test('교차 출처 iframe: 권한 필요 안내 → 이 페이지 부분만 입
   // 허용 여부를 고르기 전에는 입력하지 않음
   await expect(page.locator('#nm')).toHaveValue('');
   await expect(popup.getByRole('button', { name: '접근 허용' })).toBeVisible();
+  // 권한 대화상자로 팝업이 닫혀도 허용 시 background가 이어서 입력하도록 대기 중인 '작성' 기록
+  // (권한 대화상자는 Playwright로 조작 불가 → 허용 후 재작성은 수동 확인)
+  const pending = () => worker.evaluate(async () => (await chrome.storage.session.get('pendingPermission')).pendingPermission ?? null);
+  expect(await pending()).toMatchObject({ origins: ['http://127.0.0.1'] });
 
   await page.bringToFront();
   await popup.getByRole('button', { name: '이 페이지 부분만 입력' }).click();
   await expect(popup.getByText('입력 완료 3개 · 입력 실패 0개 · 해당 없음 1개')).toBeVisible();
+  expect(await pending()).toBeNull();
   await expect(page.locator('#nm')).toHaveValue('홍길동');
   await expect(page.frameLocator('iframe[title="같은 출처"]').locator('#email')).toHaveValue('gildong@example.com');
   await expect(page.frameLocator('iframe[title="교차 출처"]').locator('#x')).toHaveValue('');

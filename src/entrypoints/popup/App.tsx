@@ -44,10 +44,15 @@ export default function App() {
   };
 
   // 권한 요청은 사용자 클릭 처리 안에서 바로 호출
+  // 권한 대화상자가 뜨면 팝업이 닫히므로 허용 후 입력은 background(permissions.onAdded)가 실행
   const allow = async () => {
     const granted = await browser.permissions.request({ origins: blocked.map((o) => `${o}/*`) }).catch(() => false);
-    if (granted) await fill();
-    else setMessage('접근을 허용하지 않았습니다. 이 페이지 부분만 입력할 수 있습니다.');
+    if (granted) setBlocked([]);
+    setMessage(
+      granted
+        ? '접근을 허용했습니다. 입력 결과는 사이드 패널에서 확인해 주세요.'
+        : '접근을 허용하지 않았습니다. 이 페이지 부분만 입력할 수 있습니다.',
+    );
   };
 
   return (

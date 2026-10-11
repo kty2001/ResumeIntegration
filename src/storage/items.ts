@@ -35,3 +35,9 @@ export const learnedRulesItem = storage.defineItem<LearnedRule[]>('local:learned
 export const fillReportItem = storage.defineItem<FillReport | null>('session:fillReport', {
   fallback: null,
 });
+
+// 교차 출처 iframe 권한을 기다리는 '작성' (권한 대화상자로 팝업이 닫혀도 허용 시 background가 이어서 입력)
+export const pendingPermissionItem = storage.defineItem<{ tabId: number; origins: string[] } | null>(
+  'session:pendingPermission',
+  { fallback: null },
+);
