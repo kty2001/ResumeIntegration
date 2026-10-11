@@ -54,6 +54,12 @@ textarea { min-height: 90px; resize: vertical; }
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
 th, td { text-align: left; padding: 8px; border-bottom: 1px solid #eee; }
 th { color: var(--sub); font-weight: 600; }
+tr.on td { background: #eef3fe; }
+
+.toolbar { display: flex; gap: 8px; margin-bottom: 12px; }
+.toolbar select { width: 160px; flex: none; }
+.count { grid-column: 1 / -1; margin: -6px 0 0; font-size: 12px; color: var(--sub); }
+.count.over { color: var(--err); }
 
 .msg { padding: 10px 12px; border-radius: 6px; font-size: 13px; background: #eef3fe; margin-bottom: 12px; }
 .msg.warn { background: #fdf0dc; }

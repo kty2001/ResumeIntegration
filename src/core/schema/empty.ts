@@ -3,6 +3,7 @@ import {
   type Activity,
   type Award,
   type Certificate,
+  type CoverLetterEntry,
   type Desired,
   type Education,
   type LanguageSkill,
@@ -54,3 +55,8 @@ export const newActivity = (): Activity => ({ id: newId(), type: 'extracurricula
 export const newProject = (): Project => ({ id: newId(), name: '' });
 export const newSkill = (): Skill => ({ name: '' });
 export const emptyDesired = (): Desired => ({ locations: [], jobs: [], employmentTypes: [] });
+
+export function newCoverLetter(): CoverLetterEntry {
+  const now = new Date().toISOString();
+  return { id: newId(), question: '', tags: [], answer: '', usages: [], createdAt: now, updatedAt: now };
+}

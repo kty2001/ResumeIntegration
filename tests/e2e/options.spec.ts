@@ -62,6 +62,43 @@ test('다른 파일 가져오기는 오류 표시', async ({ context, extensionI
   await expect(options.getByRole('button', { name: '덮어쓰기' })).toHaveCount(0);
 });
 
+test('자기소개서 라이브러리: 추가·글자수·검색·복제·삭제 + 자동 저장', async ({ context, worker, extensionId }) => {
+  const stored = () =>
+    worker.evaluate(async () => ((await chrome.storage.local.get('coverLetters')).coverLetters as { question: string; answer: string; tags: string[]; limit?: unknown }[] | undefined) ?? []);
+  const options = await context.newPage();
+  await options.goto(`chrome-extension://${extensionId}/options.html#cover`);
+  await expect(options.getByText('저장된 문항이 없습니다.')).toBeVisible();
+
+  await options.getByRole('button', { name: '+ 문항 추가' }).click();
+  await options.getByLabel('문항 필수', { exact: true }).fill('지원 동기를 기술해 주십시오');
+  await options.getByLabel('지원 동기').check();
+  await options.getByLabel('답변 필수', { exact: true }).fill('AB 가나');
+  await expect(options.getByText('공백 포함 5자 · 공백 제외 4자 · 7바이트')).toBeVisible();
+  // 제한 초과 경고
+  await options.getByLabel('글자수 제한').fill('4');
+  await expect(options.getByText('공백 포함 4 초과', { exact: false })).toBeVisible();
+  await expect.poll(stored).toMatchObject([
+    { question: '지원 동기를 기술해 주십시오', answer: 'AB 가나', tags: ['motivation'], limit: { count: 4, unit: 'chars_with_space' } },
+  ]);
+
+  // 복제 → 두 번째 항목 문항 변경 → 검색·태그 필터
+  await options.getByRole('button', { name: '복제' }).click();
+  await options.getByLabel('문항 필수', { exact: true }).fill('성장 과정');
+  await expect.poll(async () => (await stored()).map((e) => e.question)).toEqual(['지원 동기를 기술해 주십시오', '성장 과정']);
+  const rows = options.getByRole('row').filter({ has: options.getByRole('button', { name: '편집' }) });
+  await expect(rows).toHaveCount(2);
+  await options.getByLabel('문항·답변 검색').fill('성장');
+  await expect(rows).toHaveCount(1);
+  await options.getByLabel('문항·답변 검색').fill('');
+  await options.getByLabel('태그 필터').selectOption({ label: '성장 과정' });
+  await expect(options.getByText('검색 결과가 없습니다.')).toBeVisible();
+  await options.getByLabel('태그 필터').selectOption({ label: '전체 태그' });
+
+  // 삭제
+  await options.getByRole('button', { name: '삭제', exact: true }).click();
+  await expect.poll(async () => (await stored()).map((e) => e.question)).toEqual(['지원 동기를 기술해 주십시오']);
+});
+
 test('팝업 이력서 없음 → JSON 가져오기 → 옵션 백업 화면', async ({ context, extensionId }) => {
   const popup = await context.newPage();
   await popup.goto(`chrome-extension://${extensionId}/popup.html`);

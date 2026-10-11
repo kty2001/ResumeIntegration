@@ -3,6 +3,7 @@ import type { SectionProps } from './fields';
 import { ActivitySection } from './sections/ActivitySection';
 import { BackupSection } from './sections/BackupSection';
 import { BasicSection } from './sections/BasicSection';
+import { CoverLetterSection } from './sections/CoverLetterSection';
 import { DesiredSection } from './sections/DesiredSection';
 import { EducationSection } from './sections/EducationSection';
 import { LanguageSection } from './sections/LanguageSection';
@@ -10,7 +11,7 @@ import { MilitarySection } from './sections/MilitarySection';
 import { ProjectSection } from './sections/ProjectSection';
 import { RulesSection } from './sections/RulesSection';
 import { WorkSection } from './sections/WorkSection';
-import { useResume, type SaveStatus } from './useResume';
+import { saveStatusText as statusText, useResume } from './useResume';
 
 // 화면 설계: docs/design/screens.md 4장
 const SECTIONS: { id: string; title: string; component: ComponentType<SectionProps> }[] = [
@@ -22,25 +23,13 @@ const SECTIONS: { id: string; title: string; component: ComponentType<SectionPro
   { id: 'activity', title: '활동·수상', component: ActivitySection },
   { id: 'project', title: '프로젝트·기술', component: ProjectSection },
   { id: 'desired', title: '희망 조건', component: DesiredSection },
+  { id: 'cover', title: '자기소개서', component: CoverLetterSection },
   { id: 'rules', title: '학습 규칙', component: RulesSection },
   { id: 'backup', title: '백업', component: BackupSection },
 ];
 
 // 팝업 'JSON 가져오기' 등에서 options.html#backup 으로 메뉴 지정
 const initialSection = () => SECTIONS.find((s) => `#${s.id}` === location.hash)?.id ?? SECTIONS[0]!.id;
-
-function statusText(status: SaveStatus, updatedAt?: string) {
-  switch (status) {
-    case 'loading':
-      return '불러오는 중…';
-    case 'saving':
-      return '저장 중…';
-    case 'error':
-      return '저장 실패 — 다시 시도해 주세요';
-    default:
-      return updatedAt ? `저장됨 · ${new Date(updatedAt).toLocaleString('ko-KR')}` : '';
-  }
-}
 
 export default function App() {
   const { resume, update, status } = useResume();
