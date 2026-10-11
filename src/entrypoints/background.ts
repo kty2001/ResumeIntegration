@@ -162,6 +162,33 @@ async function startFill(tabId: number, partial = false): Promise<StartFillRespo
   return { status: 'ok', filled: count('filled'), failed: count('failed'), unmatched: count('unmatched') };
 }
 
+/**
+ * 보고서의 프레임마다 실행 (최상위 프레임 실패는 오류, 이동·제거된 iframe은 건너뜀 — startFill 수집과 같은 규칙)
+ * 오류 응답이 오면 그 응답을 반환
+ */
+async function forEachFrame<R extends { status: string }>(
+  report: FillReport,
+  run: (frameId: number) => Promise<R>,
+): Promise<R | undefined> {
+  for (const frameId of report.frameIds ?? [0]) {
+    let response: R;
+    try {
+      response = await run(frameId);
+    } catch (e) {
+      if (frameId === 0) throw e;
+      continue;
+    }
+    if (response.status === 'error') return response;
+  }
+  return undefined;
+}
+
+/** 입력란 학습 규칙 저장 (같은 출처·fingerprint 규칙은 교체) */
+async function saveRule(report: FillReport, fingerprint: string, schemaKey: string, option?: LearnedRule['option']) {
+  const rule = { origin: new URL(report.url).origin, fingerprint, schemaKey, option, updatedAt: new Date().toISOString() };
+  await learnedRulesItem.setValue(upsertRule(await learnedRulesItem.getValue(), rule));
+}
+
 async function requireReport(): Promise<FillReport> {
   const report = await fillReportItem.getValue();
   if (!report) throw new Error('입력 결과 없음');
@@ -211,16 +238,7 @@ async function fillOne(fieldId: string, schemaKey: string, optionValue?: string)
   }
 
   const result = await fillManual(report, fieldId, schemaKey, value);
-  if (field.fingerprint && result.filled.length > 0) {
-    const rule = {
-      origin: new URL(report.url).origin,
-      fingerprint: field.fingerprint,
-      schemaKey,
-      option,
-      updatedAt: new Date().toISOString(),
-    };
-    await learnedRulesItem.setValue(upsertRule(await learnedRulesItem.getValue(), rule));
-  }
+  if (field.fingerprint && result.filled.length > 0) await saveRule(report, field.fingerprint, schemaKey, option);
   return { status: 'ok' };
 }
 
@@ -239,21 +257,19 @@ async function userEdit(tabId: number | undefined, fieldId: string, value: strin
 
   const result = { filled: [{ fieldId, strategy: 'user' }], failed: [] };
   await fillReportItem.setValue(applyFillOne(report, fieldId, schemaKey, result));
-  if (field.fingerprint) {
-    const rule = { origin: new URL(report.url).origin, fingerprint: field.fingerprint, schemaKey, updatedAt: new Date().toISOString() };
-    await learnedRulesItem.setValue(upsertRule(await learnedRulesItem.getValue(), rule));
-  }
+  if (field.fingerprint) await saveRule(report, field.fingerprint, schemaKey);
 }
 
 /** 모든 프레임 되돌리기, 복원 개수 합계 */
 async function undo(): Promise<UndoResponse> {
   const report = await requireReport();
   let restored = 0;
-  for (const frameId of report.frameIds ?? [0]) {
+  const error = await forEachFrame(report, async (frameId) => {
     const response = await sendMessage('undo', undefined, { tabId: report.tabId, frameId });
-    if (response.status === 'error') return response;
-    restored += response.restored;
-  }
+    if (response.status === 'ok') restored += response.restored;
+    return response;
+  });
+  if (error) return error;
   // 입력 전 상태로 돌아갔으므로 결과 초기화
   await fillReportItem.setValue(null);
   return { status: 'ok', restored };
@@ -262,15 +278,14 @@ async function undo(): Promise<UndoResponse> {
 /** 입력란 위치 표시: 프레임별로 나눠 전달 (표시할 입력란이 없는 프레임은 해제) */
 async function highlight(fields: Pick<ReportField, 'fieldId' | 'status'>[]): Promise<ActionResponse> {
   const report = await requireReport();
-  for (const frameId of report.frameIds ?? [0]) {
+  const error = await forEachFrame(report, (frameId) => {
     const own = fields.flatMap((f) => {
       const { frameId: owner, localId } = splitFieldId(f.fieldId);
       return owner === frameId ? [{ ...f, fieldId: localId }] : [];
     });
-    const response = await sendMessage('highlight', { fields: own }, { tabId: report.tabId, frameId });
-    if (response.status === 'error') return response;
-  }
-  return { status: 'ok' };
+    return sendMessage('highlight', { fields: own }, { tabId: report.tabId, frameId });
+  });
+  return error ?? { status: 'ok' };
 }
 
 async function withErrors<T>(run: () => Promise<T>): Promise<T | ErrorResponse> {

@@ -43,7 +43,7 @@ export function matchField(
   const file = field.widget === 'file';
   if (field.autocomplete && !checkbox && !file) {
     const ac = normalizeAutocomplete(field.autocomplete);
-    const rule = FIELD_RULES.find((r) => r.autocomplete.includes(ac));
+    const rule = FIELD_RULES.find((r) => r.autocomplete?.includes(ac));
     if (rule) return { schemaKey: rule.schemaKey, source: 'autocomplete' };
   }
   // 섹션이 판별되면 해당 섹션 규칙만, 아니면 basics 규칙만 검사 (섹션 안 '주소' 등의 basics 오입력 방지)

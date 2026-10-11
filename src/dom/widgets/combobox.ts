@@ -1,3 +1,5 @@
+import { isVisible } from '../collect';
+
 // ARIA 콤보박스(선택 전용 커스텀 드롭다운): docs/reports/06_generic_widget_strategy.md 2.2
 // 열기(실제 클릭과 같은 포인터·마우스 이벤트) → role=option 출현 대기 → 선택지 텍스트가 같은 항목 클릭 → 표시 텍스트로 검증
 // 선택지 value는 표시 텍스트 (ARIA option에는 value가 없음)
@@ -8,7 +10,6 @@ const SELECT_TIMEOUT_MS = 500;
 const SUGGEST_TIMEOUT_MS = 800;
 
 const textOf = (el: Element) => el.textContent?.replace(/\s+/g, ' ').trim() ?? '';
-const isShown = (el: Element) => el.getClientRects().length > 0 && getComputedStyle(el).visibility !== 'hidden';
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /** 실제 클릭과 같은 순서의 이벤트 (mousedown에 여는 위젯·click에 여는 위젯 모두 대응) */
@@ -30,7 +31,7 @@ function listboxOf(el: HTMLElement, portal: boolean): Element | undefined {
       if (target) return target.matches('[role=listbox]') ? target : (target.querySelector('[role=listbox]') ?? target);
     }
   }
-  return portal ? [...document.querySelectorAll('[role=listbox]')].filter(isShown).at(-1) : undefined;
+  return portal ? [...document.querySelectorAll('[role=listbox]')].filter(isVisible).at(-1) : undefined;
 }
 
 function optionsIn(listbox: Element | undefined): HTMLElement[] {
@@ -51,7 +52,7 @@ async function waitFor<T>(get: () => T | undefined, timeout: number): Promise<T 
 /** 열어서 보이는 선택지 (열리지 않으면 빈 배열) */
 async function open(el: HTMLElement): Promise<HTMLElement[]> {
   const visible = () => {
-    const options = optionsIn(listboxOf(el, true)).filter(isShown);
+    const options = optionsIn(listboxOf(el, true)).filter(isVisible);
     return options.length ? options : undefined;
   };
   if (el.getAttribute('aria-expanded') !== 'true') press(el);
@@ -95,7 +96,7 @@ const normalize = (text: string) => text.toLowerCase().replace(/\s+/g, '');
 export async function pickSuggestion(el: HTMLInputElement, value: string): Promise<boolean> {
   const target = normalize(value);
   const choose = () => {
-    const options = optionsIn(listboxOf(el, true)).filter(isShown);
+    const options = optionsIn(listboxOf(el, true)).filter(isVisible);
     if (!options.length) return undefined;
     const contains = options.filter((o) => normalize(textOf(o)).includes(target));
     return options.find((o) => normalize(textOf(o)) === target) ?? (contains.length === 1 ? contains[0] : null);

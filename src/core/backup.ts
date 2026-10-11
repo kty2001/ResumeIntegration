@@ -44,8 +44,40 @@ function normalizeResume(raw: Record<string, unknown>): Resume {
   return merged;
 }
 
+/** 자기소개서 항목: id가 있는 객체만, 누락 필드는 빈 값으로 보완 (사이드 패널·옵션 화면이 tags·answer 등을 바로 사용) */
+function normalizeCoverLetters(raw: unknown): CoverLetterEntry[] {
+  if (!Array.isArray(raw)) return [];
+  const text = (v: unknown) => (typeof v === 'string' ? v : '');
+  const list = (v: unknown) => (Array.isArray(v) ? v : []);
+  return raw
+    .filter((e): e is Record<string, unknown> => isObject(e) && typeof e.id === 'string')
+    .map((e) => ({
+      ...e,
+      question: text(e.question),
+      answer: text(e.answer),
+      tags: list(e.tags),
+      usages: list(e.usages),
+      createdAt: text(e.createdAt),
+      updatedAt: text(e.updatedAt),
+    }) as CoverLetterEntry);
+}
+
+function isUrl(text: string): boolean {
+  try {
+    new URL(text);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// origin은 학습 규칙 화면에서 URL로 파싱하므로 형식까지 확인
 const isRule = (r: unknown): r is LearnedRule =>
-  isObject(r) && typeof r.origin === 'string' && typeof r.fingerprint === 'string' && typeof r.schemaKey === 'string';
+  isObject(r) &&
+  typeof r.origin === 'string' &&
+  isUrl(r.origin) &&
+  typeof r.fingerprint === 'string' &&
+  typeof r.schemaKey === 'string';
 
 export type ParseResult = { ok: true; backup: Backup } | { ok: false; error: string };
 
@@ -74,7 +106,7 @@ export function parseBackup(text: string): ParseResult {
       backupVersion: BACKUP_VERSION,
       exportedAt: typeof data.exportedAt === 'string' ? data.exportedAt : '',
       resume,
-      coverLetters: Array.isArray(data.coverLetters) ? (data.coverLetters as CoverLetterEntry[]) : [],
+      coverLetters: normalizeCoverLetters(data.coverLetters),
       learnedRules: Array.isArray(data.learnedRules) ? data.learnedRules.filter(isRule) : [],
     },
   };

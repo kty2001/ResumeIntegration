@@ -49,4 +49,17 @@ describe('parseBackup', () => {
     const result = parseBackup(text({ app: 'resume-integration', learnedRules: [rule, { origin: 1 }, 'x'] }));
     expect(result).toMatchObject({ ok: true, backup: { resume: null, coverLetters: [], learnedRules: [rule] } });
   });
+
+  it('URL이 아닌 origin의 학습 규칙은 제외', () => {
+    const result = parseBackup(text({ app: 'resume-integration', learnedRules: [rule, { ...rule, origin: 'a.com' }] }));
+    expect(result.ok && result.backup.learnedRules).toEqual([rule]);
+  });
+
+  it('자기소개서: id 없는 항목 제외, 누락·잘못된 필드는 빈 값으로 보완', () => {
+    const coverLetters = [{ id: 'c1', question: '지원 동기', tags: 'x' }, { question: 'id 없음' }, 'x'];
+    const result = parseBackup(text({ app: 'resume-integration', coverLetters }));
+    expect(result.ok && result.backup.coverLetters).toEqual([
+      { id: 'c1', question: '지원 동기', answer: '', tags: [], usages: [], createdAt: '', updatedAt: '' },
+    ]);
+  });
 });

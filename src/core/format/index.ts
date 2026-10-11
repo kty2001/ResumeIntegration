@@ -1,10 +1,11 @@
+import { itemPattern } from '@/core/schema/labels';
 import type { FormatHint } from '@/messaging/protocol';
 import { formatDate, formatPartialDate, formatYearMonth } from './date';
 import { formatPhone } from './phone';
 
 // 저장 형식 → 입력란 형식 변환 (docs/design/resume_schema_v1.md 2장: 변환은 입력 시점)
 
-// 반복 항목 키는 인덱스를 '*'로 정규화해 조회 (education.0.startDate → education.*.startDate)
+// 반복 항목 키는 인덱스를 '*'로 정규화해 조회 (itemPattern)
 const FORMATTERS: Record<string, (value: string, hint: FormatHint) => string> = {
   'basics.birthDate': formatDate,
   'basics.phone.mobile': formatPhone,
@@ -26,7 +27,7 @@ const FORMATTERS: Record<string, (value: string, hint: FormatHint) => string> = 
   'desired.availableFrom': formatPartialDate,
 };
 
-const formatterOf = (schemaKey: string) => FORMATTERS[schemaKey.replace(/\.\d+\./, '.*.')];
+const formatterOf = (schemaKey: string) => FORMATTERS[itemPattern(schemaKey)];
 
 export function formatValue(schemaKey: string, value: string, hint: FormatHint): string {
   return formatterOf(schemaKey)?.(value, hint) ?? value;

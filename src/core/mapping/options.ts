@@ -6,6 +6,7 @@ import {
   EMPLOYMENT_TYPE_LABELS,
   GENDER_LABELS,
   GRADUATION_STATUS_LABELS,
+  itemPattern,
   LANGUAGE_LABELS,
   MILITARY_BRANCH_LABELS,
   MILITARY_STATUS_LABELS,
@@ -111,7 +112,7 @@ export const ENUM_OPTIONS: Record<string, EnumOptions> = {
   },
 };
 
-const enumOf = (schemaKey: string) => ENUM_OPTIONS[schemaKey.replace(/\.\d+\./, '.*.')];
+const enumOf = (schemaKey: string) => ENUM_OPTIONS[itemPattern(schemaKey)];
 
 /** 텍스트 입력란용 enum 표시명 (enum 키 아니면 undefined) */
 export function enumLabel(schemaKey: string, code: string): string | undefined {

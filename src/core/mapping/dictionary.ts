@@ -9,7 +9,7 @@ export type RuleSection = SectionKey | 'military' | 'desired';
 
 export interface FieldRule {
   schemaKey: string;        // 반복 섹션 규칙은 인덱스 자리를 '*'로 표기 (education.*.school.ko)
-  autocomplete: string[];   // 정규화된 autocomplete 값 (section-*·shipping·billing 제거)
+  autocomplete?: string[];  // 정규화된 autocomplete 값 (section-*·shipping·billing 제거)
   pattern: RegExp;
   exclude?: RegExp;
   section?: RuleSection;    // 지정 시 해당 섹션 문맥에서만 검사
@@ -38,131 +38,112 @@ export const SECTION_FIELD_RULES: FieldRule[] = [
   {
     section: 'education',
     schemaKey: 'education.*.school.en',
-    autocomplete: [],
     pattern: /영문\s*학교|학교\s*명?\s*\(\s*영문|school.*\(\s*(english|eng)\s*\)/i,
   },
   {
     section: 'education',
     schemaKey: 'education.*.school.ko',
-    autocomplete: [],
     pattern: /학교\s*명|school\s*name/i,
   },
   {
     section: 'education',
     schemaKey: 'education.*.major.en',
-    autocomplete: [],
     pattern: /영문\s*전공|전공\s*명?\s*\(\s*영문|major.*\(\s*(english|eng)\s*\)/i,
   },
-  { section: 'education', schemaKey: 'education.*.minor', autocomplete: [], pattern: /부\s*전공|minor/i },
+  { section: 'education', schemaKey: 'education.*.minor', pattern: /부\s*전공|minor/i },
   {
     section: 'education',
     schemaKey: 'education.*.doubleMajor',
-    autocomplete: [],
     pattern: /복수\s*전공|이중\s*전공|double\s*major|second\s*major/i,
   },
-  { section: 'education', schemaKey: 'education.*.major.ko', autocomplete: [], pattern: /전공|학과|major/i, exclude: /계열/ },
+  { section: 'education', schemaKey: 'education.*.major.ko', pattern: /전공|학과|major/i, exclude: /계열/ },
   {
     section: 'education',
     schemaKey: 'education.*.gpa.max',
-    autocomplete: [],
     pattern: /만점|기준\s*학점|학점\s*기준|scale|out\s*of|max/i,
   },
   {
     section: 'education',
     schemaKey: 'education.*.gpa.value',
-    autocomplete: [],
     pattern: /학점|평점|gpa/i,
     exclude: /이수|취득|credit/i,
   },
   {
     section: 'education',
     schemaKey: 'education.*.status',
-    autocomplete: [],
     pattern: /(졸업|재학)\s*(구분|상태|여부)|학적|status/i,
   },
-  { section: 'education', schemaKey: 'education.*.location', autocomplete: [], pattern: /소재지?|국내\s*\/?\s*해외|location/i },
+  { section: 'education', schemaKey: 'education.*.location', pattern: /소재지?|국내\s*\/?\s*해외|location/i },
   {
     section: 'education',
     schemaKey: 'education.*.level',
-    autocomplete: [],
     pattern: /학력|학교\s*(구분|종류|유형)|학위|degree|level/i,
   },
   {
     section: 'education',
     schemaKey: 'education.*.startDate',
-    autocomplete: [],
     pattern: /입학|start|admission/i,
     exclude: ENUM_LABEL,
   },
   {
     section: 'education',
     schemaKey: 'education.*.endDate',
-    autocomplete: [],
     pattern: /졸업|end|graduat/i,
     exclude: ENUM_LABEL,
   },
   {
     section: 'education',
     schemaKey: 'education.*.school.ko',
-    autocomplete: [],
     pattern: /학교|대학|school|university|college/i,
     exclude: ENUM_LABEL,
   },
-  { section: 'education', schemaKey: 'education.*.transfer', autocomplete: [], pattern: /편입|transfer/i, checkbox: true },
+  { section: 'education', schemaKey: 'education.*.transfer', pattern: /편입|transfer/i, checkbox: true },
   // 경력
   {
     section: 'work',
     schemaKey: 'work.*.company.en',
-    autocomplete: [],
     pattern: /영문\s*(회사|직장)|(회사|직장)\s*명?\s*\(\s*영문|company.*\(\s*(english|eng)\s*\)/i,
   },
   {
     section: 'work',
     schemaKey: 'work.*.company.ko',
-    autocomplete: [],
     pattern: /(회사|직장|기관)\s*(명|이름)|company\s*name|employer/i,
   },
   {
     section: 'work',
     schemaKey: 'work.*.leaveReason',
-    autocomplete: [],
     pattern: /(퇴사|퇴직|이직)\s*사유|reason\s*for\s*leaving/i,
   },
   {
     section: 'work',
     schemaKey: 'work.*.description',
-    autocomplete: [],
     pattern: /담당\s*업무|업무\s*내용|주요\s*업무|직무\s*내용|경력\s*기술|description|duties|responsibilit/i,
   },
-  { section: 'work', schemaKey: 'work.*.startDate', autocomplete: [], pattern: /입사|start|join/i, exclude: ENUM_LABEL },
-  { section: 'work', schemaKey: 'work.*.endDate', autocomplete: [], pattern: /퇴사|퇴직|end/i, exclude: ENUM_LABEL },
-  { section: 'work', schemaKey: 'work.*.salary', autocomplete: [], pattern: /연봉|급여|salary/i, exclude: /희망|desired/i },
-  { section: 'work', schemaKey: 'work.*.department', autocomplete: [], pattern: /부서|department|\bdept\b/i },
-  { section: 'work', schemaKey: 'work.*.rank', autocomplete: [], pattern: /직급|rank/i },
+  { section: 'work', schemaKey: 'work.*.startDate', pattern: /입사|start|join/i, exclude: ENUM_LABEL },
+  { section: 'work', schemaKey: 'work.*.endDate', pattern: /퇴사|퇴직|end/i, exclude: ENUM_LABEL },
+  { section: 'work', schemaKey: 'work.*.salary', pattern: /연봉|급여|salary/i, exclude: /희망|desired/i },
+  { section: 'work', schemaKey: 'work.*.department', pattern: /부서|department|\bdept\b/i },
+  { section: 'work', schemaKey: 'work.*.rank', pattern: /직급|rank/i },
   {
     section: 'work',
     schemaKey: 'work.*.role.ko',
-    autocomplete: [],
     pattern: /직무|담당\s*분야|\bjob\b|role/i,
   },
-  { section: 'work', schemaKey: 'work.*.title', autocomplete: [], pattern: /직책|직위|position|title/i },
+  { section: 'work', schemaKey: 'work.*.title', pattern: /직책|직위|position|title/i },
   {
     section: 'work',
     schemaKey: 'work.*.employmentType',
-    autocomplete: [],
     pattern: /(고용|근무|채용|계약)\s*(형태|구분|유형)|employment\s*type/i,
   },
   {
     section: 'work',
     schemaKey: 'work.*.company.ko',
-    autocomplete: [],
     pattern: /회사|직장|company/i,
     exclude: /주소|전화|규모|업종|size|industry|구분|형태|유형|type|소재|location/i,
   },
   {
     section: 'work',
     schemaKey: 'work.*.current',
-    autocomplete: [],
     pattern: /재직\s*중|현재\s*(재직|근무)|근무\s*중|current|present/i,
     checkbox: true,
   },
@@ -170,26 +151,22 @@ export const SECTION_FIELD_RULES: FieldRule[] = [
   {
     section: 'certificates',
     schemaKey: 'certificates.*.number',
-    autocomplete: [],
     pattern: /번호|number|\bno\b/i,
   },
   {
     section: 'certificates',
     schemaKey: 'certificates.*.issuer',
-    autocomplete: [],
     pattern: /기관|발행|시행처|issuer|issued\s*by|organization/i,
   },
   {
     section: 'certificates',
     schemaKey: 'certificates.*.date',
-    autocomplete: [],
     pattern: /취득|발급\s*일|합격|date|acquired/i,
     exclude: ENUM_LABEL,
   },
   {
     section: 'certificates',
     schemaKey: 'certificates.*.name',
-    autocomplete: [],
     pattern: /자격|면허|명칭|name|certificat|license/i,
     exclude: ENUM_LABEL,
   },
@@ -197,51 +174,44 @@ export const SECTION_FIELD_RULES: FieldRule[] = [
   {
     section: 'languageTests',
     schemaKey: 'languageTests.*.registrationNo',
-    autocomplete: [],
     pattern: /번호|registration|number|\bno\b/i,
   },
   {
     section: 'languageTests',
     schemaKey: 'languageTests.*.expiresAt',
-    autocomplete: [],
     pattern: /만료|유효|expir|valid/i,
   },
   {
     section: 'languageTests',
     schemaKey: 'languageTests.*.date',
-    autocomplete: [],
     pattern: /응시|취득|시험\s*일|date/i,
     exclude: ENUM_LABEL,
   },
-  { section: 'languageTests', schemaKey: 'languageTests.*.grade', autocomplete: [], pattern: /등급|급수|grade|level/i },
-  { section: 'languageTests', schemaKey: 'languageTests.*.score', autocomplete: [], pattern: /점수|성적|score/i },
+  { section: 'languageTests', schemaKey: 'languageTests.*.grade', pattern: /등급|급수|grade|level/i },
+  { section: 'languageTests', schemaKey: 'languageTests.*.score', pattern: /점수|성적|score/i },
   {
     section: 'languageTests',
     schemaKey: 'languageTests.*.exam',
-    autocomplete: [],
     pattern: /시험|exam|test/i,
     exclude: ENUM_LABEL,
   },
-  { section: 'languageTests', schemaKey: 'languageTests.*.language', autocomplete: [], pattern: /외국어|언어|language/i },
+  { section: 'languageTests', schemaKey: 'languageTests.*.language', pattern: /외국어|언어|language/i },
   // 수상
   {
     section: 'awards',
     schemaKey: 'awards.*.awarder',
-    autocomplete: [],
     pattern: /수여|주최|주관|기관|awarder|issuer|organization/i,
   },
   {
     section: 'awards',
     schemaKey: 'awards.*.date',
-    autocomplete: [],
     pattern: /수상\s*(일|년월|연월|날짜)|일자|date/i,
     exclude: ENUM_LABEL,
   },
-  { section: 'awards', schemaKey: 'awards.*.description', autocomplete: [], pattern: /내용|설명|description|detail/i },
+  { section: 'awards', schemaKey: 'awards.*.description', pattern: /내용|설명|description|detail/i },
   {
     section: 'awards',
     schemaKey: 'awards.*.title',
-    autocomplete: [],
     pattern: /수상|대회|상\s*명|award|title|name/i,
     exclude: ENUM_LABEL,
   },
@@ -249,45 +219,39 @@ export const SECTION_FIELD_RULES: FieldRule[] = [
   {
     section: 'activities',
     schemaKey: 'activities.*.organization',
-    autocomplete: [],
     pattern: /기관|단체|주최|주관|소속|organization/i,
   },
-  { section: 'activities', schemaKey: 'activities.*.startDate', autocomplete: [], pattern: /시작|start/i, exclude: ENUM_LABEL },
-  { section: 'activities', schemaKey: 'activities.*.endDate', autocomplete: [], pattern: /종료|end/i, exclude: ENUM_LABEL },
+  { section: 'activities', schemaKey: 'activities.*.startDate', pattern: /시작|start/i, exclude: ENUM_LABEL },
+  { section: 'activities', schemaKey: 'activities.*.endDate', pattern: /종료|end/i, exclude: ENUM_LABEL },
   {
     section: 'activities',
     schemaKey: 'activities.*.description',
-    autocomplete: [],
     pattern: /내용|설명|역할|description|detail/i,
   },
-  { section: 'activities', schemaKey: 'activities.*.type', autocomplete: [], pattern: /구분|종류|유형|분류|type/i },
+  { section: 'activities', schemaKey: 'activities.*.type', pattern: /구분|종류|유형|분류|type/i },
   {
     section: 'activities',
     schemaKey: 'activities.*.name',
-    autocomplete: [],
     pattern: /활동|명칭|name|title/i,
     exclude: ENUM_LABEL,
   },
   // 프로젝트
-  { section: 'projects', schemaKey: 'projects.*.url', autocomplete: [], pattern: /url|링크|주소|link|github/i },
+  { section: 'projects', schemaKey: 'projects.*.url', pattern: /url|링크|주소|link|github/i },
   {
     section: 'projects',
     schemaKey: 'projects.*.organization',
-    autocomplete: [],
     pattern: /기관|소속|발주|organization|client/i,
   },
-  { section: 'projects', schemaKey: 'projects.*.startDate', autocomplete: [], pattern: /시작|start/i, exclude: ENUM_LABEL },
-  { section: 'projects', schemaKey: 'projects.*.endDate', autocomplete: [], pattern: /종료|end/i, exclude: ENUM_LABEL },
+  { section: 'projects', schemaKey: 'projects.*.startDate', pattern: /시작|start/i, exclude: ENUM_LABEL },
+  { section: 'projects', schemaKey: 'projects.*.endDate', pattern: /종료|end/i, exclude: ENUM_LABEL },
   {
     section: 'projects',
     schemaKey: 'projects.*.description',
-    autocomplete: [],
     pattern: /내용|설명|역할|description|detail/i,
   },
   {
     section: 'projects',
     schemaKey: 'projects.*.name',
-    autocomplete: [],
     pattern: /프로젝트|명칭|name|title/i,
     exclude: ENUM_LABEL,
   },
@@ -295,48 +259,42 @@ export const SECTION_FIELD_RULES: FieldRule[] = [
   {
     section: 'military',
     schemaKey: 'military.dischargeType',
-    autocomplete: [],
     pattern: /(전역|제대)\s*(구분|사유|유형|형태)|discharge/i,
   },
-  { section: 'military', schemaKey: 'military.branch', autocomplete: [], pattern: /군별|군\s*(구분|종류)|branch/i },
-  { section: 'military', schemaKey: 'military.rank', autocomplete: [], pattern: /계급|rank/i },
+  { section: 'military', schemaKey: 'military.branch', pattern: /군별|군\s*(구분|종류)|branch/i },
+  { section: 'military', schemaKey: 'military.rank', pattern: /계급|rank/i },
   {
     section: 'military',
     schemaKey: 'military.startDate',
-    autocomplete: [],
     pattern: /입대|입영|복무\s*시작|enlist|start/i,
     exclude: ENUM_LABEL,
   },
   {
     section: 'military',
     schemaKey: 'military.endDate',
-    autocomplete: [],
     pattern: /전역|제대|소집\s*해제|복무\s*종료|end/i,
     exclude: ENUM_LABEL,
   },
-  { section: 'military', schemaKey: 'military.status', autocomplete: [], pattern: /병역|군필|구분|사항|여부|상태|status|military/i },
+  { section: 'military', schemaKey: 'military.status', pattern: /병역|군필|구분|사항|여부|상태|status|military/i },
   // 희망 조건 (단일 객체 → 인덱스 없는 키, 배열 값은 match.ts에서 처리)
   {
     section: 'desired',
     schemaKey: 'desired.salary.companyPolicy',
-    autocomplete: [],
     pattern: /내규|협의|negotiable|company\s*policy/i,
     checkbox: true,
   },
-  { section: 'desired', schemaKey: 'desired.salary.amount', autocomplete: [], pattern: /연봉|급여|salary|\bpay\b/i },
+  { section: 'desired', schemaKey: 'desired.salary.amount', pattern: /연봉|급여|salary|\bpay\b/i },
   {
     section: 'desired',
     schemaKey: 'desired.employmentTypes',
-    autocomplete: [],
     pattern: /(고용|근무|채용)\s*(형태|구분|유형)|employment/i,
   },
-  { section: 'desired', schemaKey: 'desired.locations', autocomplete: [], pattern: /근무\s*(지|지역)|지역|location|region/i },
-  { section: 'desired', schemaKey: 'desired.jobs', autocomplete: [], pattern: /직무|직종|분야|\bjob|position|role/i },
-  { section: 'desired', schemaKey: 'desired.availableNote', autocomplete: [], pattern: /(입사|가능).*(메모|비고)|\bnote/i },
+  { section: 'desired', schemaKey: 'desired.locations', pattern: /근무\s*(지|지역)|지역|location|region/i },
+  { section: 'desired', schemaKey: 'desired.jobs', pattern: /직무|직종|분야|\bjob|position|role/i },
+  { section: 'desired', schemaKey: 'desired.availableNote', pattern: /(입사|가능).*(메모|비고)|\bnote/i },
   {
     section: 'desired',
     schemaKey: 'desired.availableFrom',
-    autocomplete: [],
     pattern: /입사\s*(가능|예정)|가능\s*일|available|start/i,
   },
 ];
@@ -344,13 +302,13 @@ export const SECTION_FIELD_RULES: FieldRule[] = [
 // 민감정보(보훈·장애·취업보호·병역 면제 사유): 설정 '민감정보 자동 입력 사용'을 켰을 때만 검사 (섹션 무관, 일반 규칙보다 먼저)
 // checkbox 표시 규칙은 checkbox 입력란에만 적용 (일반 규칙과 같음)
 export const SENSITIVE_RULES: FieldRule[] = [
-  { schemaKey: 'preference.veteran.number', autocomplete: [], pattern: /보훈\s*번호|유공자\s*번호/ },
-  { schemaKey: 'preference.veteran.relation', autocomplete: [], pattern: /보훈\s*관계|유공자\s*(와의\s*)?관계/ },
-  { schemaKey: 'preference.disability.severity', autocomplete: [], pattern: /장애\s*(정도|등급|구분|유형)/ },
-  { schemaKey: 'military.exemptionReason', autocomplete: [], pattern: /면제\s*사유/ },
-  { schemaKey: 'preference.veteran.target', autocomplete: [], pattern: /보훈|국가\s*유공/, checkbox: true },
-  { schemaKey: 'preference.employmentProtection', autocomplete: [], pattern: /취업\s*보호/, checkbox: true },
-  { schemaKey: 'preference.disability.target', autocomplete: [], pattern: /장애/, checkbox: true },
+  { schemaKey: 'preference.veteran.number', pattern: /보훈\s*번호|유공자\s*번호/ },
+  { schemaKey: 'preference.veteran.relation', pattern: /보훈\s*관계|유공자\s*(와의\s*)?관계/ },
+  { schemaKey: 'preference.disability.severity', pattern: /장애\s*(정도|등급|구분|유형)/ },
+  { schemaKey: 'military.exemptionReason', pattern: /면제\s*사유/ },
+  { schemaKey: 'preference.veteran.target', pattern: /보훈|국가\s*유공/, checkbox: true },
+  { schemaKey: 'preference.employmentProtection', pattern: /취업\s*보호/, checkbox: true },
+  { schemaKey: 'preference.disability.target', pattern: /장애/, checkbox: true },
 ];
 
 /** 민감정보 키: 설정을 끄면 학습 규칙으로 매칭돼도 입력하지 않음 */
@@ -360,17 +318,16 @@ export function isSensitiveKey(schemaKey: string): boolean {
 
 // 파일 입력란 전용 (섹션 판별 없이 이 규칙만 검사, 키는 core/attachments.ts attachmentKey)
 export const FILE_RULES: FieldRule[] = [
-  { schemaKey: 'attachments.photo', autocomplete: [], pattern: /증명\s*사진|사진|photo|picture|profile\s*image/i },
-  { schemaKey: 'attachments.portfolio', autocomplete: [], pattern: /포트\s*폴리오|portfolio|작품/i },
-  { schemaKey: 'attachments.transcript', autocomplete: [], pattern: /성적\s*(증명|표)|transcript/i },
-  { schemaKey: 'attachments.certificate', autocomplete: [], pattern: /증명서|자격증|사본|certificate/i },
-  { schemaKey: 'attachments.resume', autocomplete: [], pattern: /이력서|경력\s*기술서|resume|\bcv\b/i },
+  { schemaKey: 'attachments.photo', pattern: /증명\s*사진|사진|photo|picture|profile\s*image/i },
+  { schemaKey: 'attachments.portfolio', pattern: /포트\s*폴리오|portfolio|작품/i },
+  { schemaKey: 'attachments.transcript', pattern: /성적\s*(증명|표)|transcript/i },
+  { schemaKey: 'attachments.certificate', pattern: /증명서|자격증|사본|certificate/i },
+  { schemaKey: 'attachments.resume', pattern: /이력서|경력\s*기술서|resume|\bcv\b/i },
 ];
 
 export const FIELD_RULES: FieldRule[] = [
   {
     schemaKey: 'basics.name.en',
-    autocomplete: [],
     pattern: /영문\s*(성명|이름|성함)|english\s*name|name.*\(\s*(english|eng)\s*\)|eng_?name|name_?eng?\b/i,
   },
   {
@@ -411,7 +368,6 @@ export const FIELD_RULES: FieldRule[] = [
   },
   {
     schemaKey: 'basics.summary',
-    autocomplete: [],
     pattern: /한\s*줄\s*소개|간단\s*소개|headline|summary/i,
   },
   { schemaKey: 'basics.gender', autocomplete: ['sex'], pattern: /성별|gender|\bsex\b/i },

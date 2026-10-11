@@ -20,8 +20,8 @@ const TEXT_INPUT_TYPES = new Set(['text', 'email', 'tel', 'url', 'search', 'date
 /** fieldId → 요소. DOM에 식별 속성을 추가하지 않고 메모리에만 보관 */
 const elements = new Map<string, FillElement>();
 
-/** checkbox 그룹으로 수집한 첫 checkbox (단일 checkbox와 구분) */
-const checkboxGroups = new WeakSet<Element>();
+/** checkbox 그룹으로 수집한 첫 checkbox (단일 checkbox와 구분, 수집마다 초기화) */
+let checkboxGroups = new WeakSet<Element>();
 
 export function getElement(fieldId: string): FillElement | undefined {
   return elements.get(fieldId);
@@ -65,7 +65,7 @@ export function inputGroup(el: HTMLInputElement): HTMLInputElement[] {
   );
 }
 
-function isVisible(el: Element): boolean {
+export function isVisible(el: Element): boolean {
   return el.getClientRects().length > 0 && getComputedStyle(el).visibility !== 'hidden';
 }
 
@@ -210,6 +210,7 @@ function describeGroup(
 
 export async function collectPageDetails(): Promise<PageDetails> {
   elements.clear();
+  checkboxGroups = new WeakSet();
   const fields: FieldDescriptor[] = [];
   const comboboxes: [FieldDescriptor, HTMLElement][] = [];
   let heading: string | undefined;

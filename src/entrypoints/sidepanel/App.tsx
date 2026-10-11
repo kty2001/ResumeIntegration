@@ -198,6 +198,9 @@ export default function App() {
     return answers.length ? [{ field: f, answers }] : [];
   });
 
+  // 직접 입력 행 key: 새 결과(다시 작성)에서는 fieldId가 다시 매겨지므로 선택 상자 상태 초기화
+  const rowKey = (f: ReportField) => `${report?.at}:${f.fieldId}`;
+
   const undo = async () => {
     const r = await sendMessage('undo');
     setNotice(r.status === 'ok' ? `${r.restored}개 되돌림` : r.message);
@@ -257,7 +260,7 @@ export default function App() {
               <ul>
                 {failed.map((f) => (
                   <ValueRow
-                    key={f.fieldId}
+                    key={rowKey(f)}
                     label={f.label}
                     note={`→ ${keyLabel(f.schemaKey)} (${REASON_LABELS[f.reason ?? ''] ?? f.reason})`}
                     value={failedValue(f)}
@@ -293,7 +296,7 @@ export default function App() {
               <summary>해당 없음 {unmatched.length}개</summary>
               <ul>
                 {unmatched.map((f) => (
-                  <li key={f.fieldId} style={{ marginBottom: 6 }}>
+                  <li key={rowKey(f)} style={{ marginBottom: 6 }}>
                     {f.label}
                     <div>
                       <FillControls field={f} options={fillOptions(f)} notify={setNotice} />

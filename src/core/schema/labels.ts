@@ -254,6 +254,9 @@ export const ITEM_KEY_LABELS: Record<string, string> = {
   'projects.*.description': '프로젝트 내용',
 };
 
+/** 반복 항목 키의 인덱스를 '*'로 정규화 (education.0.startDate → education.*.startDate) */
+export const itemPattern = (schemaKey: string) => schemaKey.replace(/\.\d+\./, '.*.');
+
 const ITEM_KEY = new RegExp(`^(${SECTION_KEYS.join('|')})\\.(\\d+)\\.(.+)$`);
 
 /** 스키마 키 표시명: basics는 그대로, 반복 항목은 '학력 1 학교명' 형식 */
