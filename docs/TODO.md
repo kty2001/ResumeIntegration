@@ -26,7 +26,7 @@
 - [ ] 옵션 화면 후속: 첨부 파일·증명사진, 설정(BYOK) — 학습 규칙 조회·삭제, 자기소개서 라이브러리, 설정(제외 사이트) 완료
 - [ ] 입력란 수집 (content script) — 최상위 프레임 text·textarea·date·select·radio 그룹·단일 checkbox·checkbox 그룹·ARIA 콤보박스 + 섹션 텍스트(fieldset legend·직전 제목) 완료, iframe·기타 위젯 미구현
 - [x] 규칙/사전 기반 매핑 — autocomplete + 키워드 사전(basics 단일 값) + 섹션 문맥(학력·경력·자격증·어학·수상·활동·프로젝트·병역·희망 조건, 반복 블록 순서대로 인덱스) + enum 항목(동의어 사전) + boolean(checkbox)
-- [ ] 형식 변환 (`core/format`) — 생년월일·전화번호·반복 항목 연월·연월일(placeholder·maxLength·type=date 신호) 완료, 분리 입력(전화번호 3칸·연월일 칸) 완료, 입력 마스크 미구현
+- [x] 형식 변환 (`core/format`) — 생년월일·전화번호·반복 항목 연월·연월일(placeholder·maxLength·type=date 신호), 분리 입력(전화번호 3칸·연월일 칸), 입력 마스크(서식 허용·문자 단위 재입력)
 - [x] 텍스트 입력란 자동 입력 (네이티브 setter + input·change 이벤트, 실제 사이트 검증 전)
 - [ ] 드롭다운·날짜 선택기 범용 처리 — 기본 `<select>`·radio 그룹(동의어 사전 매칭)·단일 checkbox(boolean)·checkbox 그룹(다중 선택)·ARIA 콤보박스(선택 전용)·검색형 콤보박스(후보 확정) 완료, ARIA 미준수 커스텀 위젯·달력 팝업형 날짜 선택기 미구현
 - [x] 입력 결과 하이라이트, 되돌리기 (사이드 패널 '입력 항목 위치 보기', Shadow Root 테두리 박스)

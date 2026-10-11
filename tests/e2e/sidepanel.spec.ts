@@ -155,6 +155,12 @@ test('입력란 형식 신호에 따라 날짜·전화번호 변환 + 분리 입
   await expect(page.locator('#bd')).toHaveValue('15');
 });
 
+test('입력 마스크: 서식 변경 허용 + 키 입력 마스크는 문자 단위 입력', async ({ context, worker, extensionId }) => {
+  const { page } = await runFill(context, worker, extensionId, 'masks.html', '입력 완료 2개 · 입력 실패 0개 · 해당 없음 0개');
+  await expect(page.locator('#phone')).toHaveValue('010-1234-5678');
+  await expect(page.locator('#birth')).toHaveValue('1995.03.15');
+});
+
 test('섹션 문맥으로 학력·경력·자격증·어학·병역 항목 입력 + 날짜 변환 + select 선택', async ({ context, worker, extensionId }) => {
   const data: Resume = {
     ...resume,

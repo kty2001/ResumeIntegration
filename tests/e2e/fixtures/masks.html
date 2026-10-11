@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>입력 마스크 fixture</title>
+</head>
+<body>
+  <form onsubmit="return false">
+    <!-- 서식 마스크: 입력값을 하이픈 서식으로 바꿈 (숫자만 입력해도 010-1234-5678로 표시) -->
+    <p><label for="phone">휴대폰</label> <input id="phone" placeholder="'-' 없이 입력"></p>
+    <!-- 키 입력 마스크: InputEvent.data로 한 글자씩만 받아 서식 적용, 그 외 입력은 되돌림 -->
+    <p><label for="birth">생년월일</label> <input id="birth" placeholder="YYYY.MM.DD"></p>
+  </form>
+  <script>
+    const phone = document.getElementById('phone');
+    phone.addEventListener('input', () => {
+      const d = phone.value.replace(/\D/g, '').slice(0, 11);
+      phone.value = [d.slice(0, 3), d.slice(3, 7), d.slice(7)].filter(Boolean).join('-');
+    });
+
+    const birth = document.getElementById('birth');
+    let raw = '';
+    birth.addEventListener('input', (e) => {
+      if (e.inputType === 'insertText' && /^\d$/.test(e.data ?? '')) raw = (raw + e.data).slice(0, 8);
+      else if (e.inputType === 'deleteContentBackward') raw = birth.value === '' ? '' : raw.slice(0, -1);
+      birth.value = [raw.slice(0, 4), raw.slice(4, 6), raw.slice(6)].filter(Boolean).join('.');
+    });
+  </script>
+</body>
+</html>
