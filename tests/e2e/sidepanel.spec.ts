@@ -118,6 +118,24 @@ test('설정에서 제외한 사이트는 입력하지 않음', async ({ context
   await expect(page.locator('#nm')).toHaveValue('');
 });
 
+test('민감정보: 설정을 켰을 때만 입력', async ({ context, worker, extensionId }) => {
+  const data: Resume = {
+    ...resume,
+    preference: { veteran: { target: true, number: '12-345' }, disability: { target: false } },
+  };
+  const { page, popup } = await runFill(context, worker, extensionId, 'sensitive.html', '입력 완료 0개 · 입력 실패 0개 · 해당 없음 3개', data);
+  await expect(page.locator('#veteran')).not.toBeChecked();
+  await expect(page.locator('#vnum')).toHaveValue('');
+
+  await worker.evaluate(() => chrome.storage.local.set({ settings: { excludedSites: [], sensitiveAutofill: true } }));
+  await page.bringToFront();
+  await popup.getByRole('button', { name: '작성' }).click();
+  await expect(popup.getByText('입력 완료 3개 · 입력 실패 0개 · 해당 없음 0개')).toBeVisible();
+  await expect(page.locator('#veteran')).toBeChecked();
+  await expect(page.locator('#vnum')).toHaveValue('12-345');
+  await expect(page.locator('#disability')).not.toBeChecked();
+});
+
 test('사이드 패널 건너뛰기·다시 작성', async ({ context, worker, extensionId }) => {
   const { page } = await runFill(context, worker, extensionId);
   const panel = await context.newPage();

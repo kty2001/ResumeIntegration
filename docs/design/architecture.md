@@ -186,7 +186,7 @@ Popup '작성' 클릭 (activeTab 부여)
 | `local:coverLetters` | 자기소개서 문항-답변 라이브러리 | |
 | `local:learnedRules` | `LearnedRule[]` | 옵션 화면에서 조회·삭제 |
 | `local:llmCache` | `origin + fingerprint → schemaKey` | |
-| `local:settings` | 민감정보 입력 여부, BYOK 제공자, 제외 사이트 추가 목록 | 현재 `excludedSites`만 구현 |
+| `local:settings` | 민감정보 입력 여부, BYOK 제공자, 제외 사이트 추가 목록 | 현재 `excludedSites`·`sensitiveAutofill` 구현 |
 | IndexedDB `resume-files` | 첨부 파일 본문(Blob, 키 = 첨부 id) | 옵션·background 공용, 파일 입력란 입력 시 background가 base64로 filler에 전달 |
 | `local:llmKey` | BYOK API 키 | content script 접근 차단, 내보내기 제외 |
 | `session:fillState` | 진행 중 작업 상태 | service worker 재시작 대비 |

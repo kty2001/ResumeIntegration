@@ -1,5 +1,6 @@
 import {
   ACTIVITY_TYPE_LABELS,
+  DISABILITY_SEVERITY_LABELS,
   DISCHARGE_TYPE_LABELS,
   EDUCATION_LEVEL_LABELS,
   EMPLOYMENT_TYPE_LABELS,
@@ -95,6 +96,10 @@ export const ENUM_OPTIONS: Record<string, EnumOptions> = {
   'military.branch': {
     labels: MILITARY_BRANCH_LABELS,
     synonyms: { social_service: ['사회복무요원', '공익근무'] },
+  },
+  'preference.disability.severity': {
+    labels: DISABILITY_SEVERITY_LABELS,
+    synonyms: { severe: ['중증', '심한 장애'], mild: ['경증', '심하지 않은 장애'] },
   },
   'military.dischargeType': {
     labels: DISCHARGE_TYPE_LABELS,

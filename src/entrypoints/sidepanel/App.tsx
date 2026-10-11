@@ -1,11 +1,12 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { COVER_LETTER_KEY, countLength, detectLimit, recommendAnswers } from '@/core/coverLetter';
+import { isSensitiveKey } from '@/core/mapping/dictionary';
 import { isChoiceWidget, resolveValue } from '@/core/mapping/match';
 import { skipField } from '@/core/mapping/report';
 import type { CoverLetterEntry, Resume } from '@/core/schema/resume';
 import { LENGTH_UNIT_LABELS, schemaKeyLabel, schemaKeyOptions } from '@/core/schema/labels';
 import { describeStartFill, sendMessage, type ActionResponse, type FillReport, type ReportField } from '@/messaging/protocol';
-import { coverLettersItem, fillReportItem, resumeItem } from '@/storage/items';
+import { coverLettersItem, fillReportItem, resumeItem, settingsItem, type Settings } from '@/storage/items';
 
 // 화면 설계: docs/design/screens.md 3장 (현재: 입력 결과 목록·복사·직접 입력·선택지 직접 선택·이동·건너뛰기·다시 작성·되돌리기·위치 표시·자기소개서 추천)
 
@@ -136,18 +137,23 @@ export default function App() {
   const [highlightOn, setHighlightOn] = useState(false);
 
   const [coverLetters, setCoverLetters] = useState<CoverLetterEntry[]>([]);
+  const [sensitive, setSensitive] = useState(false);
 
   useEffect(() => {
     resumeItem.getValue().then(setResume);
     fillReportItem.getValue().then(setReport);
     coverLettersItem.getValue().then(setCoverLetters);
+    const onSettings = (s: Settings) => setSensitive(!!s.sensitiveAutofill);
+    settingsItem.getValue().then(onSettings);
     const unwatchResume = resumeItem.watch(setResume);
     const unwatchReport = fillReportItem.watch(setReport);
     const unwatchCoverLetters = coverLettersItem.watch(setCoverLetters);
+    const unwatchSettings = settingsItem.watch(onSettings);
     return () => {
       unwatchResume();
       unwatchReport();
       unwatchCoverLetters();
+      unwatchSettings();
     };
   }, []);
 
@@ -174,13 +180,15 @@ export default function App() {
   const filled = byStatus('filled');
   const failed = byStatus('failed');
   const unmatched = byStatus('unmatched');
-  const copyable = resume ? schemaKeyOptions(resume).filter(([key]) => valueOf(key)) : [];
+  // 선택·복사 대상 항목: 민감정보는 설정 '민감정보 자동 입력 사용'을 켰을 때만
+  const keyOptions = resume ? schemaKeyOptions(resume).filter(([key]) => sensitive || !isSensitiveKey(key)) : [];
+  const copyable = keyOptions.filter(([key]) => valueOf(key));
   // checkbox 입력란은 boolean 값이 있는 항목만 선택 (텍스트 값 항목은 입력 불가)
-  const checkable = resume ? schemaKeyOptions(resume).filter(([key]) => resolveValue(resume, key, { widget: 'checkbox' })) : [];
+  const checkable = resume ? keyOptions.filter(([key]) => resolveValue(resume, key, { widget: 'checkbox' })) : [];
   // 파일 입력란은 accept에 맞는 첨부 파일이 있는 구분만
   const fillOptions = (f: ReportField) => {
     if (f.hint.widget === 'checkbox') return checkable;
-    if (f.hint.widget === 'file') return resume ? schemaKeyOptions(resume).filter(([key]) => resolveValue(resume, key, f.hint)) : [];
+    if (f.hint.widget === 'file') return resume ? keyOptions.filter(([key]) => resolveValue(resume, key, f.hint)) : [];
     return copyable;
   };
   // 아직 입력하지 않은 서술형 입력란 중 비슷한 자기소개서 답변이 있는 것

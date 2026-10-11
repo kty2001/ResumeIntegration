@@ -341,6 +341,23 @@ export const SECTION_FIELD_RULES: FieldRule[] = [
   },
 ];
 
+// 민감정보(보훈·장애·취업보호·병역 면제 사유): 설정 '민감정보 자동 입력 사용'을 켰을 때만 검사 (섹션 무관, 일반 규칙보다 먼저)
+// checkbox 표시 규칙은 checkbox 입력란에만 적용 (일반 규칙과 같음)
+export const SENSITIVE_RULES: FieldRule[] = [
+  { schemaKey: 'preference.veteran.number', autocomplete: [], pattern: /보훈\s*번호|유공자\s*번호/ },
+  { schemaKey: 'preference.veteran.relation', autocomplete: [], pattern: /보훈\s*관계|유공자\s*(와의\s*)?관계/ },
+  { schemaKey: 'preference.disability.severity', autocomplete: [], pattern: /장애\s*(정도|등급|구분|유형)/ },
+  { schemaKey: 'military.exemptionReason', autocomplete: [], pattern: /면제\s*사유/ },
+  { schemaKey: 'preference.veteran.target', autocomplete: [], pattern: /보훈|국가\s*유공/, checkbox: true },
+  { schemaKey: 'preference.employmentProtection', autocomplete: [], pattern: /취업\s*보호/, checkbox: true },
+  { schemaKey: 'preference.disability.target', autocomplete: [], pattern: /장애/, checkbox: true },
+];
+
+/** 민감정보 키: 설정을 끄면 학습 규칙으로 매칭돼도 입력하지 않음 */
+export function isSensitiveKey(schemaKey: string): boolean {
+  return schemaKey.startsWith('preference.') || schemaKey === 'military.exemptionReason';
+}
+
 // 파일 입력란 전용 (섹션 판별 없이 이 규칙만 검사, 키는 core/attachments.ts attachmentKey)
 export const FILE_RULES: FieldRule[] = [
   { schemaKey: 'attachments.photo', autocomplete: [], pattern: /증명\s*사진|사진|photo|picture|profile\s*image/i },

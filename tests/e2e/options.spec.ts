@@ -121,6 +121,14 @@ test('설정: 자동 입력 제외 사이트 추가·중복·형식 오류·삭�
 
   await options.getByRole('row').filter({ hasText: 'example.com' }).getByRole('button', { name: '삭제' }).click();
   await expect.poll(sites).toEqual([]);
+
+  // 민감정보 자동 입력: 기본 꺼짐 → 켜기
+  const sensitive = options.getByLabel(/민감정보.*자동 입력 사용/);
+  await expect(sensitive).not.toBeChecked();
+  await sensitive.check();
+  await expect
+    .poll(() => worker.evaluate(async () => ((await chrome.storage.local.get('settings')).settings as { sensitiveAutofill?: boolean }).sensitiveAutofill))
+    .toBe(true);
 });
 
 test('첨부 파일: 구분 선택 후 추가·증명사진 연결·삭제', async ({ context, worker, extensionId }, testInfo) => {

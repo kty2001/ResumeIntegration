@@ -134,6 +134,23 @@ describe('matchField', () => {
     expect(keyOf({ label: '연봉', section: '경력사항' })).toBe('work.*.salary');
   });
 
+  it('민감정보 규칙은 sensitive일 때만, 끄면 학습 규칙도 무시', () => {
+    const sensitiveKey = (props: Partial<FieldDescriptor>, on: boolean) => matchField(field(props), undefined, on)?.schemaKey;
+    expect(sensitiveKey({ label: '보훈 대상', widget: 'checkbox' }, false)).toBeUndefined();
+    expect(sensitiveKey({ label: '보훈 대상', widget: 'checkbox' }, true)).toBe('preference.veteran.target');
+    expect(sensitiveKey({ label: '장애인 여부', widget: 'checkbox' }, true)).toBe('preference.disability.target');
+    expect(sensitiveKey({ label: '취업보호대상자', widget: 'checkbox' }, true)).toBe('preference.employmentProtection');
+    expect(sensitiveKey({ label: '보훈 번호' }, true)).toBe('preference.veteran.number');
+    expect(sensitiveKey({ label: '장애 정도', widget: 'select' }, true)).toBe('preference.disability.severity');
+    expect(sensitiveKey({ label: '면제 사유', section: '병역사항' }, true)).toBe('military.exemptionReason');
+    expect(sensitiveKey({ label: '면제 사유', section: '병역사항' }, false)).toBeUndefined();
+
+    const veteran = field({ label: '국가유공자', widget: 'checkbox' });
+    const learned = new Map([[fieldFingerprint(veteran)!, { schemaKey: 'preference.veteran.target' }]]);
+    expect(matchField(veteran, learned, false)).toBeNull();
+    expect(matchField(veteran, learned, true)?.source).toBe('learned');
+  });
+
   it('파일 입력란은 섹션과 무관하게 첨부 파일 규칙만', () => {
     expect(keyOf({ label: '증명사진', widget: 'file' })).toBe('attachments.photo');
     expect(keyOf({ label: '이력서 첨부', widget: 'file' })).toBe('attachments.resume');

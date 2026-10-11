@@ -46,7 +46,7 @@ export function MilitarySection({ resume, update }: SectionProps) {
         <div className="card-head"><b>취업우대</b></div>
         <div className="msg warn">
           <b>민감정보</b> · 보훈·장애 정보는 법상 민감정보입니다. 입력은 선택이며, 이 브라우저에만 저장되고 LLM으로
-          전송되지 않습니다. 자동 입력은 기본적으로 사용하지 않습니다.
+          전송되지 않습니다. 자동 입력은 기본적으로 사용하지 않으며, '설정'에서 켤 수 있습니다.
         </div>
         <div className="grid">
           <CheckField

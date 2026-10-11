@@ -19,6 +19,7 @@ export const coverLettersItem = storage.defineItem<CoverLetterEntry[]>('local:co
 /** 사용자 설정 (옵션 '설정'). 항목 추가 시 fallback에 기본값 추가 */
 export interface Settings {
   excludedSites: string[];  // 기본 제외 목록(site-policy) 외 사용자 추가 제외 도메인
+  sensitiveAutofill?: boolean; // 민감정보(보훈·장애·취업보호·병역 면제 사유) 자동 입력 사용, 기본 꺼짐
 }
 
 export const settingsItem = storage.defineItem<Settings>('local:settings', {

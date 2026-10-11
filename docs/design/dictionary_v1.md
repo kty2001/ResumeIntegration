@@ -35,7 +35,9 @@
 | `exclude` | 제외 키워드 (예: 날짜·명칭 규칙의 `구분·상태·유형` 등 enum 성격 라벨) |
 | `section` | 지정 시 해당 섹션 문맥에서만 검사 |
 | `autocomplete` | basics 규칙만 사용 |
-| `checkbox` | boolean 키 규칙 표시: checkbox 입력란에만 적용, checkbox는 이 규칙만 검사(autocomplete 단계 생략). 현재 `work.*.current`(재직 중)·`education.*.transfer`(편입). 민감정보(`preference.*`)는 제외 |
+| `checkbox` | boolean 키 규칙 표시: checkbox 입력란에만 적용, checkbox는 이 규칙만 검사(autocomplete 단계 생략). 현재 `work.*.current`(재직 중)·`education.*.transfer`(편입)·`desired.salary.companyPolicy` |
+
+- 별도 규칙 목록: `SENSITIVE_RULES`(민감정보, 설정 '민감정보 자동 입력 사용'을 켰을 때만 섹션 무관·먼저 검사), `FILE_RULES`(파일 입력란 전용, 섹션 무관)
 
 - **배열 순서 = 우선순위**: 다른 항목 키워드를 포함하는 구체적 항목을 앞에 둠
   - 예: '영문 학교명' → 학교명, '졸업 구분'(enum) → '졸업'(날짜), '퇴사 사유' → '퇴사'(날짜), '담당 업무' → '직무', 자격증 '번호'·'기관'·'취득일' → '자격증명'

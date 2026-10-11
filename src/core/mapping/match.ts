@@ -4,7 +4,15 @@ import { schemaKeyOptions } from '@/core/schema/labels';
 import { isSplitPart, partValue, splitValue } from '@/core/format/split';
 import type { FieldDescriptor, FillPlan, FormatHint, MatchSource, WidgetKind } from '@/messaging/protocol';
 import { attachmentFor } from '@/core/attachments';
-import { FIELD_RULES, FILE_RULES, SECTION_FIELD_RULES, SECTION_RULES, type RuleSection } from './dictionary';
+import {
+  FIELD_RULES,
+  FILE_RULES,
+  isSensitiveKey,
+  SECTION_FIELD_RULES,
+  SECTION_RULES,
+  SENSITIVE_RULES,
+  type RuleSection,
+} from './dictionary';
 import { fieldFingerprint, type LearnedMatch } from './learned';
 import { enumLabel, matchOption, normalizeOption } from './options';
 
@@ -18,14 +26,19 @@ function normalizeAutocomplete(value: string): string {
     .join(' ');
 }
 
-/** learned: 해당 origin의 fingerprint → 학습 정보 (learned.ts rulesForOrigin) */
+/**
+ * learned: 해당 origin의 fingerprint → 학습 정보 (learned.ts rulesForOrigin)
+ * sensitive: 설정 '민감정보 자동 입력 사용' — 끄면 민감정보 키는 학습 규칙으로도 매칭하지 않음
+ */
 export function matchField(
   field: FieldDescriptor,
   learned?: Map<string, LearnedMatch>,
+  sensitive = false,
 ): { schemaKey: string; source: MatchSource; option?: LearnedMatch['option'] } | null {
   const fingerprint = learned && fieldFingerprint(field);
   const rule = fingerprint && learned.get(fingerprint);
-  if (rule) return { schemaKey: rule.schemaKey, source: 'learned', option: rule.option };
+  if (rule && (sensitive || !isSensitiveKey(rule.schemaKey)))
+    return { schemaKey: rule.schemaKey, source: 'learned', option: rule.option };
   const checkbox = field.widget === 'checkbox';
   const file = field.widget === 'file';
   if (field.autocomplete && !checkbox && !file) {
@@ -36,12 +49,14 @@ export function matchField(
   // 섹션이 판별되면 해당 섹션 규칙만, 아니면 basics 규칙만 검사 (섹션 안 '주소' 등의 basics 오입력 방지)
   // checkbox는 boolean 규칙만, 그 외는 boolean 규칙 제외 ('이메일 수신 동의' 오매칭·반복 인덱스 밀림 방지)
   // 파일 입력란은 섹션과 무관하게 첨부 파일 규칙만 ('자격증 사본'이 자격증 섹션으로 판별되는 문제 방지)
+  // 민감정보 규칙은 설정을 켰을 때만, 섹션과 무관하게 먼저
   const section = file ? undefined : detectSection(field);
   const rules = file
     ? FILE_RULES
-    : (section ? SECTION_FIELD_RULES.filter((r) => r.section === section) : FIELD_RULES).filter(
-        (r) => !!r.checkbox === checkbox,
-      );
+    : [
+        ...(sensitive ? SENSITIVE_RULES : []),
+        ...(section ? SECTION_FIELD_RULES.filter((r) => r.section === section) : FIELD_RULES),
+      ].filter((r) => !!r.checkbox === checkbox);
   // 신뢰도 높은 텍스트부터 검사
   const texts = [field.label, field.ariaLabel, field.placeholder, field.name, field.id];
   for (const text of texts) {
@@ -134,13 +149,13 @@ export function resolveValue(
   return values.map((value) => enumLabel(schemaKey, value) ?? formatValue(schemaKey, value, hint)).join(', ');
 }
 
-/** 입력란 값과 같은 값으로 변환되는 이력서 항목 (정확히 하나일 때만, 사용자 직접 수정 학습용) */
-export function keyForValue(resume: Resume, value: string, hint: FormatHint): string | undefined {
+/** 입력란 값과 같은 값으로 변환되는 이력서 항목 (정확히 하나일 때만, 사용자 직접 수정 학습용. 민감정보는 sensitive일 때만) */
+export function keyForValue(resume: Resume, value: string, hint: FormatHint, sensitive = false): string | undefined {
   const target = value.trim();
   if (!target) return undefined;
   const keys = schemaKeyOptions(resume)
     .map(([key]) => key)
-    .filter((key) => resolveValue(resume, key, hint)?.trim() === target);
+    .filter((key) => (sensitive || !isSensitiveKey(key)) && resolveValue(resume, key, hint)?.trim() === target);
   return keys.length === 1 ? keys[0] : undefined;
 }
 
@@ -171,10 +186,16 @@ function splitRuns(fields: FieldDescriptor[], matches: FieldMatch[]): Map<number
   return runOf;
 }
 
-export function mapFields(fields: FieldDescriptor[], resume: Resume, learned?: Map<string, LearnedMatch>): FillPlan {
+/** sensitive: 설정 '민감정보 자동 입력 사용' (matchField 참고) */
+export function mapFields(
+  fields: FieldDescriptor[],
+  resume: Resume,
+  learned?: Map<string, LearnedMatch>,
+  sensitive = false,
+): FillPlan {
   const skipped: NonNullable<FillPlan['skipped']> = [];
   const plan: FillPlan = { items: [], unmatched: [], skipped };
-  const matches = fields.map((field) => matchField(field, learned));
+  const matches = fields.map((field) => matchField(field, learned, sensitive));
   const runOf = splitRuns(fields, matches);
   // 반복 항목 키('education.*.school.ko')는 페이지 등장 순서대로 인덱스 부여 (분리 입력 묶음은 하나로)
   const counts = new Map<string, number>();

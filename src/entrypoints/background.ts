@@ -64,7 +64,8 @@ async function startFill(tabId: number): Promise<StartFillResponse> {
     await fillReportItem.setValue(null);
     return { status: 'excluded' };
   }
-  if (tab.url && isExcluded(tab.url, (await settingsItem.getValue()).excludedSites)) {
+  const settings = await settingsItem.getValue();
+  if (tab.url && isExcluded(tab.url, settings.excludedSites)) {
     await fillReportItem.setValue(null);
     return { status: 'user-excluded' };
   }
@@ -84,7 +85,8 @@ async function startFill(tabId: number): Promise<StartFillResponse> {
   const target = { tabId, frameId: 0 };
   const details = await sendMessage('collect', undefined, target);
   const learned = rulesForOrigin(await learnedRulesItem.getValue(), new URL(details.url).origin);
-  const plan = await withFilePayloads(mapFields(details.fields, resume, learned), details.fields, resume);
+  const mapped = mapFields(details.fields, resume, learned, settings.sensitiveAutofill ?? false);
+  const plan = await withFilePayloads(mapped, details.fields, resume);
   const result = await sendMessage('fill', plan, target);
   const report = buildFillReport(details, plan, result, tabId);
   await fillReportItem.setValue(report);
@@ -166,7 +168,7 @@ async function userEdit(tabId: number | undefined, fieldId: string, value: strin
   const field = report.fields.find((f) => f.fieldId === fieldId);
   const resume = await resumeItem.getValue();
   if (!field || !resume || field.hint.widget === 'checkbox' || field.hint.widget === 'checkboxes') return;
-  const schemaKey = keyForValue(resume, value, field.hint);
+  const schemaKey = keyForValue(resume, value, field.hint, (await settingsItem.getValue()).sensitiveAutofill ?? false);
   if (!schemaKey || (field.status === 'filled' && field.schemaKey === schemaKey)) return;
 
   const result = { filled: [{ fieldId, strategy: 'user' }], failed: [] };
