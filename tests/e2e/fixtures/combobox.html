@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>ARIA 콤보박스 fixture</title>
+  <style>
+    [role=listbox] { list-style: none; margin: 0; padding: 4px; border: 1px solid #999; background: #fff; }
+    [role=option] { padding: 2px 6px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <!-- 선택지는 열 때만 렌더링 (aria-controls 대상이 열기 전에는 없음) -->
+  <form onsubmit="return false">
+    <p><label for="nm">이름</label> <input id="nm" name="nm"></p>
+
+    <!-- mousedown으로 열림 + 목록을 body 끝에 렌더링(portal), 이름에 자기 id(선택값) 포함 -->
+    <p>
+      <span id="g-label">성별</span>
+      <span id="gender" role="combobox" tabindex="0" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="g-label gender">선택</span>
+    </p>
+
+    <h2>학력사항</h2>
+    <!-- click으로 열림 + aria-controls -->
+    <p>
+      <span id="grad-label">졸업 상태</span>
+      <button type="button" id="grad" aria-haspopup="listbox" aria-expanded="false" aria-controls="grad-list" aria-labelledby="grad-label">선택</button>
+    </p>
+    <!-- 선택지 불일치: 이력서 값(대학교(4년))에 해당하는 선택지가 동의어 사전에 없음 -->
+    <p>
+      <span id="level-label">학력 구분</span>
+      <button type="button" id="level" aria-haspopup="listbox" aria-expanded="false" aria-controls="level-list" aria-labelledby="level-label">선택</button>
+    </p>
+  </form>
+  <script>
+    function combobox(el, options, { openOn, portal }) {
+      let list = null;
+      const close = () => {
+        list?.remove();
+        list = null;
+        el.setAttribute('aria-expanded', 'false');
+      };
+      const open = () => {
+        list = document.createElement('ul');
+        list.setAttribute('role', 'listbox');
+        list.id = `${el.id}-list`;
+        for (const text of options) {
+          const li = document.createElement('li');
+          li.setAttribute('role', 'option');
+          li.textContent = text;
+          li.addEventListener('click', () => {
+            el.textContent = text;
+            close();
+          });
+          list.append(li);
+        }
+        (portal ? document.body : el.parentElement).append(list);
+        el.setAttribute('aria-expanded', 'true');
+      };
+      el.addEventListener(openOn, () => (list ? close() : open()));
+      document.addEventListener('keydown', (e) => e.key === 'Escape' && list && close());
+    }
+    combobox(document.getElementById('gender'), ['남성', '여성'], { openOn: 'mousedown', portal: true });
+    combobox(document.getElementById('grad'), ['졸업', '졸업예정', '재학'], { openOn: 'click', portal: false });
+    combobox(document.getElementById('level'), ['고등학교', '전문대학', '일반대학', '대학원'], { openOn: 'click', portal: false });
+  </script>
+</body>
+</html>

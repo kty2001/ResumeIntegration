@@ -87,7 +87,7 @@ export function getValueByKey(resume: Resume, schemaKey: string): string | undef
 
 /** 선택지를 고르는 입력란 (값 = 선택지 value, checkbox 그룹은 value JSON 배열) */
 export function isChoiceWidget(widget: WidgetKind): boolean {
-  return widget === 'select' || widget === 'radio' || widget === 'checkboxes';
+  return widget === 'select' || widget === 'radio' || widget === 'checkboxes' || widget === 'combobox';
 }
 
 /** 학습한 선택지: 이력서 값이 학습 당시와 같을 때만, 같은 텍스트의 선택지가 있으면 그 value */

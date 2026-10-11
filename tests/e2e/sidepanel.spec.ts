@@ -342,6 +342,32 @@ test('radio 그룹 자동 선택 + 선택지 불일치 직접 선택·학습 + �
   await expect(page.locator('input[name=level]:checked')).toHaveCount(0);
 });
 
+test('ARIA 콤보박스: 열어서 선택지 수집·선택 + 선택지 불일치 직접 선택·학습', async ({ context, worker, extensionId }) => {
+  const data: Resume = {
+    ...resume,
+    basics: { ...resume.basics, gender: 'male' },
+    education: [{ id: 'e1', level: 'university', school: { ko: '한국대학교' }, status: 'graduated' }],
+  };
+  const { page } = await runFill(context, worker, extensionId, 'combobox.html', '입력 완료 3개 · 입력 실패 1개 · 해당 없음 0개', data);
+
+  // portal·mousedown형, aria-controls·click형 모두 선택, 수집·입력 후 목록은 닫힘
+  await expect(page.locator('#gender')).toHaveText('남성');
+  await expect(page.locator('#grad')).toHaveText('졸업');
+  await expect(page.locator('#level')).toHaveText('선택');
+  await expect(page.locator('[role=listbox]')).toHaveCount(0);
+
+  const panel = await context.newPage();
+  await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+  const row = panel.getByRole('listitem').filter({ hasText: '맞는 선택지 없음' });
+  await expect(row).toContainText('학력 구분 → 학력 1 학력 구분');
+  await panel.getByLabel('학력 구분 선택지').selectOption({ label: '일반대학' });
+  await row.getByRole('button', { name: '선택' }).click();
+  await expect(panel.getByText('입력 완료 4 · 확인 필요 0 · 해당 없음 0')).toBeVisible();
+  await expect(page.locator('#level')).toHaveText('일반대학');
+  const rules = await worker.evaluate(async () => (await chrome.storage.local.get('learnedRules')).learnedRules);
+  expect(rules).toMatchObject([{ schemaKey: 'education.0.level', option: { value: 'university', text: '일반대학' } }]);
+});
+
 test('희망 조건: 연봉·내규 checkbox·근무지·직무(배열 결합)·고용 형태 select·입사 가능일', async ({ context, worker, extensionId }) => {
   const data: Resume = {
     ...resume,

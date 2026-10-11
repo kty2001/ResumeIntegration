@@ -1,12 +1,19 @@
 import type { FieldDescriptor, PageDetails } from '@/messaging/protocol';
+import { comboboxOptions } from './widgets/combobox';
 
 // 필드 수집 (Page Details): docs/design/architecture.md 5장
 // 현재 범위: 최상위 문서의 text·textarea·date 입력란, 기본 select, radio 그룹(같은 form·name → 입력란 1개),
-// 단일 checkbox(값 'true'/'false'), 다중 선택 checkbox 그룹(같은 form·name 2개 이상, 값 = 체크된 value JSON 배열)
+// 단일 checkbox(값 'true'/'false'), 다중 선택 checkbox 그룹(같은 form·name 2개 이상, 값 = 체크된 value JSON 배열),
+// ARIA 콤보박스(선택 전용 커스텀 드롭다운, 선택지는 열어서 읽음)
 
 export type TextElement = HTMLInputElement | HTMLTextAreaElement;
-/** radio·checkbox 그룹은 그룹의 첫 입력란으로 보관 */
-export type FillElement = TextElement | HTMLSelectElement;
+/** 폼 입력 요소. radio·checkbox 그룹은 그룹의 첫 입력란으로 보관 */
+export type FormControl = TextElement | HTMLSelectElement;
+/** ARIA 콤보박스는 div·button 등 일반 요소 */
+export type FillElement = FormControl | HTMLElement;
+
+// 입력형 콤보박스(input[role=combobox], 검색·자동완성)는 텍스트 입력란으로 처리
+const COMBOBOX = '[role=combobox]:not(input), button[aria-haspopup=listbox]';
 
 const TEXT_INPUT_TYPES = new Set(['text', 'email', 'tel', 'url', 'search', 'date']);
 
@@ -34,6 +41,10 @@ export function isCheckboxGroup(el: Element): el is HTMLInputElement & { type: '
   return checkboxGroups.has(el);
 }
 
+export function isFormControl(el: Element): el is FormControl {
+  return el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement;
+}
+
 // false 분기에서 HTMLInputElement 전체가 제외되지 않도록 type까지 좁힘
 export function isRadio(el: Element): el is HTMLInputElement & { type: 'radio' } {
   return el instanceof HTMLInputElement && el.type === 'radio';
@@ -54,13 +65,21 @@ function isVisible(el: Element): boolean {
   return el.getClientRects().length > 0 && getComputedStyle(el).visibility !== 'hidden';
 }
 
-function isFillable(el: FillElement): boolean {
+function isFillable(el: FormControl): boolean {
   if (el.disabled) return false;
   // 커스텀 디자인은 radio·checkbox를 숨기고 label만 표시 → label이 보여도 입력 가능
   if (isRadio(el) || isCheckbox(el)) return isVisible(el) || [...(el.labels ?? [])].some(isVisible);
   if (el instanceof HTMLInputElement && !TEXT_INPUT_TYPES.has(el.type)) return false;
   if (!(el instanceof HTMLSelectElement) && el.readOnly) return false;
+  // 커스텀 위젯 내부의 보조 입력란(aria-hidden)은 제외
+  if (el.getAttribute('aria-hidden') === 'true') return false;
   return isVisible(el);
+}
+
+function isComboboxFillable(el: HTMLElement): boolean {
+  if (el.getAttribute('aria-disabled') === 'true' || (el instanceof HTMLButtonElement && el.disabled)) return false;
+  // 다른 콤보박스 안의 버튼 등 중첩 요소는 바깥 콤보박스만 수집
+  return !el.parentElement?.closest(COMBOBOX) && isVisible(el);
 }
 
 function cleanText(text: string | null | undefined): string | undefined {
@@ -68,19 +87,21 @@ function cleanText(text: string | null | undefined): string | undefined {
   return t || undefined;
 }
 
+/** aria-labelledby 텍스트 (자기 자신 id는 제외 — 콤보박스가 선택값을 이름에 포함하는 경우) */
 function labelledByText(el: Element): string | undefined {
   const ids = el.getAttribute('aria-labelledby');
   if (!ids) return undefined;
   const text = ids
     .split(/\s+/)
+    .filter((id) => id !== el.id)
     .map((id) => document.getElementById(id)?.textContent ?? '')
     .join(' ');
   return cleanText(text);
 }
 
 function resolveLabel(el: FillElement): string | undefined {
-  // label[for] 또는 감싸는 label (감싼 경우 입력란 자체 텍스트 제외)
-  const label = el.labels?.[0];
+  // label[for] 또는 감싸는 label (감싼 경우 입력란 자체 텍스트 제외). div 콤보박스는 labels 없음
+  const label = (el as Partial<HTMLInputElement>).labels?.[0];
   if (label) {
     const copy = label.cloneNode(true) as HTMLElement;
     copy.querySelectorAll('input, textarea, select').forEach((c) => c.remove());
@@ -97,7 +118,7 @@ function resolveSection(el: Element | null, heading: string | undefined): string
 
 const HEADING = /^H[1-6]$/;
 
-function widgetOf(el: FillElement): FieldDescriptor['widget'] {
+function widgetOf(el: FormControl): FieldDescriptor['widget'] {
   if (el instanceof HTMLSelectElement) return 'select';
   if (el instanceof HTMLTextAreaElement) return 'textarea';
   if (isCheckbox(el)) return 'checkbox';
@@ -111,7 +132,19 @@ function selectOptions(el: HTMLSelectElement): FieldDescriptor['options'] {
     .map((o) => ({ value: o.value, text: cleanText(o.text) ?? '' }));
 }
 
-function describe(el: FillElement, heading: string | undefined): Omit<FieldDescriptor, 'fieldId'> {
+/** 콤보박스: 선택지는 수집 마지막에 열어서 채움 (collectPageDetails) */
+function describeCombobox(el: HTMLElement, heading: string | undefined): Omit<FieldDescriptor, 'fieldId'> {
+  return {
+    widget: 'combobox',
+    label: resolveLabel(el),
+    name: el.getAttribute('name') || undefined,
+    id: el.id || undefined,
+    ariaLabel: cleanText(el.getAttribute('aria-label')),
+    section: resolveSection(el, heading),
+  };
+}
+
+function describe(el: FormControl, heading: string | undefined): Omit<FieldDescriptor, 'fieldId'> {
   const select = el instanceof HTMLSelectElement;
   return {
     widget: widgetOf(el),
@@ -157,18 +190,27 @@ function describeGroup(
   };
 }
 
-export function collectPageDetails(): PageDetails {
+export async function collectPageDetails(): Promise<PageDetails> {
   elements.clear();
   const fields: FieldDescriptor[] = [];
+  const comboboxes: [FieldDescriptor, HTMLElement][] = [];
   let heading: string | undefined;
   // 제목과 입력란을 문서 순서로 함께 순회해 직전 제목 추적
-  const nodes = document.querySelectorAll<HTMLElement>('h1, h2, h3, h4, h5, h6, input, textarea, select');
+  const nodes = document.querySelectorAll<HTMLElement>(`h1, h2, h3, h4, h5, h6, input, textarea, select, ${COMBOBOX}`);
   nodes.forEach((node) => {
     if (HEADING.test(node.tagName)) {
       heading = cleanText(node.textContent);
       return;
     }
-    const el = node as FillElement;
+    if (!isFormControl(node)) {
+      if (!isComboboxFillable(node)) return;
+      const field = { fieldId: String(elements.size), ...describeCombobox(node, heading) };
+      elements.set(field.fieldId, node);
+      fields.push(field);
+      comboboxes.push([field, node]);
+      return;
+    }
+    const el = node;
     if (!isFillable(el)) return;
     let descriptor: Omit<FieldDescriptor, 'fieldId'>;
     // 그룹은 첫 입력란에서만 입력란 1개로 수집
@@ -188,6 +230,8 @@ export function collectPageDetails(): PageDetails {
     elements.set(fieldId, el);
     fields.push({ fieldId, ...descriptor });
   });
+  // 콤보박스 선택지: 하나씩 열고 닫으며 읽기 (동시에 열면 서로 닫힘)
+  for (const [field, el] of comboboxes) field.options = await comboboxOptions(el);
   assignClusters(fields);
   return { url: location.origin + location.pathname, fields };
 }
