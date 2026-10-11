@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>교차 출처 iframe fixture</title>
+</head>
+<body>
+  <!-- 같은 출처 iframe + 권한 없는 교차 출처 iframe(http://127.0.0.1, 테스트에서 응답) -->
+  <form onsubmit="return false">
+    <p><label for="nm">이름</label> <input id="nm" name="nm"></p>
+  </form>
+  <iframe src="iframe-child.html" title="같은 출처" width="600" height="300"></iframe>
+  <iframe src="http://127.0.0.1/apply.html" title="교차 출처" width="600" height="200"></iframe>
+</body>
+</html>

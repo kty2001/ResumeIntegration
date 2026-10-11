@@ -146,6 +146,23 @@ test('같은 출처 iframe: 수집·입력, 사이드 패널 직접 입력·위�
   await expect(frame.locator('#company')).toHaveValue('');
 });
 
+test('교차 출처 iframe: 권한 필요 안내 → 이 페이지 부분만 입력', async ({ context, worker, extensionId }) => {
+  await context.route('http://127.0.0.1/**', (route) =>
+    route.fulfill({ contentType: 'text/html', body: '<meta charset="utf-8"><label for="x">이메일</label><input id="x">' }),
+  );
+  const { page, popup } = await runFill(context, worker, extensionId, 'crossorigin.html', '다른 사이트(http://127.0.0.1)에 있습니다');
+  // 허용 여부를 고르기 전에는 입력하지 않음
+  await expect(page.locator('#nm')).toHaveValue('');
+  await expect(popup.getByRole('button', { name: '접근 허용' })).toBeVisible();
+
+  await page.bringToFront();
+  await popup.getByRole('button', { name: '이 페이지 부분만 입력' }).click();
+  await expect(popup.getByText('입력 완료 3개 · 입력 실패 0개 · 해당 없음 1개')).toBeVisible();
+  await expect(page.locator('#nm')).toHaveValue('홍길동');
+  await expect(page.frameLocator('iframe[title="같은 출처"]').locator('#email')).toHaveValue('gildong@example.com');
+  await expect(page.frameLocator('iframe[title="교차 출처"]').locator('#x')).toHaveValue('');
+});
+
 test('민감정보: 설정을 켰을 때만 입력', async ({ context, worker, extensionId }) => {
   const data: Resume = {
     ...resume,

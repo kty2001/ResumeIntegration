@@ -67,6 +67,7 @@ export interface FillReport {
 export type StartFillResponse =
   | { status: 'ok'; filled: number; failed: number; unmatched: number }
   | { status: 'excluded' | 'user-excluded' | 'no-resume' }
+  | { status: 'needs-permission'; origins: string[] } // 권한 없는 교차 출처 iframe (팝업에서 허용 또는 부분 입력)
   | { status: 'error'; message: string };
 
 /** '작성' 결과 문구 (팝업·사이드 패널 공용) */
@@ -78,6 +79,8 @@ export function describeStartFill(res: StartFillResponse): string {
       return '이용약관상 자동 입력을 지원하지 않는 사이트입니다.';
     case 'user-excluded':
       return '설정에서 자동 입력을 제외한 사이트입니다.';
+    case 'needs-permission':
+      return `다른 사이트(${res.origins.join(', ')})의 입력 영역에 접근하려면 툴바 아이콘의 '작성'에서 허용이 필요합니다.`;
     case 'no-resume':
       return '저장된 이력서가 없습니다.';
     case 'error':
@@ -91,7 +94,8 @@ export type UndoResponse = { status: 'ok'; restored: number } | ErrorResponse;
 
 // focusField·highlight·undo: sidepanel → background(runtime 메시지)와 background → filler(tabs 메시지)에 같은 이름 사용
 interface ProtocolMap {
-  startFill(data: { tabId: number }): StartFillResponse;
+  /** partial: 권한 없는 교차 출처 iframe은 건너뛰고 입력 ('이 페이지 부분만 입력') */
+  startFill(data: { tabId: number; partial?: boolean }): StartFillResponse;
   collect(): PageDetails;
   fill(plan: FillPlan): FillResult;
   /** optionValue: select 선택지 직접 선택 (이력서 값 대신 해당 선택지 입력 + 학습) */

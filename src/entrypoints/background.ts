@@ -4,7 +4,7 @@ import { globalFieldId, mergeFrames, mergeResults, planByFrame, splitFieldId } f
 import { rulesForOrigin, upsertRule, type LearnedRule } from '@/core/mapping/learned';
 import { getValueByKey, keyForValue, mapFields, resolveValue } from '@/core/mapping/match';
 import { applyFillOne, buildFillReport } from '@/core/mapping/report';
-import { isExcluded } from '@/core/site-policy';
+import { isExcluded, matchesHostPattern } from '@/core/site-policy';
 import {
   onMessage,
   sendMessage,
@@ -81,6 +81,32 @@ async function injectFiller(tabId: number): Promise<number[]> {
   }
 }
 
+/** 페이지에서 실행: 보이는 크기의 교차 출처 iframe 출처 (작은·숨은 광고·추적 프레임 제외) */
+function visibleFrameOrigins(): string[] {
+  return [...document.querySelectorAll('iframe')].flatMap((frame) => {
+    const rect = frame.getBoundingClientRect();
+    if (rect.width < 100 || rect.height < 50 || getComputedStyle(frame).visibility === 'hidden') return [];
+    try {
+      const origin = new URL(frame.src, location.href).origin;
+      return origin !== location.origin && origin !== 'null' ? [origin] : [];
+    } catch {
+      return [];
+    }
+  });
+}
+
+/** 권한이 없어 filler를 주입할 수 없는 교차 출처 iframe 출처 (선택 권한으로 요청 가능한 출처만) */
+async function blockedFrameOrigins(tabId: number): Promise<string[]> {
+  const [res] = await browser.scripting.executeScript({ target: { tabId }, func: visibleFrameOrigins });
+  const patterns: string[] = browser.runtime.getManifest().optional_host_permissions ?? [];
+  const blocked: string[] = [];
+  for (const origin of new Set(res?.result ?? [])) {
+    if (!patterns.some((p) => matchesHostPattern(origin, p))) continue;
+    if (!(await browser.permissions.contains({ origins: [`${origin}/*`] }))) blocked.push(origin);
+  }
+  return blocked;
+}
+
 /** 프레임별로 나눠 입력 후 결과 합침 (전체 fieldId 기준) */
 async function sendFill(tabId: number, plan: FillPlan): Promise<FillResult> {
   const results: { frameId: number; result: FillResult }[] = [];
@@ -90,7 +116,8 @@ async function sendFill(tabId: number, plan: FillPlan): Promise<FillResult> {
   return mergeResults(results);
 }
 
-async function startFill(tabId: number): Promise<StartFillResponse> {
+/** partial: 권한 없는 교차 출처 iframe을 건너뛰고 입력 (아니면 needs-permission 반환, 기존 결과 유지) */
+async function startFill(tabId: number, partial = false): Promise<StartFillResponse> {
   const tab = await browser.tabs.get(tabId);
   if (tab.url && isExcluded(tab.url)) {
     await fillReportItem.setValue(null);
@@ -108,6 +135,10 @@ async function startFill(tabId: number): Promise<StartFillResponse> {
   }
 
   const frameIds = await injectFiller(tabId);
+  if (!partial) {
+    const origins = await blockedFrameOrigins(tabId);
+    if (origins.length) return { status: 'needs-permission', origins };
+  }
   await fillReportItem.setValue(null);
   const frames: { frameId: number; details: PageDetails }[] = [];
   for (const frameId of frameIds) {
@@ -255,7 +286,7 @@ export default defineBackground(() => {
     console.log('[resume-integration] installed:', reason);
   });
 
-  onMessage('startFill', ({ data }) => withErrors(() => startFill(data.tabId)));
+  onMessage('startFill', ({ data }) => withErrors(() => startFill(data.tabId, data.partial)));
   onMessage('fillOne', ({ data }) => withErrors(() => fillOne(data.fieldId, data.schemaKey, data.optionValue)));
   onMessage('fillAnswer', ({ data }) => withErrors(() => fillAnswer(data.fieldId, data.coverLetterId)));
   onMessage('focusField', ({ data }) =>

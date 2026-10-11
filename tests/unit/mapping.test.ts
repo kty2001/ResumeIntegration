@@ -4,7 +4,7 @@ import { fieldFingerprint } from '@/core/mapping/learned';
 import { detectSection, getValueByKey, keyForValue, mapFields, matchField } from '@/core/mapping/match';
 import { createEmptyResume } from '@/core/schema/empty';
 import { schemaKeyLabel, schemaKeyOptions } from '@/core/schema/labels';
-import { isExcluded, normalizeDomain } from '@/core/site-policy';
+import { isExcluded, matchesHostPattern, normalizeDomain } from '@/core/site-policy';
 import type { FieldDescriptor } from '@/messaging/protocol';
 
 const field = (props: Partial<FieldDescriptor>): FieldDescriptor => ({ fieldId: '0', widget: 'text', ...props });
@@ -514,6 +514,14 @@ describe('isExcluded', () => {
     expect(isExcluded('https://notlinkedin.com/')).toBe(false);
     expect(isExcluded('https://www.saramin.co.kr/')).toBe(false);
     expect(isExcluded('https://recruit.example.com/apply', ['example.com'])).toBe(true);
+  });
+
+  it('matchesHostPattern: 스킴·와일드카드 호스트·서브도메인 패턴', () => {
+    expect(matchesHostPattern('https://apply.example.com', 'https://*/*')).toBe(true);
+    expect(matchesHostPattern('http://apply.example.com', 'https://*/*')).toBe(false);
+    expect(matchesHostPattern('http://127.0.0.1', 'http://127.0.0.1/*')).toBe(true);
+    expect(matchesHostPattern('https://a.example.com', 'https://*.example.com/*')).toBe(true);
+    expect(matchesHostPattern('https://example.org', 'https://*.example.com/*')).toBe(false);
   });
 
   it('normalizeDomain: 주소·www·대소문자 정리, 형식 아니면 undefined', () => {

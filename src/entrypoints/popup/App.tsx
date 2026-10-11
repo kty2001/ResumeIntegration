@@ -3,13 +3,14 @@ import type { Resume } from '@/core/schema/resume';
 import { describeStartFill as describe, sendMessage } from '@/messaging/protocol';
 import { resumeItem } from '@/storage/items';
 
-// 화면 설계: docs/design/screens.md 2장 (현재: 작성 가능·이력서 미입력(JSON 가져오기 포함)·제외 사이트 상태)
+// 화면 설계: docs/design/screens.md 2장 (현재: 작성 가능·이력서 미입력(JSON 가져오기 포함)·제외 사이트·권한 필요 상태)
 
 export default function App() {
   const [resume, setResume] = useState<Resume | null | undefined>(undefined);
   const [running, setRunning] = useState(false);
   const [message, setMessage] = useState<string>();
   const [tabId, setTabId] = useState<number>();
+  const [blocked, setBlocked] = useState<string[]>([]);
 
   useEffect(() => {
     resumeItem.getValue().then(setResume, () => setResume(null));
@@ -20,7 +21,8 @@ export default function App() {
   const openOptions = () => void browser.runtime.openOptionsPage();
   const openBackup = () => void browser.tabs.create({ url: browser.runtime.getURL('/options.html#backup') });
 
-  const fill = async () => {
+  /** partial: 권한 없는 교차 출처 iframe은 건너뜀 ('이 페이지 부분만 입력') */
+  const fill = async (partial = false) => {
     if (tabId == null) {
       setMessage(describe({ status: 'error', message: '현재 탭을 찾을 수 없습니다.' }));
       return;
@@ -29,13 +31,23 @@ export default function App() {
     browser.sidePanel.open({ tabId }).catch(() => {});
     setRunning(true);
     setMessage(undefined);
+    setBlocked([]);
     try {
-      setMessage(describe(await sendMessage('startFill', { tabId })));
+      const res = await sendMessage('startFill', { tabId, partial });
+      if (res.status === 'needs-permission') setBlocked(res.origins);
+      else setMessage(describe(res));
     } catch (e) {
       setMessage(describe({ status: 'error', message: e instanceof Error ? e.message : String(e) }));
     } finally {
       setRunning(false);
     }
+  };
+
+  // 권한 요청은 사용자 클릭 처리 안에서 바로 호출
+  const allow = async () => {
+    const granted = await browser.permissions.request({ origins: blocked.map((o) => `${o}/*`) }).catch(() => false);
+    if (granted) await fill();
+    else setMessage('접근을 허용하지 않았습니다. 이 페이지 부분만 입력할 수 있습니다.');
   };
 
   return (
@@ -46,9 +58,23 @@ export default function App() {
           <p>
             {resume.basics.name.ko || '이름 없음'} · 수정 {new Date(resume.meta.updatedAt).toLocaleDateString()}
           </p>
-          <button onClick={fill} disabled={running}>
+          <button onClick={() => void fill()} disabled={running}>
             {running ? '입력 중…' : '작성'}
           </button>
+          {blocked.length > 0 && (
+            <div role="alert">
+              <p>
+                이 페이지의 일부 입력 영역이 다른 사이트({blocked.join(', ')})에 있습니다. 접근을 허용하면 그 영역도
+                입력합니다.
+              </p>
+              <button onClick={() => void allow()} disabled={running}>
+                접근 허용
+              </button>{' '}
+              <button onClick={() => void fill(true)} disabled={running}>
+                이 페이지 부분만 입력
+              </button>
+            </div>
+          )}
         </>
       ) : (
         <>
