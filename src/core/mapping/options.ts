@@ -20,6 +20,18 @@ interface EnumOptions {
   synonyms: Record<string, string[]>;
 }
 
+const EMPLOYMENT_TYPE_OPTIONS: EnumOptions = {
+  labels: EMPLOYMENT_TYPE_LABELS,
+  synonyms: {
+    full_time: ['정규', 'Full-time'],
+    contract: ['계약', '기간제', 'Contract'],
+    intern: ['인턴십', '체험형 인턴', '채용연계형 인턴', 'Intern'],
+    part_time: ['파트타임', 'Part-time'],
+    freelance: ['위촉', 'Freelance'],
+    dispatched: ['파견'],
+  },
+};
+
 export const ENUM_OPTIONS: Record<string, EnumOptions> = {
   'basics.gender': {
     labels: GENDER_LABELS,
@@ -50,17 +62,8 @@ export const ENUM_OPTIONS: Record<string, EnumOptions> = {
     labels: SCHOOL_LOCATION_LABELS,
     synonyms: { domestic: ['국내대학'], overseas: ['해외대학', '외국'] },
   },
-  'work.*.employmentType': {
-    labels: EMPLOYMENT_TYPE_LABELS,
-    synonyms: {
-      full_time: ['정규', 'Full-time'],
-      contract: ['계약', '기간제', 'Contract'],
-      intern: ['인턴십', '체험형 인턴', '채용연계형 인턴', 'Intern'],
-      part_time: ['파트타임', 'Part-time'],
-      freelance: ['위촉', 'Freelance'],
-      dispatched: ['파견'],
-    },
-  },
+  'work.*.employmentType': EMPLOYMENT_TYPE_OPTIONS,
+  'desired.employmentTypes': EMPLOYMENT_TYPE_OPTIONS,
   'languageTests.*.language': {
     labels: LANGUAGE_LABELS,
     synonyms: {

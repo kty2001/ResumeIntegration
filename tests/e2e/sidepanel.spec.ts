@@ -301,6 +301,31 @@ test('radio 그룹 자동 선택 + 선택지 불일치 직접 선택·학습 + �
   await expect(page.locator('input[name=level]:checked')).toHaveCount(0);
 });
 
+test('희망 조건: 연봉·내규 checkbox·근무지·직무(배열 결합)·고용 형태 select·입사 가능일', async ({ context, worker, extensionId }) => {
+  const data: Resume = {
+    ...resume,
+    desired: {
+      salary: { amount: 5000, companyPolicy: false },
+      locations: ['서울', '경기'],
+      jobs: ['백엔드 개발'],
+      employmentTypes: ['full_time'],
+      availableFrom: '2026-11-01',
+    },
+  };
+  const { page } = await runFill(context, worker, extensionId, 'desired.html', '입력 완료 6개 · 입력 실패 0개 · 해당 없음 0개', data);
+
+  await expect(page.locator('#salary')).toHaveValue('5000');
+  await expect(page.locator('#policy')).not.toBeChecked();
+  await expect(page.locator('#loc')).toHaveValue('서울, 경기');
+  await expect(page.locator('#job')).toHaveValue('백엔드 개발');
+  await expect(page.locator('#emp')).toHaveValue('P');
+  await expect(page.locator('#avail')).toHaveValue('2026.11.01');
+
+  const panel = await context.newPage();
+  await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+  await expect(panel.getByText('희망 근무지 → 희망 근무지')).toBeVisible();
+});
+
 test('checkbox boolean 항목 체크·해제 + 직접 입력 선택 목록 + 되돌리기', async ({ context, worker, extensionId }) => {
   const data: Resume = {
     ...resume,

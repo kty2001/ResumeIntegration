@@ -65,11 +65,22 @@ function getByPath(resume: Resume, schemaKey: string): unknown {
   return cur;
 }
 
-/** 'basics.name.ko' 같은 점 경로로 이력서 값 조회 (비어 있으면 undefined) */
-export function getValueByKey(resume: Resume, schemaKey: string): string | undefined {
-  const cur = getByPath(resume, schemaKey);
+function scalarValue(cur: unknown): string | undefined {
   if (typeof cur === 'number') return String(cur);
   return typeof cur === 'string' && cur.trim() ? cur : undefined;
+}
+
+/** 이력서 값 목록: 배열(희망 근무지 등)은 비지 않은 원소들, 그 외는 단일 값 */
+function listValues(resume: Resume, schemaKey: string): string[] {
+  const cur = getByPath(resume, schemaKey);
+  const values = Array.isArray(cur) ? cur.map(scalarValue) : [scalarValue(cur)];
+  return values.filter((v): v is string => !!v);
+}
+
+/** 'basics.name.ko' 같은 점 경로로 이력서 값 조회 (비어 있으면 undefined, 배열은 ', ' 결합) */
+export function getValueByKey(resume: Resume, schemaKey: string): string | undefined {
+  const values = listValues(resume, schemaKey);
+  return values.length > 0 ? values.join(', ') : undefined;
 }
 
 /** 선택지 중 하나를 고르는 입력란 (값 = 선택지 value) */
@@ -87,6 +98,7 @@ function learnedOptionValue(value: string, hint: FormatHint, option?: LearnedMat
 /**
  * 이력서 값을 입력란 형식으로 변환해 조회. select·radio는 선택지 value(학습 선택지 우선), 텍스트 입력란의 enum 값은 표시명
  * checkbox는 boolean 값만 'true'/'false'
+ * 배열 값: select·radio는 원소 순서대로 첫 일치 선택지, 텍스트는 원소별 변환 후 ', ' 결합
  * option: 학습 규칙의 선택지 (matchField 반환값)
  */
 export function resolveValue(
@@ -99,11 +111,19 @@ export function resolveValue(
     const flag = getByPath(resume, schemaKey);
     return typeof flag === 'boolean' ? String(flag) : undefined;
   }
-  const value = getValueByKey(resume, schemaKey);
-  if (!value) return undefined;
-  if (isChoiceWidget(hint.widget))
-    return learnedOptionValue(value, hint, option) ?? matchOption(schemaKey, value, hint.options ?? []);
-  return enumLabel(schemaKey, value) ?? formatValue(schemaKey, value, hint);
+  const values = listValues(resume, schemaKey);
+  if (values.length === 0) return undefined;
+  if (isChoiceWidget(hint.widget)) {
+    // 학습 선택지는 학습 당시 값(getValueByKey, 배열은 결합 문자열)과 비교
+    const learnedHit = learnedOptionValue(values.join(', '), hint, option);
+    if (learnedHit) return learnedHit;
+    for (const value of values) {
+      const hit = matchOption(schemaKey, value, hint.options ?? []);
+      if (hit) return hit;
+    }
+    return undefined;
+  }
+  return values.map((value) => enumLabel(schemaKey, value) ?? formatValue(schemaKey, value, hint)).join(', ');
 }
 
 export function mapFields(fields: FieldDescriptor[], resume: Resume, learned?: Map<string, LearnedMatch>): FillPlan {

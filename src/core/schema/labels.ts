@@ -158,6 +158,13 @@ export const SCHEMA_KEY_LABELS: Record<string, string> = {
   'military.startDate': '입대 연월',
   'military.endDate': '전역 연월',
   'military.dischargeType': '전역 구분',
+  'desired.salary.amount': '희망 연봉(만원)',
+  'desired.salary.companyPolicy': '연봉 회사 내규에 따름',
+  'desired.employmentTypes': '희망 고용 형태',
+  'desired.locations': '희망 근무지',
+  'desired.jobs': '희망 직무',
+  'desired.availableFrom': '입사 가능일',
+  'desired.availableNote': '입사 가능일 메모',
 };
 
 // 반복 항목 섹션 (매핑 사전 SectionKey의 기준) → 표시명

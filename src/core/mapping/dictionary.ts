@@ -4,8 +4,8 @@
 
 import type { SectionKey } from '@/core/schema/labels';
 
-/** 반복 항목 섹션 + 병역(단일 객체) */
-export type RuleSection = SectionKey | 'military';
+/** 반복 항목 섹션 + 병역·희망 조건(단일 객체) */
+export type RuleSection = SectionKey | 'military' | 'desired';
 
 export interface FieldRule {
   schemaKey: string;        // 반복 섹션 규칙은 인덱스 자리를 '*'로 표기 (education.*.school.ko)
@@ -19,14 +19,15 @@ export interface FieldRule {
 // 섹션 판별: 입력란 텍스트 → 섹션 텍스트(fieldset legend·직전 제목) 순, 두 섹션이 함께 걸리면 판별 보류
 export const SECTION_RULES: { section: RuleSection; pattern: RegExp }[] = [
   { section: 'education', pattern: /학력|학교|school|education/i },
-  // '수상경력'·'활동 경력' 같은 제목은 경력 섹션으로 보지 않음
-  { section: 'work', pattern: /(?<!(수상|활동|봉사)\s*)경력|직장|회사|company|employment|work\s*experience|career/i },
+  // '수상경력'·'활동 경력' 같은 제목, '회사 내규'(희망 연봉 옵션)는 경력 섹션으로 보지 않음
+  { section: 'work', pattern: /(?<!(수상|활동|봉사)\s*)경력|직장|회사(?!\s*내규)|company(?!\s*policy)|employment|work\s*experience|career/i },
   { section: 'certificates', pattern: /자격|면허|certificat|license|\bcert/i },
   { section: 'languageTests', pattern: /어학|외국어|language|toeic|토익/i },
   { section: 'awards', pattern: /수상|award|honou?r/i },
   { section: 'activities', pattern: /활동|동아리|봉사|activit|volunteer|extracurricular/i },
   { section: 'projects', pattern: /프로젝트|project/i },
   { section: 'military', pattern: /병역|군\s*복무|군필|military/i },
+  { section: 'desired', pattern: /희망|desired|preferred/i },
 ];
 
 // 날짜·명칭 규칙에서 제외할 enum 성격 라벨 (학교 구분·졸업 상태 등은 각 enum 규칙이 먼저 처리)
@@ -314,6 +315,30 @@ export const SECTION_FIELD_RULES: FieldRule[] = [
     exclude: ENUM_LABEL,
   },
   { section: 'military', schemaKey: 'military.status', autocomplete: [], pattern: /병역|군필|구분|사항|여부|상태|status|military/i },
+  // 희망 조건 (단일 객체 → 인덱스 없는 키, 배열 값은 match.ts에서 처리)
+  {
+    section: 'desired',
+    schemaKey: 'desired.salary.companyPolicy',
+    autocomplete: [],
+    pattern: /내규|협의|negotiable|company\s*policy/i,
+    checkbox: true,
+  },
+  { section: 'desired', schemaKey: 'desired.salary.amount', autocomplete: [], pattern: /연봉|급여|salary|\bpay\b/i },
+  {
+    section: 'desired',
+    schemaKey: 'desired.employmentTypes',
+    autocomplete: [],
+    pattern: /(고용|근무|채용)\s*(형태|구분|유형)|employment/i,
+  },
+  { section: 'desired', schemaKey: 'desired.locations', autocomplete: [], pattern: /근무\s*(지|지역)|지역|location|region/i },
+  { section: 'desired', schemaKey: 'desired.jobs', autocomplete: [], pattern: /직무|직종|분야|\bjob|position|role/i },
+  { section: 'desired', schemaKey: 'desired.availableNote', autocomplete: [], pattern: /(입사|가능).*(메모|비고)|\bnote/i },
+  {
+    section: 'desired',
+    schemaKey: 'desired.availableFrom',
+    autocomplete: [],
+    pattern: /입사\s*(가능|예정)|가능\s*일|available|start/i,
+  },
 ];
 
 export const FIELD_RULES: FieldRule[] = [

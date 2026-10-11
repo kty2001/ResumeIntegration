@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>희망 조건 fixture</title>
+</head>
+<body>
+  <form onsubmit="return false">
+    <h2>희망 근무 조건</h2>
+    <p><label for="salary">희망 연봉(만원)</label> <input id="salary" name="salary"></p>
+    <!-- 기본 체크 → 이력서 값 false면 해제 -->
+    <p><label><input type="checkbox" id="policy" name="policy" checked> 회사 내규에 따름</label></p>
+    <p><label for="loc">희망 근무지</label> <input id="loc" name="loc"></p>
+    <p><label for="job">희망 직무</label> <input id="job" name="job"></p>
+    <p>
+      <label for="emp">희망 고용 형태</label>
+      <select id="emp" name="emp">
+        <option value="">선택</option>
+        <option value="P">정규직</option>
+        <option value="C">계약직</option>
+        <option value="I">인턴</option>
+      </select>
+    </p>
+    <p><label for="avail">입사 가능일</label> <input id="avail" name="avail" placeholder="YYYY.MM.DD"></p>
+  </form>
+</body>
+</html>

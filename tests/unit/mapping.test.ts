@@ -121,6 +121,18 @@ describe('matchField', () => {
     expect(keyOf({ label: '이메일 수신 동의', widget: 'checkbox', autocomplete: 'email' })).toBeUndefined();
   });
 
+  it('희망 조건 섹션 매칭', () => {
+    expect(keyOf({ label: '희망 연봉' })).toBe('desired.salary.amount');
+    expect(keyOf({ label: '회사 내규에 따름', section: '희망 근무 조건', widget: 'checkbox' })).toBe('desired.salary.companyPolicy');
+    expect(keyOf({ label: '희망 근무지' })).toBe('desired.locations');
+    expect(keyOf({ label: '희망 직무' })).toBe('desired.jobs');
+    expect(keyOf({ label: '희망 근무 형태' })).toBe('desired.employmentTypes');
+    expect(keyOf({ label: '입사 가능일', section: '희망 조건' })).toBe('desired.availableFrom');
+    expect(keyOf({ label: '입사 가능일 메모', section: '희망 조건' })).toBe('desired.availableNote');
+    // 경력 섹션 연봉은 희망 연봉과 구분
+    expect(keyOf({ label: '연봉', section: '경력사항' })).toBe('work.*.salary');
+  });
+
   it('라벨이 매칭되지 않으면 placeholder·name 순으로 검사', () => {
     expect(keyOf({ label: '항목 1', placeholder: 'example@mail.com 이메일' })).toBe('basics.email');
     expect(keyOf({ name: 'mobile' })).toBe('basics.phone.mobile');
@@ -251,6 +263,38 @@ describe('mapFields', () => {
       { fieldId: '1', schemaKey: 'education.0.transfer', value: 'false', source: 'rule' },
     ]);
     expect(plan.unmatched).toEqual(['2']);
+  });
+
+  it('희망 조건 배열 값: 텍스트는 결합(enum은 표시명), select는 원소 순서대로 첫 일치 선택지', () => {
+    const r = createEmptyResume();
+    r.desired = {
+      salary: { amount: 5000, companyPolicy: false },
+      locations: ['서울', '경기'],
+      jobs: [],
+      employmentTypes: ['intern', 'full_time'],
+      availableFrom: '2026-11-01',
+    };
+    const plan = mapFields(
+      [
+        field({ fieldId: '0', label: '희망 연봉' }),
+        field({ fieldId: '1', label: '회사 내규', section: '희망 조건', widget: 'checkbox' }),
+        field({ fieldId: '2', label: '희망 근무지' }),
+        field({ fieldId: '3', label: '희망 고용 형태' }),
+        field({ fieldId: '4', label: '희망 고용 형태', widget: 'select', options: [{ value: 'P', text: '정규직' }, { value: 'C', text: '계약직' }] }),
+        field({ fieldId: '5', label: '입사 가능일', section: '희망 조건', placeholder: 'YYYY.MM.DD' }),
+        field({ fieldId: '6', label: '희망 직무' }),
+      ],
+      r,
+    );
+    expect(plan.items.map((i) => [i.schemaKey, i.value])).toEqual([
+      ['desired.salary.amount', '5000'],
+      ['desired.salary.companyPolicy', 'false'],
+      ['desired.locations', '서울, 경기'],
+      ['desired.employmentTypes', '인턴, 정규직'],
+      ['desired.employmentTypes', 'P'],
+      ['desired.availableFrom', '2026.11.01'],
+    ]);
+    expect(plan.unmatched).toEqual(['6']);
   });
 
   it('select 학습 선택지: 이력서 값이 학습 당시와 같을 때만 적용, 선택지 없으면 사전 매칭', () => {

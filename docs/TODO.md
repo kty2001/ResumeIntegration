@@ -25,7 +25,7 @@
 - [x] 이력서 데이터 입력·저장 화면 (이력서 섹션 8개, 자동 저장)
 - [ ] 옵션 화면 후속: 자기소개서 라이브러리, 첨부 파일·증명사진, 설정(BYOK·제외 사이트) — 학습 규칙 조회·삭제 완료
 - [ ] 입력란 수집 (content script) — 최상위 프레임 text·textarea·date·select·radio 그룹·단일 checkbox + 섹션 텍스트(fieldset legend·직전 제목) 완료, iframe·다중 선택 checkbox·기타 위젯 미구현
-- [ ] 규칙/사전 기반 매핑 — autocomplete + 키워드 사전(basics 단일 값) + 섹션 문맥(학력·경력·자격증·어학·수상·활동·프로젝트·병역, 반복 블록 순서대로 인덱스) + enum 항목(동의어 사전) 완료, 희망 조건 미구현
+- [x] 규칙/사전 기반 매핑 — autocomplete + 키워드 사전(basics 단일 값) + 섹션 문맥(학력·경력·자격증·어학·수상·활동·프로젝트·병역·희망 조건, 반복 블록 순서대로 인덱스) + enum 항목(동의어 사전) + boolean(checkbox)
 - [ ] 형식 변환 (`core/format`) — 생년월일·전화번호·반복 항목 연월·연월일(placeholder·maxLength·type=date 신호) 완료, 분리 입력·입력 마스크 미구현
 - [x] 텍스트 입력란 자동 입력 (네이티브 setter + input·change 이벤트, 실제 사이트 검증 전)
 - [ ] 드롭다운·날짜 선택기 범용 처리 — 기본 `<select>`·radio 그룹(동의어 사전 매칭)·단일 checkbox(boolean) 완료, 다중 선택 checkbox·ARIA·검색형 콤보박스·날짜 선택기 미구현

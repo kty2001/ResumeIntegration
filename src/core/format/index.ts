@@ -23,6 +23,7 @@ const FORMATTERS: Record<string, (value: string, hint: FormatHint) => string> = 
   'awards.*.date': formatPartialDate,
   'military.startDate': formatYearMonth,
   'military.endDate': formatYearMonth,
+  'desired.availableFrom': formatPartialDate,
 };
 
 export function formatValue(schemaKey: string, value: string, hint: FormatHint): string {
