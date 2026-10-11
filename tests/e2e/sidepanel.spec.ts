@@ -265,3 +265,38 @@ test('선택지 불일치 → 사이드 패널에서 사이트 선택지 선택 
   await options.getByRole('button', { name: '학습 규칙' }).click();
   await expect(options.getByRole('row').filter({ hasText: '학력 구분' })).toContainText('일반대학');
 });
+
+test('radio 그룹 자동 선택 + 선택지 불일치 직접 선택·학습 + 되돌리기', async ({ context, worker, extensionId }) => {
+  const data: Resume = {
+    ...resume,
+    basics: { ...resume.basics, gender: 'male' },
+    education: [{ id: 'e1', level: 'university', school: { ko: '한국대학교' }, status: 'graduated' }],
+  };
+  const { page } = await runFill(context, worker, extensionId, 'radios.html', '입력 완료 3개 · 입력 실패 1개 · 해당 없음 0개', data);
+
+  // 숨긴 radio(label만 표시)도 선택 + change 이벤트 발생, 섹션 문맥으로 졸업 구분 선택
+  await expect(page.locator('#g-m')).toBeChecked();
+  await expect(page.locator('#gender-changed')).toHaveText('1');
+  await expect(page.locator('input[name=grad][value="1"]')).toBeChecked();
+  await expect(page.locator('input[name=level]:checked')).toHaveCount(0);
+
+  // 확인 필요: 사이트 선택지(radio label) 목록에서 직접 선택 → 학습
+  const panel = await context.newPage();
+  await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+  const row = panel.getByRole('listitem').filter({ hasText: '맞는 선택지 없음' });
+  await expect(row).toContainText('학력 구분 → 학력 1 학력 구분');
+  await panel.getByLabel('학력 구분 선택지').selectOption({ label: '일반대학' });
+  await row.getByRole('button', { name: '선택' }).click();
+  await expect(panel.getByText('입력 완료 4 · 확인 필요 0 · 해당 없음 0')).toBeVisible();
+  await expect(page.locator('input[name=level][value="30"]')).toBeChecked();
+  const rules = await worker.evaluate(async () => (await chrome.storage.local.get('learnedRules')).learnedRules);
+  expect(rules).toMatchObject([{ schemaKey: 'education.0.level', option: { value: 'university', text: '일반대학' } }]);
+
+  // 되돌리기: 기존 선택(재학) 복원, 선택 없던 그룹은 해제
+  await panel.getByRole('button', { name: '되돌리기' }).click();
+  await expect(panel.getByText('4개 되돌림')).toBeVisible();
+  await expect(page.locator('#nm')).toHaveValue('');
+  await expect(page.locator('input[name=gender]:checked')).toHaveCount(0);
+  await expect(page.locator('input[name=grad][value="3"]')).toBeChecked();
+  await expect(page.locator('input[name=level]:checked')).toHaveCount(0);
+});

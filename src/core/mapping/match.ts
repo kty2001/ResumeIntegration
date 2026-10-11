@@ -1,6 +1,6 @@
 import type { Resume } from '@/core/schema/resume';
 import { formatValue } from '@/core/format';
-import type { FieldDescriptor, FillPlan, FormatHint, MatchSource } from '@/messaging/protocol';
+import type { FieldDescriptor, FillPlan, FormatHint, MatchSource, WidgetKind } from '@/messaging/protocol';
 import { FIELD_RULES, SECTION_FIELD_RULES, SECTION_RULES, type RuleSection } from './dictionary';
 import { fieldFingerprint, type LearnedMatch } from './learned';
 import { enumLabel, matchOption, normalizeOption } from './options';
@@ -63,6 +63,11 @@ export function getValueByKey(resume: Resume, schemaKey: string): string | undef
   return typeof cur === 'string' && cur.trim() ? cur : undefined;
 }
 
+/** 선택지 중 하나를 고르는 입력란 (값 = 선택지 value) */
+export function isChoiceWidget(widget: WidgetKind): boolean {
+  return widget === 'select' || widget === 'radio';
+}
+
 /** 학습한 선택지: 이력서 값이 학습 당시와 같을 때만, 같은 텍스트의 선택지가 있으면 그 value */
 function learnedOptionValue(value: string, hint: FormatHint, option?: LearnedMatch['option']): string | undefined {
   if (!option || option.value !== value) return undefined;
@@ -71,7 +76,7 @@ function learnedOptionValue(value: string, hint: FormatHint, option?: LearnedMat
 }
 
 /**
- * 이력서 값을 입력란 형식으로 변환해 조회. select는 선택지 value(학습 선택지 우선), 텍스트 입력란의 enum 값은 표시명
+ * 이력서 값을 입력란 형식으로 변환해 조회. select·radio는 선택지 value(학습 선택지 우선), 텍스트 입력란의 enum 값은 표시명
  * option: 학습 규칙의 선택지 (matchField 반환값)
  */
 export function resolveValue(
@@ -82,7 +87,7 @@ export function resolveValue(
 ): string | undefined {
   const value = getValueByKey(resume, schemaKey);
   if (!value) return undefined;
-  if (hint.widget === 'select')
+  if (isChoiceWidget(hint.widget))
     return learnedOptionValue(value, hint, option) ?? matchOption(schemaKey, value, hint.options ?? []);
   return enumLabel(schemaKey, value) ?? formatValue(schemaKey, value, hint);
 }
@@ -103,7 +108,7 @@ export function mapFields(fields: FieldDescriptor[], resume: Resume, learned?: M
     const value = schemaKey && resolveValue(resume, schemaKey, field, match?.option);
     if (match && schemaKey && value) plan.items.push({ fieldId: field.fieldId, schemaKey, value, source: match.source });
     // 이력서 값은 있지만 맞는 선택지 없음 → '확인 필요'로 사이드 패널에서 직접 선택
-    else if (schemaKey && field.widget === 'select' && getValueByKey(resume, schemaKey))
+    else if (schemaKey && isChoiceWidget(field.widget) && getValueByKey(resume, schemaKey))
       skipped.push({ fieldId: field.fieldId, schemaKey, reason: 'no-option' });
     else plan.unmatched.push(field.fieldId);
   }

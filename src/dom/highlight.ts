@@ -1,5 +1,5 @@
 import type { ReportField } from '@/messaging/protocol';
-import type { FillElement } from './collect';
+import { isRadio, radioGroup, type FillElement } from './collect';
 
 // 입력란 위치 하이라이트: docs/design/architecture.md 4장
 // 페이지 요소 스타일은 변경하지 않고 Shadow Root 안의 고정 위치 테두리 박스로 표시
@@ -29,10 +29,25 @@ let host: HTMLDivElement | null = null;
 let boxes: [FillElement, HTMLDivElement][] = [];
 let frame = 0;
 
+/** radio는 그룹 radio·label 전체를 감싸는 사각형 */
+function rectOf(el: FillElement): DOMRect {
+  if (!isRadio(el)) return el.getBoundingClientRect();
+  const rects = radioGroup(el)
+    .flatMap((r) => [r, ...(r.labels ?? [])])
+    .map((e) => e.getBoundingClientRect())
+    .filter((r) => r.width > 0 && r.height > 0);
+  if (rects.length === 0) return new DOMRect();
+  const left = Math.min(...rects.map((r) => r.left));
+  const top = Math.min(...rects.map((r) => r.top));
+  const right = Math.max(...rects.map((r) => r.right));
+  const bottom = Math.max(...rects.map((r) => r.bottom));
+  return new DOMRect(left, top, right - left, bottom - top);
+}
+
 function position(): void {
   frame = 0;
   for (const [el, box] of boxes) {
-    const rect = el.getBoundingClientRect();
+    const rect = rectOf(el);
     const visible = el.isConnected && rect.width > 0 && rect.height > 0;
     box.style.display = visible ? 'block' : 'none';
     if (!visible) continue;

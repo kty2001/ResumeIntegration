@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>radio 그룹 fixture</title>
+  <style>
+    /* 커스텀 디자인: native radio 숨김, label만 표시 */
+    .custom input[type=radio] { display: none; }
+  </style>
+</head>
+<body>
+  <form onsubmit="return false">
+    <p><label for="nm">이름</label> <input id="nm" name="nm"></p>
+
+    <!-- 그룹 전용 fieldset: legend가 그룹 label -->
+    <fieldset class="custom">
+      <legend>성별</legend>
+      <input type="radio" id="g-m" name="gender" value="M"><label for="g-m">남자</label>
+      <input type="radio" id="g-f" name="gender" value="F"><label for="g-f">여자</label>
+    </fieldset>
+    <p>성별 변경 이벤트: <output id="gender-changed">0</output></p>
+
+    <h2>학력사항</h2>
+    <!-- role=radiogroup + aria-labelledby, 기존 선택 있음(되돌리기 시 복원) -->
+    <div role="radiogroup" aria-labelledby="grad-label">
+      <span id="grad-label">졸업 구분</span>
+      <label><input type="radio" name="grad" value="1"> 졸업</label>
+      <label><input type="radio" name="grad" value="2"> 졸업예정</label>
+      <label><input type="radio" name="grad" value="3" checked> 재학</label>
+    </div>
+
+    <!-- 선택지 불일치: 이력서 값(대학교(4년))에 해당하는 선택지가 동의어 사전에 없음 -->
+    <fieldset>
+      <legend>학력 구분</legend>
+      <label><input type="radio" name="level" value="10"> 고등학교</label>
+      <label><input type="radio" name="level" value="20"> 전문대학</label>
+      <label><input type="radio" name="level" value="30"> 일반대학</label>
+      <label><input type="radio" name="level" value="40"> 대학원</label>
+    </fieldset>
+  </form>
+  <script>
+    const counter = document.getElementById('gender-changed');
+    document.querySelectorAll('input[name=gender]').forEach((r) =>
+      r.addEventListener('change', () => (counter.value = String(Number(counter.value) + 1))),
+    );
+  </script>
+</body>
+</html>

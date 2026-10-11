@@ -207,6 +207,25 @@ describe('mapFields', () => {
     expect(plan.skipped).toEqual([{ fieldId: '2', schemaKey: 'basics.gender', reason: 'no-option' }]);
   });
 
+  it('radio 그룹도 select처럼 선택지 value 매칭, 선택지 불일치는 skipped', () => {
+    const r = createEmptyResume();
+    r.basics.gender = 'female';
+    r.education = [{ id: 'e1', level: 'university', school: { ko: '한국대학교' }, status: 'graduated' }];
+    const plan = mapFields(
+      [
+        field({ fieldId: '0', name: 'sex', widget: 'radio', options: [{ value: 'M', text: '남' }, { value: 'female', text: '여' }] }),
+        field({ fieldId: '1', label: '졸업 구분', section: '학력사항', widget: 'radio', options: [{ value: '1', text: '졸업' }, { value: '2', text: '졸업예정' }] }),
+        field({ fieldId: '2', label: '학력', section: '학력사항', widget: 'radio', options: [{ value: 'a', text: '일반대학' }] }),
+      ],
+      r,
+    );
+    expect(plan.items).toEqual([
+      { fieldId: '0', schemaKey: 'basics.gender', value: 'female', source: 'rule' },
+      { fieldId: '1', schemaKey: 'education.0.status', value: '1', source: 'rule' },
+    ]);
+    expect(plan.skipped).toEqual([{ fieldId: '2', schemaKey: 'education.0.level', reason: 'no-option' }]);
+  });
+
   it('select 학습 선택지: 이력서 값이 학습 당시와 같을 때만 적용, 선택지 없으면 사전 매칭', () => {
     const r = createEmptyResume();
     r.education = [{ id: 'e1', level: 'university', school: { ko: '한국대학교' }, status: 'graduated' }];

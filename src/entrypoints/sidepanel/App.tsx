@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { resolveValue } from '@/core/mapping/match';
+import { isChoiceWidget, resolveValue } from '@/core/mapping/match';
 import { skipField } from '@/core/mapping/report';
 import type { Resume } from '@/core/schema/resume';
 import { schemaKeyLabel, schemaKeyOptions } from '@/core/schema/labels';
@@ -121,9 +121,9 @@ export default function App() {
 
   // 복사·표시용 값: enum 코드는 표시명으로
   const valueOf = (schemaKey?: string) => (resume && schemaKey ? resolveValue(resume, schemaKey, { widget: 'text' }) : undefined);
-  // 확인 필요 행 값: 입력란 형식으로 변환, select는 선택지 value 대신 표시명
+  // 확인 필요 행 값: 입력란 형식으로 변환, select·radio는 선택지 value 대신 표시명
   const failedValue = (f: ReportField) =>
-    resume && f.schemaKey ? resolveValue(resume, f.schemaKey, f.hint.widget === 'select' ? { widget: 'text' } : f.hint) : undefined;
+    resume && f.schemaKey ? resolveValue(resume, f.schemaKey, isChoiceWidget(f.hint.widget) ? { widget: 'text' } : f.hint) : undefined;
   const byStatus = (status: ReportField['status']) => report?.fields.filter((f) => f.status === status) ?? [];
   const filled = byStatus('filled');
   const failed = byStatus('failed');

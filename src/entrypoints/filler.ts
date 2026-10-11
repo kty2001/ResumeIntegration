@@ -1,4 +1,4 @@
-import { collectPageDetails, getElement } from '@/dom/collect';
+import { collectPageDetails, getElement, isRadio } from '@/dom/collect';
 import { clearHighlights, showHighlights } from '@/dom/highlight';
 import { restoreAll, saveSnapshot } from '@/dom/snapshot';
 import { fillElement } from '@/dom/widgets';
@@ -34,7 +34,7 @@ export default defineUnlistedScript(() => {
         result.failed.push({ fieldId, reason: 'too-long' });
       } else {
         saveSnapshot(el);
-        const strategy = el instanceof HTMLSelectElement ? 'select' : 'text';
+        const strategy = el instanceof HTMLSelectElement ? 'select' : isRadio(el) ? 'radio' : 'text';
         if (fillElement(el, value)) result.filled.push({ fieldId, strategy });
         else result.failed.push({ fieldId, reason: 'not-applied' });
       }
@@ -45,7 +45,9 @@ export default defineUnlistedScript(() => {
   onMessage('focusField', ({ data }) => {
     const el = getElement(data.fieldId);
     if (!el || !el.isConnected) return { status: 'error', message: '입력란을 찾을 수 없음' };
-    el.scrollIntoView({ block: 'center' });
+    // 숨긴 radio는 스크롤되지 않으므로 label 기준
+    const target = isRadio(el) ? (el.labels?.[0] ?? el) : el;
+    target.scrollIntoView({ block: 'center' });
     el.focus();
     return { status: 'ok' };
   });

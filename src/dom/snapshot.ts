@@ -1,5 +1,5 @@
 import type { FillElement } from './collect';
-import { fillElement } from './widgets';
+import { fillElement, readValue } from './widgets';
 
 // 입력 전 값 백업·되돌리기: docs/design/architecture.md 7.3
 // 요소별 최초 값만 보관 → '작성'을 다시 실행해도 원래 값으로 복원. 페이지 이동 시 소멸
@@ -7,7 +7,7 @@ import { fillElement } from './widgets';
 const snapshot = new Map<FillElement, string>();
 
 export function saveSnapshot(el: FillElement): void {
-  if (!snapshot.has(el)) snapshot.set(el, el.value);
+  if (!snapshot.has(el)) snapshot.set(el, readValue(el));
 }
 
 /** 연결된 요소만 복원, 복원 개수 반환 */
