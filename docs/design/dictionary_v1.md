@@ -1,6 +1,6 @@
 # 키워드·옵션 동의어 사전 v1
 
-최종 갱신: 2026-10-10 · 관련 문서: [architecture.md](architecture.md) 7.1, [resume_schema_v1.md](resume_schema_v1.md) 5장, [06 보고서](../reports/06_generic_widget_strategy.md) 2.1
+최종 갱신: 2026-10-11 · 관련 문서: [architecture.md](architecture.md) 7.1, [resume_schema_v1.md](resume_schema_v1.md) 5장, [06 보고서](../reports/06_generic_widget_strategy.md) 2.1
 
 - 사전 원본은 코드. 이 문서는 구조·규칙·갱신 방법만 기술 (항목 목록은 코드 참조)
 
@@ -15,7 +15,8 @@
 ## 1. 입력란 → 스키마 키 매칭 순서
 1. 학습 규칙 (`origin + fingerprint`)
 2. `autocomplete` 속성 (basics 규칙의 `autocomplete` 토큰)
-3. 섹션 판별 → 해당 섹션 규칙만 검사, 판별 안 되면 basics 규칙만 검사
+3. 파일 입력란은 `FILE_RULES`만 (섹션 무관)
+4. 그 외: `SENSITIVE_RULES`(설정 '민감정보 자동 입력 사용' 켰을 때만, 섹션 무관) → 섹션 판별 시 해당 섹션 규칙만, 판별 안 되면 basics 규칙만
    - 검사 텍스트 순서: label → aria-label → placeholder → name → id (신뢰도 순)
    - 섹션 안에서 basics 규칙을 쓰지 않는 이유: 경력 섹션 '주소'·학력 섹션 '이름' 같은 오입력 방지
 
@@ -37,7 +38,7 @@
 | `autocomplete` | basics 규칙만 사용 |
 | `checkbox` | boolean 키 규칙 표시: checkbox 입력란에만 적용, checkbox는 이 규칙만 검사(autocomplete 단계 생략). 현재 `work.*.current`(재직 중)·`education.*.transfer`(편입)·`desired.salary.companyPolicy` |
 
-- 별도 규칙 목록: `SENSITIVE_RULES`(민감정보, 설정 '민감정보 자동 입력 사용'을 켰을 때만 섹션 무관·먼저 검사), `FILE_RULES`(파일 입력란 전용, 섹션 무관)
+- 별도 규칙 목록: `SENSITIVE_RULES`(민감정보), `FILE_RULES`(파일 입력란 전용) — 검사 순서는 1장
 
 - **배열 순서 = 우선순위**: 다른 항목 키워드를 포함하는 구체적 항목을 앞에 둠
   - 예: '영문 학교명' → 학교명, '졸업 구분'(enum) → '졸업'(날짜), '퇴사 사유' → '퇴사'(날짜), '담당 업무' → '직무', 자격증 '번호'·'기관'·'취득일' → '자격증명'
@@ -70,7 +71,9 @@
 - 변경 시 `tests/unit/mapping.test.ts`·`options.test.ts`에 실제 라벨·선택지 예시 추가
 - 사이트별 실제 선택지는 DOM 현장 조사 후 동의어로 보완
 
-## 5. 미결
-- ARIA 콤보박스·검색형 콤보박스 (06 보고서 2.2·2.3) — DOM 현장 조사 후
-- 선택지 불일치 시 사이드 패널 '확인 필요'에 사이트 선택지 목록 표시 (screens.md 3장)
-- 자기소개서 문항 키워드 (02 보고서 5장)
+## 5. 관련 사전
+- 자기소개서 문항 키워드(태그 판별): `src/core/coverLetter.ts`
+- 콤보박스(선택 전용·검색형) 선택지도 3.2 매칭 재사용 (선택지 value = 표시 텍스트)
+
+## 6. 미결
+- 사람인·잡코리아 실제 라벨·선택지로 키워드·동의어 보완 (DOM 현장 조사 후)
