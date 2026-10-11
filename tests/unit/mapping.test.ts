@@ -113,6 +113,14 @@ describe('matchField', () => {
     expect(keyOf({ label: '이메일', section: '학력·경력 사항' })).toBe('basics.email');
   });
 
+  it('checkbox는 boolean 규칙만, 다른 입력란은 boolean 규칙 제외', () => {
+    expect(keyOf({ label: '재직중', section: '경력사항', widget: 'checkbox' })).toBe('work.*.current');
+    expect(keyOf({ label: '현재 근무', section: 'Work Experience', widget: 'checkbox' })).toBe('work.*.current');
+    expect(keyOf({ label: '편입', section: '학력사항', widget: 'checkbox' })).toBe('education.*.transfer');
+    expect(keyOf({ label: '재직중', section: '경력사항' })).toBeUndefined();
+    expect(keyOf({ label: '이메일 수신 동의', widget: 'checkbox', autocomplete: 'email' })).toBeUndefined();
+  });
+
   it('라벨이 매칭되지 않으면 placeholder·name 순으로 검사', () => {
     expect(keyOf({ label: '항목 1', placeholder: 'example@mail.com 이메일' })).toBe('basics.email');
     expect(keyOf({ name: 'mobile' })).toBe('basics.phone.mobile');
@@ -226,6 +234,25 @@ describe('mapFields', () => {
     expect(plan.skipped).toEqual([{ fieldId: '2', schemaKey: 'education.0.level', reason: 'no-option' }]);
   });
 
+  it('checkbox는 boolean 값을 true/false로, 값 없으면 unmatched', () => {
+    const r = createEmptyResume();
+    r.work = [{ id: 'w1', company: { ko: '가나다' }, startDate: '2020-01', current: true }];
+    r.education = [
+      { id: 'e1', level: 'university', school: { ko: '한국대학교' }, status: 'graduated', transfer: false },
+      { id: 'e2', level: 'master', school: { ko: '한국대학원' }, status: 'graduated' },
+    ];
+    const transfer = (fieldId: string) => field({ fieldId, label: '편입', section: '학력사항', widget: 'checkbox' });
+    const plan = mapFields(
+      [field({ fieldId: '0', label: '재직중', section: '경력사항', widget: 'checkbox' }), transfer('1'), transfer('2')],
+      r,
+    );
+    expect(plan.items).toEqual([
+      { fieldId: '0', schemaKey: 'work.0.current', value: 'true', source: 'rule' },
+      { fieldId: '1', schemaKey: 'education.0.transfer', value: 'false', source: 'rule' },
+    ]);
+    expect(plan.unmatched).toEqual(['2']);
+  });
+
   it('select 학습 선택지: 이력서 값이 학습 당시와 같을 때만 적용, 선택지 없으면 사전 매칭', () => {
     const r = createEmptyResume();
     r.education = [{ id: 'e1', level: 'university', school: { ko: '한국대학교' }, status: 'graduated' }];
@@ -257,6 +284,7 @@ describe('schemaKeyLabel·schemaKeyOptions', () => {
     expect(schemaKeyLabel('work.1.startDate')).toBe('경력 2 입사 연월');
     expect(schemaKeyLabel('certificates.0.name')).toBe('자격증 1 자격증명');
     expect(schemaKeyLabel('languageTests.2.score')).toBe('어학 3 점수');
+    expect(schemaKeyLabel('work.0.current')).toBe('경력 1 재직 중');
     expect(schemaKeyLabel('unknown.key')).toBe('unknown.key');
   });
 

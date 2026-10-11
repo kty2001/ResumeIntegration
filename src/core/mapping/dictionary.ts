@@ -13,6 +13,7 @@ export interface FieldRule {
   pattern: RegExp;
   exclude?: RegExp;
   section?: RuleSection;    // 지정 시 해당 섹션 문맥에서만 검사
+  checkbox?: true;          // boolean 키: checkbox 입력란에만 적용 (checkbox는 이 규칙만 검사)
 }
 
 // 섹션 판별: 입력란 텍스트 → 섹션 텍스트(fieldset legend·직전 제목) 순, 두 섹션이 함께 걸리면 판별 보류
@@ -106,6 +107,7 @@ export const SECTION_FIELD_RULES: FieldRule[] = [
     pattern: /학교|대학|school|university|college/i,
     exclude: ENUM_LABEL,
   },
+  { section: 'education', schemaKey: 'education.*.transfer', autocomplete: [], pattern: /편입|transfer/i, checkbox: true },
   // 경력
   {
     section: 'work',
@@ -155,6 +157,13 @@ export const SECTION_FIELD_RULES: FieldRule[] = [
     autocomplete: [],
     pattern: /회사|직장|company/i,
     exclude: /주소|전화|규모|업종|size|industry|구분|형태|유형|type|소재|location/i,
+  },
+  {
+    section: 'work',
+    schemaKey: 'work.*.current',
+    autocomplete: [],
+    pattern: /재직\s*중|현재\s*(재직|근무)|근무\s*중|current|present/i,
+    checkbox: true,
   },
   // 자격증
   {

@@ -121,14 +121,21 @@ export default function App() {
 
   // 복사·표시용 값: enum 코드는 표시명으로
   const valueOf = (schemaKey?: string) => (resume && schemaKey ? resolveValue(resume, schemaKey, { widget: 'text' }) : undefined);
-  // 확인 필요 행 값: 입력란 형식으로 변환, select·radio는 선택지 value 대신 표시명
-  const failedValue = (f: ReportField) =>
-    resume && f.schemaKey ? resolveValue(resume, f.schemaKey, isChoiceWidget(f.hint.widget) ? { widget: 'text' } : f.hint) : undefined;
+  // 확인 필요 행 값: 입력란 형식으로 변환, select·radio는 선택지 value 대신 표시명, checkbox는 체크 여부
+  const failedValue = (f: ReportField) => {
+    if (!resume || !f.schemaKey) return undefined;
+    const value = resolveValue(resume, f.schemaKey, isChoiceWidget(f.hint.widget) ? { widget: 'text' } : f.hint);
+    if (f.hint.widget !== 'checkbox' || !value) return value;
+    return value === 'true' ? '체크' : '체크 해제';
+  };
   const byStatus = (status: ReportField['status']) => report?.fields.filter((f) => f.status === status) ?? [];
   const filled = byStatus('filled');
   const failed = byStatus('failed');
   const unmatched = byStatus('unmatched');
   const copyable = resume ? schemaKeyOptions(resume).filter(([key]) => valueOf(key)) : [];
+  // checkbox 입력란은 boolean 값이 있는 항목만 선택 (텍스트 값 항목은 입력 불가)
+  const checkable = resume ? schemaKeyOptions(resume).filter(([key]) => resolveValue(resume, key, { widget: 'checkbox' })) : [];
+  const fillOptions = (f: ReportField) => (f.hint.widget === 'checkbox' ? checkable : copyable);
 
   const undo = async () => {
     const r = await sendMessage('undo');
@@ -186,7 +193,7 @@ export default function App() {
                     {f.schemaKey && f.hint.options?.length ? (
                       <OptionControls field={{ ...f, schemaKey: f.schemaKey }} notify={setNotice} />
                     ) : (
-                      <FillControls field={f} options={copyable} notify={setNotice} />
+                      <FillControls field={f} options={fillOptions(f)} notify={setNotice} />
                     )}{' '}
                     <button onClick={() => void skip(f.fieldId)}>건너뛰기</button>
                   </ValueRow>
@@ -217,7 +224,7 @@ export default function App() {
                   <li key={f.fieldId} style={{ marginBottom: 6 }}>
                     {f.label}
                     <div>
-                      <FillControls field={f} options={copyable} notify={setNotice} />
+                      <FillControls field={f} options={fillOptions(f)} notify={setNotice} />
                     </div>
                   </li>
                 ))}

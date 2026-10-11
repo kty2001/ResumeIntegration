@@ -1,5 +1,5 @@
 import type { ReportField } from '@/messaging/protocol';
-import { isRadio, radioGroup, type FillElement } from './collect';
+import { isCheckbox, isRadio, radioGroup, type FillElement } from './collect';
 
 // 입력란 위치 하이라이트: docs/design/architecture.md 4장
 // 페이지 요소 스타일은 변경하지 않고 Shadow Root 안의 고정 위치 테두리 박스로 표시
@@ -29,10 +29,11 @@ let host: HTMLDivElement | null = null;
 let boxes: [FillElement, HTMLDivElement][] = [];
 let frame = 0;
 
-/** radio는 그룹 radio·label 전체를 감싸는 사각형 */
+/** radio는 그룹 radio·label 전체, checkbox는 자신·label을 감싸는 사각형 (숨긴 native 입력란 대응) */
 function rectOf(el: FillElement): DOMRect {
-  if (!isRadio(el)) return el.getBoundingClientRect();
-  const rects = radioGroup(el)
+  const parts: HTMLInputElement[] | undefined = isRadio(el) ? radioGroup(el) : isCheckbox(el) ? [el] : undefined;
+  if (!parts) return el.getBoundingClientRect();
+  const rects = parts
     .flatMap((r) => [r, ...(r.labels ?? [])])
     .map((e) => e.getBoundingClientRect())
     .filter((r) => r.width > 0 && r.height > 0);

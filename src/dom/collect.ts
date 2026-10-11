@@ -1,7 +1,8 @@
 import type { FieldDescriptor, PageDetails } from '@/messaging/protocol';
 
 // 필드 수집 (Page Details): docs/design/architecture.md 5장
-// 현재 범위: 최상위 문서의 text·textarea·date 입력란, 기본 select, radio 그룹(같은 form·name → 입력란 1개)
+// 현재 범위: 최상위 문서의 text·textarea·date 입력란, 기본 select, radio 그룹(같은 form·name → 입력란 1개),
+// 단일 checkbox(개별 입력란, 값 'true'/'false')
 
 export type TextElement = HTMLInputElement | HTMLTextAreaElement;
 /** radio 그룹은 그룹의 첫 radio로 보관 */
@@ -21,6 +22,10 @@ export function isRadio(el: Element): el is HTMLInputElement & { type: 'radio' }
   return el instanceof HTMLInputElement && el.type === 'radio';
 }
 
+export function isCheckbox(el: Element): el is HTMLInputElement & { type: 'checkbox' } {
+  return el instanceof HTMLInputElement && el.type === 'checkbox';
+}
+
 /** 같은 form·name의 radio (문서 순서) */
 export function radioGroup(el: HTMLInputElement): HTMLInputElement[] {
   return Array.from(document.querySelectorAll<HTMLInputElement>('input[type=radio]')).filter(
@@ -34,8 +39,8 @@ function isVisible(el: Element): boolean {
 
 function isFillable(el: FillElement): boolean {
   if (el.disabled) return false;
-  // 커스텀 디자인은 radio를 숨기고 label만 표시 → label이 보여도 입력 가능
-  if (isRadio(el)) return isVisible(el) || [...(el.labels ?? [])].some(isVisible);
+  // 커스텀 디자인은 radio·checkbox를 숨기고 label만 표시 → label이 보여도 입력 가능
+  if (isRadio(el) || isCheckbox(el)) return isVisible(el) || [...(el.labels ?? [])].some(isVisible);
   if (el instanceof HTMLInputElement && !TEXT_INPUT_TYPES.has(el.type)) return false;
   if (!(el instanceof HTMLSelectElement) && el.readOnly) return false;
   return isVisible(el);
@@ -78,6 +83,7 @@ const HEADING = /^H[1-6]$/;
 function widgetOf(el: FillElement): FieldDescriptor['widget'] {
   if (el instanceof HTMLSelectElement) return 'select';
   if (el instanceof HTMLTextAreaElement) return 'textarea';
+  if (isCheckbox(el)) return 'checkbox';
   return el.type === 'date' ? 'date' : 'text';
 }
 

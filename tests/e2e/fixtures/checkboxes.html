@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>checkbox fixture</title>
+  <style>
+    /* 커스텀 디자인: native checkbox 숨김, label만 표시 */
+    .custom input[type=checkbox] { display: none; }
+  </style>
+</head>
+<body>
+  <form onsubmit="return false">
+    <h2>경력사항</h2>
+    <p><label for="company">회사명</label> <input id="company" name="company"></p>
+    <p class="custom"><input type="checkbox" id="current" name="current"><label for="current">재직중</label></p>
+
+    <h2>학력사항</h2>
+    <p><label for="school">학교명</label> <input id="school" name="school"></p>
+    <!-- 기본 체크 → 이력서 값 false면 해제 -->
+    <p><label><input type="checkbox" id="transfer" name="transfer" checked> 편입</label></p>
+
+    <h2>약관</h2>
+    <!-- 매칭 규칙 없음 → 해당 없음 -->
+    <p><label><input type="checkbox" id="agree" name="agree"> 개인정보 수집 동의</label></p>
+  </form>
+</body>
+</html>

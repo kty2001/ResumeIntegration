@@ -23,14 +23,18 @@ export function matchField(
   const fingerprint = learned && fieldFingerprint(field);
   const rule = fingerprint && learned.get(fingerprint);
   if (rule) return { schemaKey: rule.schemaKey, source: 'learned', option: rule.option };
-  if (field.autocomplete) {
+  const checkbox = field.widget === 'checkbox';
+  if (field.autocomplete && !checkbox) {
     const ac = normalizeAutocomplete(field.autocomplete);
     const rule = FIELD_RULES.find((r) => r.autocomplete.includes(ac));
     if (rule) return { schemaKey: rule.schemaKey, source: 'autocomplete' };
   }
   // 섹션이 판별되면 해당 섹션 규칙만, 아니면 basics 규칙만 검사 (섹션 안 '주소' 등의 basics 오입력 방지)
+  // checkbox는 boolean 규칙만, 그 외는 boolean 규칙 제외 ('이메일 수신 동의' 오매칭·반복 인덱스 밀림 방지)
   const section = detectSection(field);
-  const rules = section ? SECTION_FIELD_RULES.filter((r) => r.section === section) : FIELD_RULES;
+  const rules = (section ? SECTION_FIELD_RULES.filter((r) => r.section === section) : FIELD_RULES).filter(
+    (r) => !!r.checkbox === checkbox,
+  );
   // 신뢰도 높은 텍스트부터 검사
   const texts = [field.label, field.ariaLabel, field.placeholder, field.name, field.id];
   for (const text of texts) {
@@ -52,13 +56,18 @@ export function detectSection(field: FieldDescriptor): RuleSection | undefined {
   return undefined;
 }
 
-/** 'basics.name.ko' 같은 점 경로로 이력서 값 조회 (비어 있으면 undefined) */
-export function getValueByKey(resume: Resume, schemaKey: string): string | undefined {
+function getByPath(resume: Resume, schemaKey: string): unknown {
   let cur: unknown = resume;
   for (const part of schemaKey.split('.')) {
     if (cur == null || typeof cur !== 'object') return undefined;
     cur = (cur as Record<string, unknown>)[part];
   }
+  return cur;
+}
+
+/** 'basics.name.ko' 같은 점 경로로 이력서 값 조회 (비어 있으면 undefined) */
+export function getValueByKey(resume: Resume, schemaKey: string): string | undefined {
+  const cur = getByPath(resume, schemaKey);
   if (typeof cur === 'number') return String(cur);
   return typeof cur === 'string' && cur.trim() ? cur : undefined;
 }
@@ -77,6 +86,7 @@ function learnedOptionValue(value: string, hint: FormatHint, option?: LearnedMat
 
 /**
  * 이력서 값을 입력란 형식으로 변환해 조회. select·radio는 선택지 value(학습 선택지 우선), 텍스트 입력란의 enum 값은 표시명
+ * checkbox는 boolean 값만 'true'/'false'
  * option: 학습 규칙의 선택지 (matchField 반환값)
  */
 export function resolveValue(
@@ -85,6 +95,10 @@ export function resolveValue(
   hint: FormatHint,
   option?: LearnedMatch['option'],
 ): string | undefined {
+  if (hint.widget === 'checkbox') {
+    const flag = getByPath(resume, schemaKey);
+    return typeof flag === 'boolean' ? String(flag) : undefined;
+  }
   const value = getValueByKey(resume, schemaKey);
   if (!value) return undefined;
   if (isChoiceWidget(hint.widget))

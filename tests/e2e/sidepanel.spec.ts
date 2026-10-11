@@ -300,3 +300,37 @@ test('radio 그룹 자동 선택 + 선택지 불일치 직접 선택·학습 + �
   await expect(page.locator('input[name=grad][value="3"]')).toBeChecked();
   await expect(page.locator('input[name=level]:checked')).toHaveCount(0);
 });
+
+test('checkbox boolean 항목 체크·해제 + 직접 입력 선택 목록 + 되돌리기', async ({ context, worker, extensionId }) => {
+  const data: Resume = {
+    ...resume,
+    work: [{ id: 'w1', company: { ko: '가나다전자' }, startDate: '2022-03', current: true }],
+    education: [{ id: 'e1', level: 'university', school: { ko: '한국대학교' }, status: 'graduated', transfer: false }],
+  };
+  const { page } = await runFill(context, worker, extensionId, 'checkboxes.html', '입력 완료 4개 · 입력 실패 0개 · 해당 없음 1개', data);
+
+  // 숨긴 checkbox(label만 표시) 체크, 기본 체크된 '편입'은 이력서 값 false로 해제
+  await expect(page.locator('#company')).toHaveValue('가나다전자');
+  await expect(page.locator('#current')).toBeChecked();
+  await expect(page.locator('#school')).toHaveValue('한국대학교');
+  await expect(page.locator('#transfer')).not.toBeChecked();
+  await expect(page.locator('#agree')).not.toBeChecked();
+
+  // 해당 없음 checkbox: 이력서 항목 선택 목록은 boolean 항목만
+  const panel = await context.newPage();
+  await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+  await panel.getByText('해당 없음 1개').click();
+  const select = panel.getByLabel('개인정보 수집 동의 이력서 항목');
+  await expect(select.locator('option')).toHaveText(['이력서 항목 선택', '학력 1 편입', '경력 1 재직 중']);
+  await select.selectOption({ label: '경력 1 재직 중' });
+  await panel.getByRole('listitem').filter({ hasText: '개인정보 수집 동의' }).getByRole('button', { name: '입력' }).click();
+  await expect(panel.getByText('입력 완료 5 · 확인 필요 0 · 해당 없음 0')).toBeVisible();
+  await expect(page.locator('#agree')).toBeChecked();
+
+  // 되돌리기: 입력 전 체크 상태 복원
+  await panel.getByRole('button', { name: '되돌리기' }).click();
+  await expect(panel.getByText('5개 되돌림')).toBeVisible();
+  await expect(page.locator('#current')).not.toBeChecked();
+  await expect(page.locator('#transfer')).toBeChecked();
+  await expect(page.locator('#agree')).not.toBeChecked();
+});
