@@ -99,6 +99,30 @@ test('자기소개서 라이브러리: 추가·글자수·검색·복제·삭제
   await expect.poll(async () => (await stored()).map((e) => e.question)).toEqual(['지원 동기를 기술해 주십시오']);
 });
 
+test('설정: 자동 입력 제외 사이트 추가·중복·형식 오류·삭제', async ({ context, worker, extensionId }) => {
+  const sites = () =>
+    worker.evaluate(async () => ((await chrome.storage.local.get('settings')).settings as { excludedSites: string[] } | undefined)?.excludedSites ?? []);
+  const options = await context.newPage();
+  await options.goto(`chrome-extension://${extensionId}/options.html#settings`);
+  await expect(options.getByRole('row').filter({ hasText: 'linkedin.com' })).toContainText('기본');
+
+  const input = options.getByLabel('제외할 사이트');
+  await input.fill('https://www.Example.com/jobs');
+  await input.press('Enter');
+  await expect(options.getByRole('row').filter({ hasText: 'example.com' })).toContainText('직접 추가');
+  await expect.poll(sites).toEqual(['example.com']);
+
+  await input.fill('example.com');
+  await options.getByRole('button', { name: '추가' }).click();
+  await expect(options.getByRole('status')).toHaveText('example.com은(는) 이미 제외 목록에 있습니다.');
+  await input.fill('example');
+  await options.getByRole('button', { name: '추가' }).click();
+  await expect(options.getByRole('status')).toHaveText('도메인 형식이 아닙니다. 예: example.com');
+
+  await options.getByRole('row').filter({ hasText: 'example.com' }).getByRole('button', { name: '삭제' }).click();
+  await expect.poll(sites).toEqual([]);
+});
+
 test('팝업 이력서 없음 → JSON 가져오기 → 옵션 백업 화면', async ({ context, extensionId }) => {
   const popup = await context.newPage();
   await popup.goto(`chrome-extension://${extensionId}/popup.html`);

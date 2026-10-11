@@ -112,6 +112,12 @@ test('사이드 패널 직접 입력·입력란 이동·위치 표시·되돌리
   await expect(boxes).toHaveCount(0);
 });
 
+test('설정에서 제외한 사이트는 입력하지 않음', async ({ context, worker, extensionId }) => {
+  await worker.evaluate(() => chrome.storage.local.set({ settings: { excludedSites: ['localhost'] } }));
+  const { page } = await runFill(context, worker, extensionId, 'basics.html', '설정에서 자동 입력을 제외한 사이트입니다.');
+  await expect(page.locator('#nm')).toHaveValue('');
+});
+
 test('사이드 패널 건너뛰기·다시 작성', async ({ context, worker, extensionId }) => {
   const { page } = await runFill(context, worker, extensionId);
   const panel = await context.newPage();

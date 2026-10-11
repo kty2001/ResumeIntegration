@@ -14,7 +14,7 @@ import {
   type StartFillResponse,
   type UndoResponse,
 } from '@/messaging/protocol';
-import { coverLettersItem, fillReportItem, learnedRulesItem, resumeItem } from '@/storage/items';
+import { coverLettersItem, fillReportItem, learnedRulesItem, resumeItem, settingsItem } from '@/storage/items';
 
 // 자동 입력 흐름: docs/design/architecture.md 7.1 (현재 최상위 프레임만 처리)
 // 사이드 패널 동작(fillOne·fillAnswer·focusField·highlight·undo): 7.2·7.3, 대상 탭은 session:fillReport의 tabId
@@ -25,6 +25,10 @@ async function startFill(tabId: number): Promise<StartFillResponse> {
   if (tab.url && isExcluded(tab.url)) {
     await fillReportItem.setValue(null);
     return { status: 'excluded' };
+  }
+  if (tab.url && isExcluded(tab.url, (await settingsItem.getValue()).excludedSites)) {
+    await fillReportItem.setValue(null);
+    return { status: 'user-excluded' };
   }
   const resume = await resumeItem.getValue();
   if (!resume) {

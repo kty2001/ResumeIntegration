@@ -10,6 +10,7 @@ import { LanguageSection } from './sections/LanguageSection';
 import { MilitarySection } from './sections/MilitarySection';
 import { ProjectSection } from './sections/ProjectSection';
 import { RulesSection } from './sections/RulesSection';
+import { SettingsSection } from './sections/SettingsSection';
 import { WorkSection } from './sections/WorkSection';
 import { saveStatusText as statusText, useResume } from './useResume';
 
@@ -25,6 +26,7 @@ const SECTIONS: { id: string; title: string; component: ComponentType<SectionPro
   { id: 'desired', title: '희망 조건', component: DesiredSection },
   { id: 'cover', title: '자기소개서', component: CoverLetterSection },
   { id: 'rules', title: '학습 규칙', component: RulesSection },
+  { id: 'settings', title: '설정', component: SettingsSection },
   { id: 'backup', title: '백업', component: BackupSection },
 ];
 

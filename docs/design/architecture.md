@@ -197,7 +197,7 @@ Popup '작성' 클릭 (activeTab 부여)
 ## 9. 사이트 정책
 - 기본 제외 목록: `linkedin.com` (이용약관상 확장 프로그램의 활동 자동화·화면 변경 금지, [05 보고서](../reports/05_privacy_and_policy.md) 4.1)
 - 제외 사이트에서는 filler 미주입, 사이드 패널에서 이력서 항목 복사 기능만 제공
-- 사용자 추가 제외 목록 지원
+- 사용자 추가 제외 목록 지원 (옵션 '설정' → `local:settings.excludedSites`, `startFill`이 `user-excluded` 반환)
 
 ## 10. 확인 필요 사항
 - Isolated world(content script 기본 실행 환경)에서 React 제어 input 값 반영 여부 → fixture로 검증, 필요 시 해당 로직만 main world 주입

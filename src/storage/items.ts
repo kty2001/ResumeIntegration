@@ -16,6 +16,15 @@ export const coverLettersItem = storage.defineItem<CoverLetterEntry[]>('local:co
   version: SCHEMA_VERSION,
 });
 
+/** 사용자 설정 (옵션 '설정'). 항목 추가 시 fallback에 기본값 추가 */
+export interface Settings {
+  excludedSites: string[];  // 기본 제외 목록(site-policy) 외 사용자 추가 제외 도메인
+}
+
+export const settingsItem = storage.defineItem<Settings>('local:settings', {
+  fallback: { excludedSites: [] },
+});
+
 // 사이드 패널 직접 입력으로 학습한 규칙 (매핑 1순위)
 export const learnedRulesItem = storage.defineItem<LearnedRule[]>('local:learnedRules', {
   fallback: [],
