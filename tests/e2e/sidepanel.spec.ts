@@ -133,13 +133,20 @@ test('사이드 패널 건너뛰기·다시 작성', async ({ context, worker, e
   await expect(page.locator('#nm')).toHaveValue('홍길동');
 });
 
-test('입력란 형식 신호에 따라 날짜·전화번호 변환', async ({ context, worker, extensionId }) => {
-  const { page } = await runFill(context, worker, extensionId, 'formats.html', '입력 완료 5개 · 입력 실패 0개 · 해당 없음 0개');
+test('입력란 형식 신호에 따라 날짜·전화번호 변환 + 분리 입력', async ({ context, worker, extensionId }) => {
+  const { page } = await runFill(context, worker, extensionId, 'formats.html', '입력 완료 11개 · 입력 실패 0개 · 해당 없음 0개');
   await expect(page.locator('#birth-dot')).toHaveValue('1995.03.15');
   await expect(page.locator('#birth-8')).toHaveValue('19950315');
   await expect(page.locator('#birth-date')).toHaveValue('1995-03-15');
   await expect(page.locator('#phone-hyphen')).toHaveValue('010-1234-5678');
   await expect(page.locator('#phone-digits')).toHaveValue('01012345678');
+  // 분리 입력: 전화번호 3칸, 연·월·일 select
+  await expect(page.locator('#hp1')).toHaveValue('010');
+  await expect(page.locator('#hp2')).toHaveValue('1234');
+  await expect(page.locator('#hp3')).toHaveValue('5678');
+  await expect(page.locator('#by')).toHaveValue('1995');
+  await expect(page.locator('#bm')).toHaveValue('3');
+  await expect(page.locator('#bd')).toHaveValue('15');
 });
 
 test('섹션 문맥으로 학력·경력·자격증·어학·병역 항목 입력 + 날짜 변환 + select 선택', async ({ context, worker, extensionId }) => {

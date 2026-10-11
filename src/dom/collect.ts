@@ -178,5 +178,28 @@ export function collectPageDetails(): PageDetails {
     elements.set(fieldId, el);
     fields.push({ fieldId, ...descriptor });
   });
+  assignClusters(fields);
   return { url: location.origin + location.pathname, fields };
+}
+
+/**
+ * 분리 입력 묶음: 가까운 조상(3단계 이내) 중 처음으로 다른 입력란도 담은 요소가
+ * 입력란 2~6개만 담으면 같은 묶음 (폼 전체 같은 큰 컨테이너는 제외)
+ */
+function assignClusters(fields: FieldDescriptor[]): void {
+  const els = fields.map((f) => elements.get(f.fieldId)!);
+  const ids = new Map<Element, string>();
+  fields.forEach((field, i) => {
+    let ancestor = els[i]!.parentElement;
+    for (let depth = 0; ancestor && depth < 3; depth++, ancestor = ancestor.parentElement) {
+      const container = ancestor;
+      const count = els.filter((e) => container.contains(e)).length;
+      if (count < 2) continue;
+      if (count <= 6) {
+        if (!ids.has(container)) ids.set(container, String(ids.size));
+        field.cluster = ids.get(container);
+      }
+      return;
+    }
+  });
 }

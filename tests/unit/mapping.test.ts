@@ -316,6 +316,83 @@ describe('mapFields', () => {
     expect(plan.unmatched).toEqual(['2']);
   });
 
+  describe('분리 입력', () => {
+    const r = createEmptyResume();
+    r.basics.phone = { mobile: '010-1234-5678' };
+    r.basics.birthDate = '1995-03-15';
+    r.education = [{ id: 'e1', level: 'university', school: { ko: '한국대학교' }, status: 'graduated', startDate: '2014-03', endDate: '2020-02' }];
+    const numbers = (from: number, to: number, text = (n: number) => String(n)) =>
+      Array.from({ length: to - from + 1 }, (_, k) => ({ value: String(from + k), text: text(from + k) }));
+    const values = (plan: ReturnType<typeof mapFields>) => plan.items.map((i) => [i.fieldId, i.schemaKey, i.value]);
+
+    it('전화번호 3칸: 국번 select + 4자리 칸 2개 (뒤 칸은 미매칭)', () => {
+      const plan = mapFields(
+        [
+          field({ fieldId: '0', label: '휴대폰', widget: 'select', cluster: 'c', options: [{ value: '010', text: '010' }, { value: '011', text: '011' }] }),
+          field({ fieldId: '1', name: 'hp2', maxLength: 4, cluster: 'c' }),
+          field({ fieldId: '2', name: 'hp3', maxLength: 4, cluster: 'c' }),
+        ],
+        r,
+      );
+      expect(values(plan)).toEqual([
+        ['0', 'basics.phone.mobile', '010'],
+        ['1', 'basics.phone.mobile', '1234'],
+        ['2', 'basics.phone.mobile', '5678'],
+      ]);
+    });
+
+    it('생년월일 연·월·일 select: 숫자로 선택지 매칭', () => {
+      const plan = mapFields(
+        [
+          field({ fieldId: '0', label: '생년월일', widget: 'select', cluster: 'b', options: numbers(1990, 1999, (n) => `${n}년`) }),
+          field({ fieldId: '1', name: 'birth_m', widget: 'select', cluster: 'b', options: numbers(1, 12, (n) => `${n}월`) }),
+          field({ fieldId: '2', name: 'birth_d', widget: 'select', cluster: 'b', options: numbers(1, 31, (n) => String(n).padStart(2, '0')) }),
+        ],
+        r,
+      );
+      expect(values(plan)).toEqual([
+        ['0', 'basics.birthDate', '1995'],
+        ['1', 'basics.birthDate', '3'],
+        ['2', 'basics.birthDate', '15'],
+      ]);
+    });
+
+    it('한 묶음 안 입학·졸업 연/월 칸: 키별로 나눠 같은 인덱스', () => {
+      const plan = mapFields(
+        [
+          field({ fieldId: '0', label: '입학년월', section: '학력사항', maxLength: 4, cluster: 'e' }),
+          field({ fieldId: '1', name: 'in_m', section: '학력사항', maxLength: 2, cluster: 'e' }),
+          field({ fieldId: '2', label: '졸업년월', section: '학력사항', maxLength: 4, cluster: 'e' }),
+          field({ fieldId: '3', name: 'out_m', section: '학력사항', maxLength: 2, cluster: 'e' }),
+        ],
+        r,
+      );
+      expect(values(plan)).toEqual([
+        ['0', 'education.0.startDate', '2014'],
+        ['1', 'education.0.startDate', '03'],
+        ['2', 'education.0.endDate', '2020'],
+        ['3', 'education.0.endDate', '02'],
+      ]);
+    });
+
+    it('짧은 칸이 아니거나 묶음이 아니면 분할하지 않음', () => {
+      const plan = mapFields(
+        [
+          field({ fieldId: '0', label: '휴대폰', cluster: 'c' }),
+          field({ fieldId: '1', name: 'memo', maxLength: 4, cluster: 'c' }),
+          field({ fieldId: '2', label: '생년월일', maxLength: 4 }),
+          field({ fieldId: '3', name: 'x', maxLength: 2 }),
+        ],
+        r,
+      );
+      expect(values(plan)).toEqual([
+        ['0', 'basics.phone.mobile', '010-1234-5678'],
+        ['2', 'basics.birthDate', '1995-03-15'],
+      ]);
+      expect(plan.unmatched).toEqual(['1', '3']);
+    });
+  });
+
   it('select 학습 선택지: 이력서 값이 학습 당시와 같을 때만 적용, 선택지 없으면 사전 매칭', () => {
     const r = createEmptyResume();
     r.education = [{ id: 'e1', level: 'university', school: { ko: '한국대학교' }, status: 'graduated' }];

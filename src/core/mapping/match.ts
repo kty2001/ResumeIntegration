@@ -1,5 +1,6 @@
 import type { Resume } from '@/core/schema/resume';
 import { formatValue } from '@/core/format';
+import { isSplitPart, partValue, splitValue } from '@/core/format/split';
 import type { FieldDescriptor, FillPlan, FormatHint, MatchSource, WidgetKind } from '@/messaging/protocol';
 import { FIELD_RULES, SECTION_FIELD_RULES, SECTION_RULES, type RuleSection } from './dictionary';
 import { fieldFingerprint, type LearnedMatch } from './learned';
@@ -125,25 +126,71 @@ export function resolveValue(
   return values.map((value) => enumLabel(schemaKey, value) ?? formatValue(schemaKey, value, hint)).join(', ');
 }
 
+type FieldMatch = ReturnType<typeof matchField>;
+
+/**
+ * 분리 입력 묶음: 매칭된 짧은 칸과 같은 cluster에서 연속한 짧은 칸(앞쪽은 미매칭, 뒤쪽은 미매칭 또는 같은 키)
+ * → 입력란 인덱스별 묶음 구성원 (2칸 이상만)
+ */
+function splitRuns(fields: FieldDescriptor[], matches: FieldMatch[]): Map<number, number[]> {
+  const runOf = new Map<number, number[]>();
+  const joinable = (j: number, cluster: string, key?: string) => {
+    const field = fields[j];
+    if (!field || runOf.has(j) || field.cluster !== cluster || !isSplitPart(field)) return false;
+    return !matches[j] || (key !== undefined && matches[j]!.schemaKey === key);
+  };
+  fields.forEach((field, i) => {
+    const key = matches[i]?.schemaKey;
+    if (!key || !field.cluster || runOf.has(i) || !isSplitPart(field)) return;
+    let start = i;
+    while (joinable(start - 1, field.cluster)) start--;
+    let end = i + 1;
+    while (joinable(end, field.cluster, key)) end++;
+    if (end - start < 2) return;
+    const run = Array.from({ length: end - start }, (_, k) => start + k);
+    for (const j of run) runOf.set(j, run);
+  });
+  return runOf;
+}
+
 export function mapFields(fields: FieldDescriptor[], resume: Resume, learned?: Map<string, LearnedMatch>): FillPlan {
   const skipped: NonNullable<FillPlan['skipped']> = [];
   const plan: FillPlan = { items: [], unmatched: [], skipped };
-  // 반복 항목 키('education.*.school.ko')는 페이지 등장 순서대로 인덱스 부여
+  const matches = fields.map((field) => matchField(field, learned));
+  const runOf = splitRuns(fields, matches);
+  // 반복 항목 키('education.*.school.ko')는 페이지 등장 순서대로 인덱스 부여 (분리 입력 묶음은 하나로)
   const counts = new Map<string, number>();
-  for (const field of fields) {
-    const match = matchField(field, learned);
-    let schemaKey = match?.schemaKey;
+  const keys: (string | undefined)[] = [];
+  const runMatch = (run: number[]) => run.map((j) => matches[j]).find((m) => m)!;
+  fields.forEach((_, i) => {
+    const run = runOf.get(i);
+    if (run && run[0] !== i) {
+      keys[i] = keys[run[0]!];
+      return;
+    }
+    let schemaKey = (run ? runMatch(run) : matches[i])?.schemaKey;
     if (schemaKey?.includes('*')) {
       const index = counts.get(schemaKey) ?? 0;
       counts.set(schemaKey, index + 1);
       schemaKey = schemaKey.replace('*', String(index));
     }
-    const value = schemaKey && resolveValue(resume, schemaKey, field, match?.option);
+    keys[i] = schemaKey;
+  });
+
+  fields.forEach((field, i) => {
+    const run = runOf.get(i);
+    const parts = run && splitValue(keys[i]!, getValueByKey(resume, keys[i]!) ?? '', run.length);
+    // 분할 실패 시 묶음 구성원은 자기 매칭대로 (미매칭 칸은 해당 없음)
+    const match = parts ? runMatch(run!) : matches[i];
+    const schemaKey = match ? keys[i] : undefined;
+    const value = parts
+      ? partValue(parts[run!.indexOf(i)]!, field)
+      : schemaKey && resolveValue(resume, schemaKey, field, match?.option);
     if (match && schemaKey && value) plan.items.push({ fieldId: field.fieldId, schemaKey, value, source: match.source });
     // 이력서 값은 있지만 맞는 선택지 없음 → '확인 필요'로 사이드 패널에서 직접 선택
     else if (schemaKey && isChoiceWidget(field.widget) && getValueByKey(resume, schemaKey))
       skipped.push({ fieldId: field.fieldId, schemaKey, reason: 'no-option' });
     else plan.unmatched.push(field.fieldId);
-  }
+  });
   return plan;
 }

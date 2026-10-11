@@ -18,6 +18,7 @@ export interface FieldDescriptor {
   maxLength?: number;
   section?: string;         // 소속 섹션 텍스트 (fieldset legend → 직전 제목)
   options?: { value: string; text: string }[]; // select·radio·checkbox 그룹 선택지 (페이지 정보, 이력서 값 아님)
+  cluster?: string;         // 같은 묶음(가까운 공통 조상)의 입력란 식별자 — 분리 입력(전화번호 3칸 등) 판별용
 }
 
 /** 형식 변환(core/format) 판단에 쓰는 입력란 정보 */

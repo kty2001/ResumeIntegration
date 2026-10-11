@@ -13,6 +13,28 @@
     <p><label for="birth-date">생년월일 선택</label> <input id="birth-date" type="date"></p>
     <p><label for="phone-hyphen">휴대폰</label> <input id="phone-hyphen" type="tel" placeholder="010-0000-0000"></p>
     <p><label for="phone-digits">연락처</label> <input id="phone-digits" placeholder="'-' 없이 입력"></p>
+    <!-- 분리 입력: 국번 select + 4자리 칸 2개 (뒤 칸은 라벨 없음) -->
+    <p>
+      <label for="hp1">휴대폰 번호</label>
+      <select id="hp1" name="hp1"><option value="">선택</option><option>010</option><option>011</option></select>
+      - <input id="hp2" name="hp2" maxlength="4"> - <input id="hp3" name="hp3" maxlength="4">
+    </p>
+    <!-- 분리 입력: 연·월·일 select -->
+    <p>
+      <label for="by">생년월일 (연·월·일)</label>
+      <select id="by" name="by"><option value="">년</option></select>
+      <select id="bm" name="bm"><option value="">월</option></select>
+      <select id="bd" name="bd"><option value="">일</option></select>
+    </p>
   </form>
+  <script>
+    const fill = (id, from, to, text) => {
+      const select = document.getElementById(id);
+      for (let n = from; n <= to; n++) select.add(new Option(text(n), String(n)));
+    };
+    fill('by', 1980, 2005, (n) => `${n}년`);
+    fill('bm', 1, 12, (n) => `${n}월`);
+    fill('bd', 1, 31, (n) => String(n).padStart(2, '0'));
+  </script>
 </body>
 </html>
