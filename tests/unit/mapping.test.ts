@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { fieldFingerprint } from '@/core/mapping/learned';
-import { detectSection, getValueByKey, mapFields, matchField } from '@/core/mapping/match';
+import { detectSection, getValueByKey, keyForValue, mapFields, matchField } from '@/core/mapping/match';
 import { createEmptyResume } from '@/core/schema/empty';
 import { schemaKeyLabel, schemaKeyOptions } from '@/core/schema/labels';
 import { isExcluded } from '@/core/site-policy';
@@ -409,6 +409,20 @@ describe('mapFields', () => {
     // 학습한 텍스트의 선택지가 사라지면 사전 매칭
     const noLearnedText = { ...level, options: [{ value: 'B', text: '대학교(4년)' }] };
     expect(mapFields([noLearnedText], r, learned('university')).items[0]?.value).toBe('B');
+  });
+
+  it('keyForValue: 입력란 형식으로 같은 값인 이력서 항목이 하나일 때만', () => {
+    const r = createEmptyResume();
+    r.basics.email = 'hong@example.com';
+    r.basics.phone = { mobile: '010-1234-5678', home: '010-1234-5678' };
+    r.basics.gender = 'female';
+    r.basics.address = { line2: '101호' };
+    expect(keyForValue(r, ' hong@example.com ', { widget: 'text' })).toBe('basics.email');
+    expect(keyForValue(r, '101호', { widget: 'text' })).toBe('basics.address.line2');
+    // 휴대폰·자택 전화가 같은 값 → 판단 보류
+    expect(keyForValue(r, '010-1234-5678', { widget: 'text' })).toBeUndefined();
+    expect(keyForValue(r, 'F', { widget: 'select', options: [{ value: 'M', text: '남' }, { value: 'F', text: '여' }] })).toBe('basics.gender');
+    expect(keyForValue(r, '직접 쓴 값', { widget: 'text' })).toBeUndefined();
   });
 
   it('getValueByKey: 없는 경로·빈 문자열은 undefined', () => {

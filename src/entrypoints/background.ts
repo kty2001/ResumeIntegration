@@ -1,5 +1,5 @@
 import { rulesForOrigin, upsertRule, type LearnedRule } from '@/core/mapping/learned';
-import { getValueByKey, mapFields, resolveValue } from '@/core/mapping/match';
+import { getValueByKey, keyForValue, mapFields, resolveValue } from '@/core/mapping/match';
 import { applyFillOne, buildFillReport } from '@/core/mapping/report';
 import { isExcluded } from '@/core/site-policy';
 import {
@@ -16,7 +16,7 @@ import { fillReportItem, learnedRulesItem, resumeItem } from '@/storage/items';
 
 // 자동 입력 흐름: docs/design/architecture.md 7.1 (현재 최상위 프레임만 처리)
 // 사이드 패널 동작(fillOne·focusField·highlight·undo): 7.2·7.3, 대상 탭은 session:fillReport의 tabId
-// fillOne 성공 시 학습 규칙 저장 → 다음 startFill에서 매핑 1순위
+// fillOne 성공·페이지 직접 수정(userEdit) 시 학습 규칙 저장 → 다음 startFill에서 매핑 1순위
 
 async function startFill(tabId: number): Promise<StartFillResponse> {
   const tab = await browser.tabs.get(tabId);
@@ -92,6 +92,27 @@ async function fillOne(fieldId: string, schemaKey: string, optionValue?: string)
   return { status: 'ok' };
 }
 
+/**
+ * 사용자가 페이지에서 직접 바꾼 값이 이력서 항목 하나와 같으면 그 항목으로 입력 완료 처리 + 학습
+ * (checkbox는 true/false 값이 여러 항목과 겹쳐 제외)
+ */
+async function userEdit(tabId: number | undefined, fieldId: string, value: string): Promise<void> {
+  const report = await fillReportItem.getValue();
+  if (!report || report.tabId !== tabId) return;
+  const field = report.fields.find((f) => f.fieldId === fieldId);
+  const resume = await resumeItem.getValue();
+  if (!field || !resume || field.hint.widget === 'checkbox' || field.hint.widget === 'checkboxes') return;
+  const schemaKey = keyForValue(resume, value, field.hint);
+  if (!schemaKey || (field.status === 'filled' && field.schemaKey === schemaKey)) return;
+
+  const result = { filled: [{ fieldId, strategy: 'user' }], failed: [] };
+  await fillReportItem.setValue(applyFillOne(report, fieldId, schemaKey, result));
+  if (field.fingerprint) {
+    const rule = { origin: new URL(report.url).origin, fingerprint: field.fingerprint, schemaKey, updatedAt: new Date().toISOString() };
+    await learnedRulesItem.setValue(upsertRule(await learnedRulesItem.getValue(), rule));
+  }
+}
+
 async function undo(): Promise<UndoResponse> {
   const report = await requireReport();
   const response = await sendMessage('undo', undefined, { tabId: report.tabId, frameId: 0 });
@@ -128,4 +149,5 @@ export default defineBackground(() => {
     }),
   );
   onMessage('undo', () => withErrors(undo));
+  onMessage('userEdit', ({ data, sender }) => userEdit(sender.tab?.id, data.fieldId, data.value));
 });

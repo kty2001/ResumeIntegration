@@ -1,5 +1,6 @@
 import type { Resume } from '@/core/schema/resume';
 import { formatValue } from '@/core/format';
+import { schemaKeyOptions } from '@/core/schema/labels';
 import { isSplitPart, partValue, splitValue } from '@/core/format/split';
 import type { FieldDescriptor, FillPlan, FormatHint, MatchSource, WidgetKind } from '@/messaging/protocol';
 import { FIELD_RULES, SECTION_FIELD_RULES, SECTION_RULES, type RuleSection } from './dictionary';
@@ -124,6 +125,16 @@ export function resolveValue(
     return hint.widget === 'checkboxes' ? JSON.stringify(matched) : matched[0];
   }
   return values.map((value) => enumLabel(schemaKey, value) ?? formatValue(schemaKey, value, hint)).join(', ');
+}
+
+/** 입력란 값과 같은 값으로 변환되는 이력서 항목 (정확히 하나일 때만, 사용자 직접 수정 학습용) */
+export function keyForValue(resume: Resume, value: string, hint: FormatHint): string | undefined {
+  const target = value.trim();
+  if (!target) return undefined;
+  const keys = schemaKeyOptions(resume)
+    .map(([key]) => key)
+    .filter((key) => resolveValue(resume, key, hint)?.trim() === target);
+  return keys.length === 1 ? keys[0] : undefined;
 }
 
 type FieldMatch = ReturnType<typeof matchField>;

@@ -96,6 +96,8 @@ interface ProtocolMap {
   /** 입력란 위치 표시, 빈 배열이면 해제 */
   highlight(data: { fields: Pick<ReportField, 'fieldId' | 'status'>[] }): ActionResponse;
   undo(): UndoResponse;
+  /** filler → background: 사용자가 페이지에서 직접 바꾼 입력란 값 (같은 값의 이력서 항목이면 결과 갱신·학습) */
+  userEdit(data: { fieldId: string; value: string }): void;
 }
 
 export const { sendMessage, onMessage } = defineExtensionMessaging<ProtocolMap>();

@@ -236,6 +236,34 @@ test('직접 입력 → 학습 규칙 저장 → 재실행 시 자동 입력', a
   expect(await worker.evaluate(async () => (await chrome.storage.local.get('learnedRules')).learnedRules)).toEqual([]);
 });
 
+test('페이지에서 직접 고친 값 → 같은 값의 이력서 항목으로 결과 갱신·학습', async ({ context, worker, extensionId }) => {
+  const { page } = await runFill(context, worker, extensionId);
+  const panel = await context.newPage();
+  await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+
+  // 해당 없음 입력란에 이메일 직접 입력
+  await page.bringToFront();
+  await page.locator('#company').fill('gildong@example.com');
+  await page.locator('#company').press('Tab');
+  await expect(panel.getByText('회사 이름 → 이메일')).toBeVisible();
+  // 입력 완료 입력란(주소)을 상세 주소 값으로 수정 → 매핑 교정
+  await page.locator('#a1').fill('101호');
+  await page.locator('#a1').press('Tab');
+  await expect(panel.getByText('주소 → 상세 주소').first()).toBeVisible();
+  // 이력서와 다른 값은 학습하지 않음
+  await page.locator('#a2').fill('직접 쓴 값');
+  await page.locator('#a2').press('Tab');
+
+  await expect
+    .poll(async () => (await worker.evaluate(async () => (await chrome.storage.local.get('learnedRules')).learnedRules)) ?? [])
+    .toHaveLength(2);
+  const rules = await worker.evaluate(async () => (await chrome.storage.local.get('learnedRules')).learnedRules);
+  expect(rules).toMatchObject([
+    { fingerprint: '["text","","company","회사 이름"]', schemaKey: 'basics.email' },
+    { fingerprint: '["text","","a1","주소"]', schemaKey: 'basics.address.line2' },
+  ]);
+});
+
 test('선택지 불일치 → 사이드 패널에서 사이트 선택지 선택 → 학습 → 재실행 시 자동 선택', async ({ context, worker, extensionId }) => {
   const data: Resume = {
     ...resume,
