@@ -2,7 +2,7 @@
 
 최종 갱신: 2026-10-12 · 기술 스택: WXT + TypeScript ([tech_stack.md](tech_stack.md))
 
-- (미구현) 표시 항목은 설계만 있고 코드 없음 (주로 BYOK LLM)
+- (미구현) 표시 항목은 설계만 있고 코드 없음 (BYOK LLM, 이력서 가져오기, 연동 사이트)
 
 ## 1. 설계 원칙
 - **DOM 작업과 판단 로직 분리**: content script는 수집·입력만, 매핑 판단은 background에서 수행 → 매핑 로직을 DOM 없이 단위 테스트 가능 (Bitwarden 수집→결정→입력 구조 참고, [02 보고서](../reports/02_field_mapping.md) 3장)
@@ -15,11 +15,11 @@
 
 | 구성 요소 | WXT 엔트리포인트 | 책임 |
 |---|---|---|
-| Popup | `entrypoints/popup/` | '작성' 버튼, 사이트 상태 안내(제외·이력서 없음·권한 필요), 사이드 패널 열기 |
-| Options | `entrypoints/options/` | 이력서·자기소개서·첨부 파일 편집, 설정, 학습 규칙 관리, 백업. BYOK 설정 (미구현) |
+| Popup | `entrypoints/popup/` | '작성' 버튼, 사이트 상태 안내(제외·이력서 없음·권한 필요), 사이드 패널 열기. '이 페이지에서 가져오기'·'연동 사이트 모두 열기' (미구현) |
+| Options | `entrypoints/options/` | 이력서·자기소개서·첨부 파일 편집, 설정, 학습 규칙 관리, 백업. BYOK 설정·가져오기 미리 보기·연동 사이트 관리 (미구현) |
 | Side Panel | `entrypoints/sidepanel/` | 입력 결과 요약, 미입력 항목 직접 선택·복사, 위치 보기, 되돌리기, 자기소개서 추천 |
-| Background | `entrypoints/background.ts` | 스크립트 주입, 메시지 중계, **매핑 엔진 실행**, 첨부 파일 본문 전달, 권한 허용 후 재작성. BYOK LLM 호출 (미구현) |
-| Filler (content script) | `entrypoints/filler.ts` (`defineUnlistedScript`) | 필드 수집, 위젯별 입력·검증, 하이라이트, 입력 전 값 백업, 사용자 직접 수정 감지 |
+| Background | `entrypoints/background.ts` | 스크립트 주입, 메시지 중계, **매핑 엔진 실행**, 첨부 파일 본문 전달, 권한 허용 후 재작성. BYOK LLM 호출·가져오기 역변환·연동 사이트 작성일 기록 (미구현) |
+| Filler (content script) | `entrypoints/filler.ts` (`defineUnlistedScript`) | 필드 수집, 위젯별 입력·검증, 하이라이트, 입력 전 값 백업, 사용자 직접 수정 감지. 가져오기용 입력란 값 읽기 (미구현) |
 
 - Filler는 manifest에 등록하지 않는 unlisted script로 빌드(`/filler.js`) → '작성' 클릭 시 `scripting.executeScript({ files: ['/filler.js'] })`로 주입. content script 정의(`defineContentScript`)는 `matches` 지정이 필요해 권한에 영향을 줄 수 있어 미사용 → 평소에는 어떤 페이지에도 스크립트 미실행
 - 중복 주입 방지: 전역 플래그 확인 후 이미 주입된 경우 메시지 수신만 수행
@@ -42,6 +42,7 @@
 | `optional_host_permissions` | ① 교차 출처 iframe 폼 (구현) ② BYOK LLM API 도메인 (미구현) | 설치 시 없음, 요청 시점에 출처별 동의 |
 
 - 사이드 패널 '다시 작성'은 추가 권한 없이 activeTab이 유지되는 범위(같은 출처)에서만 동작
+- 이력서 가져오기·연동 사이트 일괄 열기(미구현)도 권한 추가 없음: 가져오기는 '작성'과 같은 activeTab + scripting, 일괄 열기는 `windows.create`(권한 불필요)
 - E2E 빌드(`--mode e2e`) 전용: 툴바 클릭 재현 불가 → `host_permissions: http://localhost/*`, 선택 권한에 `http://127.0.0.1/*` 추가 (`wxt.config.ts`)
 - activeTab 미적용 상황(사이드 패널 버튼, 교차 출처 iframe)은 [01 보고서](../reports/01_extension_architecture.md) 2.2 참고
 
@@ -63,6 +64,7 @@ src/
 │  ├─ attachments.ts         # 첨부 파일 선택 (accept 확인)
 │  ├─ coverLetter.ts         # 글자수 계산, 문항 태그·유사도 매칭
 │  ├─ backup.ts              # 백업 파일 생성·검증
+│  ├─ import.ts              # (미구현) 가져오기 역변환·기존 이력서와 비교 (7.4)
 │  └─ site-policy.ts         # 제외 사이트 판별, 선택 권한 패턴 일치
 ├─ dom/                      # content script 전용 DOM 로직
 │  ├─ collect.ts             # 필드 수집
@@ -90,6 +92,8 @@ tests/
 | `FillResult` | filler → background | `filled`(전략), `failed`(사유) |
 | `FillReport` | background → `session:fillReport` | `tabId`·`frameIds`·`url`·`at` + 입력란별 `ReportField`(label·status·schemaKey·reason·`hint`(형식 변환 정보)·fingerprint·source) |
 | `LearnedRule` | `local:learnedRules` | `origin`·`fingerprint`(widget·name·id·표시 텍스트로 background가 계산)·`schemaKey`·`option?`(선택지 직접 선택: 이력서 값 → 선택지 텍스트)·`updatedAt` |
+| `ImportDraft` (미구현) | background → `session:importDraft` | `url`·`at` + 항목별 `{ schemaKey, value(저장 형식), label }` + 반복 항목별 `{ section, match?: 기존 항목 id }`(없으면 추가) + 자기소개서 후보 `{ question, answer }[]` |
+| `LinkedSite` (미구현) | `local:linkedSites` | `id`·`name`·`url`(이력서 수정 페이지)·`lastFilledAt?` |
 
 - `MatchSource`: `learned`·`autocomplete`·`rule`·`manual`(사이드 패널 직접 입력). `llm`·`adapter`는 미구현
 - 프레임: 같은 출처 iframe의 fieldId·cluster는 `프레임id:로컬id`, 최상위는 그대로 (`core/frames.ts`)
@@ -109,6 +113,9 @@ tests/
 | `undo` | sidepanel → background → filler | — | `{ status: 'ok', restored }` (모든 프레임 합계, 성공 시 `session:fillReport` 초기화) |
 | `userEdit` | filler → background | `{ fieldId, value }` (사용자 `change` 이벤트만) | — (같은 값의 이력서 항목이 하나면 결과 갱신 + 학습) |
 | `llmMap` | background 내부 | 필드 정보 + 스키마 키 목록 | `{ fieldId → schemaKey }` (미구현) |
+| `startImport` | popup → background | `{ tabId }` | `{ status: 'ok', count }`(가져온 항목 수) 또는 `excluded`·`user-excluded`·`empty`(읽은 값 없음)·`error` (미구현) |
+| `readValues` | background → filler | — | `{ fieldId, value }[]` (값 있는 입력란만, 위젯별 `readValue` 재사용, 파일·비밀번호 제외) (미구현) |
+| `readPairs` | background → filler | — | `{ label, value, section? }[]` (열람 페이지 표시 텍스트의 라벨-값 쌍, 7.4) (미구현) |
 
 - 메시지 정의는 `messaging/protocol.ts`에 타입으로 일원화 (`@webext-core/messaging`)
 - 사이드 패널 동작의 대상 탭은 `FillReport.tabId`, 프레임별 메시지는 background가 `frameId`로 나눠 중계
@@ -152,6 +159,47 @@ Popup '작성' 클릭 (activeTab 부여) → sidePanel.open (클릭 제스처 �
 - filler가 입력 직전 값을 메모리에 보관 → `undo` 시 위젯별로 복원
 - 페이지 이동 시 snapshot 소멸 (저장하지 않음)
 
+### 7.4 이력서 가져오기 (미구현)
+- 목적: 채용 사이트에 이미 작성한 이력서를 확장 프로그램에 다시 입력하지 않고 수집
+- 대상: 사이트의 이력서 **수정 폼**(입력란에 값이 있는 페이지) 우선, 열람(보기) 페이지는 후속 (아래 '열람 페이지')
+```
+Popup '이 페이지에서 가져오기' 클릭 (activeTab 부여)
+ → background: 제외 사이트 확인 ── 제외 사이트는 미주입 ('excluded'·'user-excluded')
+ → filler 주입 (7.1과 같은 규칙, 교차 출처 iframe은 건너뜀)
+ → 프레임별 collect + readValues → 병합
+ → 매핑 엔진: 7.1과 같은 순서로 스키마 키 결정 (이력서 값 유무와 무관, 반복 인덱스는 등장 순서)
+      파일 입력란 제외, 민감정보는 설정 켰을 때만
+ → 역변환 (core/import.ts)
+      날짜·연월 → YYYY-MM(-DD) / 전화번호 → 숫자만 / 분리 입력(cluster) 합치기
+      선택지 텍스트 → enum 코드 (옵션 동의어 사전 역조회) / checkbox → boolean
+      변환 실패 값은 원문 그대로 '확인 필요' 표시
+ → 반복 항목: 대표 키(학교명·회사명·자격증명·시험명 등)로 기존 항목과 같은 항목 판별 → 갱신 / 추가
+ → 미매핑 서술형 입력란(textarea): 라벨 = 문항, 값 = 답변 → 자기소개서 후보
+ → session:importDraft 저장 → 옵션 '가져오기 미리 보기'(options.html#import) 열기
+ → 사용자 항목별 선택 → '반영' 시 local:resume·local:coverLetters 저장 (meta.updatedAt 갱신), draft 삭제
+```
+- 페이지 값은 로컬에서만 처리, 외부 전송 없음 (1장 로컬 우선 원칙 유지). 페이지 조작 없음 (읽기만)
+- 학습 규칙은 생성하지 않음 (매핑 확인 없이 읽은 값이므로)
+- 최초 실행 동의 문구에 가져오기 안내 포함 (`CONSENT_VERSION` 증가, [screens.md](screens.md) 5장 ①)
+
+열람 페이지 (후속): 범용 처리 우선, 불가 시 사이트별 어댑터
+- 범용: filler `readPairs`가 표시 텍스트에서 라벨-값 쌍 추출 (`dl`의 `dt`·`dd`, 표의 `th`·`td`, '라벨: 값' 형식, 섹션 제목 + 반복 블록) → 라벨을 키워드 사전·섹션 문맥으로 매칭 → 위와 같은 역변환·미리 보기
+- 사이트별 어댑터: 범용 추출로 주요 항목을 못 읽는 사이트만 선택자 기반 보정 (`MatchSource` `adapter`, 5장)
+- 적용 범위는 사람인·잡코리아 DOM 현장 조사에서 범용 추출 가능 여부 확인 후 결정
+
+### 7.5 연동 사이트 일괄 열기 (미구현)
+- 목적: 이력서 갱신 후 여러 채용 사이트의 이력서를 빠르게 최신화
+```
+옵션 '연동 사이트': 이름 + 이력서 수정 페이지 URL 등록 (local:linkedSites)
+ → 팝업·옵션 '연동 사이트 모두 열기' → windows.create({ url: [등록 URL…] }) 새 창에 일괄 열기
+ → 사용자: 각 탭에서 로그인 (확장 프로그램은 로그인 미관여)
+ → 각 탭에서 툴바 '작성' → 7.1 자동 입력 (activeTab 제약상 탭별 클릭 필요)
+ → startFill 성공 시 탭 출처가 연동 사이트와 같으면 lastFilledAt 기록
+ → lastFilledAt < resume.meta.updatedAt 이면 '갱신 필요' 표시 (옵션 목록·팝업)
+```
+- 제외 사이트 URL 등록 가능, 열기만 수행 → 해당 탭은 복사 전용 모드(9장)
+- 제약: 사이트에 이미 있는 반복 블록 수만큼만 입력(반복 항목 '추가' 버튼 미구현, 5장), 사이트 쪽 항목 삭제 미지원, 덮어쓴 값은 사이드 패널 '되돌리기'로 복구
+
 ## 8. 저장 구조
 
 | 키 | 내용 | 비고 |
@@ -166,9 +214,11 @@ Popup '작성' 클릭 (activeTab 부여) → sidePanel.open (클릭 제스처 �
 | `session:pendingPermission` | 권한 허용 대기 중인 '작성' (`tabId`, `origins`) | `permissions.onAdded`에서 재작성 |
 | `local:llmCache` | `origin + fingerprint → schemaKey` | 미구현 |
 | `local:llmKey` | BYOK API 키 (content script 접근 차단, 내보내기 제외) | 미구현 |
+| `local:linkedSites` | `LinkedSite[]` (연동 사이트, 7.5) | 미구현, 백업 내보내기 대상 |
+| `session:importDraft` | 반영 전 가져오기 결과 (`ImportDraft`, 7.4) | 미구현, '반영'·'취소' 시 삭제 |
 
 - filler는 storage를 읽지 않고 메시지로 받은 값만 사용. `storage.setAccessLevel`로 content script 접근 차단은 미적용 (BYOK 키 도입 시 적용)
-- 백업 파일(옵션 '백업'): `resume`·`coverLetters`·`learnedRules`만 포함, `session:*`·첨부 파일 본문 제외 (`core/backup.ts`, 가져오기 시 `resume.meta.schemaVersion` 확인)
+- 백업 파일(옵션 '백업'): `resume`·`coverLetters`·`learnedRules`만 포함(`linkedSites` 추가 예정), `session:*`·첨부 파일 본문 제외 (`core/backup.ts`, 가져오기 시 `resume.meta.schemaVersion` 확인)
 
 ## 9. 사이트 정책
 - 기본 제외 목록: `linkedin.com` (이용약관상 확장 프로그램의 활동 자동화·화면 변경 금지, [05 보고서](../reports/05_privacy_and_policy.md) 4.1)
