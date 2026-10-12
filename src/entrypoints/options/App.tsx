@@ -10,6 +10,7 @@ import { CoverLetterSection } from './sections/CoverLetterSection';
 import { DesiredSection } from './sections/DesiredSection';
 import { EducationSection } from './sections/EducationSection';
 import { LanguageSection } from './sections/LanguageSection';
+import { LinkedSitesSection } from './sections/LinkedSitesSection';
 import { MilitarySection } from './sections/MilitarySection';
 import { ProjectSection } from './sections/ProjectSection';
 import { RulesSection } from './sections/RulesSection';
@@ -29,6 +30,7 @@ const SECTIONS: { id: string; title: string; component: ComponentType<SectionPro
   { id: 'desired', title: '희망 조건', component: DesiredSection },
   { id: 'cover', title: '자기소개서', component: CoverLetterSection },
   { id: 'files', title: '첨부 파일', component: AttachmentSection },
+  { id: 'sites', title: '연동 사이트', component: LinkedSitesSection },
   { id: 'rules', title: '학습 규칙', component: RulesSection },
   { id: 'settings', title: '설정', component: SettingsSection },
   { id: 'backup', title: '백업', component: BackupSection },

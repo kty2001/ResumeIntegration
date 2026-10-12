@@ -1,4 +1,5 @@
 import { storage } from 'wxt/utils/storage';
+import type { LinkedSite } from '@/core/linked-sites';
 import type { LearnedRule } from '@/core/mapping/learned';
 import { SCHEMA_VERSION, type CoverLetterEntry, type Resume } from '@/core/schema/resume';
 import type { FillReport } from '@/messaging/protocol';
@@ -36,6 +37,11 @@ export const consentItem = storage.defineItem<{ version: number; acceptedAt: str
 
 // 사이드 패널 직접 입력으로 학습한 규칙 (매핑 1순위)
 export const learnedRulesItem = storage.defineItem<LearnedRule[]>('local:learnedRules', {
+  fallback: [],
+});
+
+// 연동 사이트 (옵션 '연동 사이트', 일괄 열기·갱신 필요 표시)
+export const linkedSitesItem = storage.defineItem<LinkedSite[]>('local:linkedSites', {
   fallback: [],
 });
 

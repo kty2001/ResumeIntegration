@@ -1,7 +1,7 @@
 import { useState, type ChangeEvent } from 'react';
 import { backupFileName, createBackup, parseBackup, type Backup } from '@/core/backup';
 import { clearFiles } from '@/storage/files';
-import { coverLettersItem, fillReportItem, learnedRulesItem, resumeItem, settingsItem } from '@/storage/items';
+import { coverLettersItem, fillReportItem, learnedRulesItem, linkedSitesItem, resumeItem, settingsItem } from '@/storage/items';
 
 // 화면 설계: docs/design/screens.md 4장 '백업' (JSON 내보내기/가져오기, 전체 삭제)
 // 확인 단계는 window.confirm 대신 화면 내 버튼
@@ -28,6 +28,7 @@ export function BackupSection() {
       resume: await resumeItem.getValue(),
       coverLetters: await coverLettersItem.getValue(),
       learnedRules: await learnedRulesItem.getValue(),
+      linkedSites: await linkedSitesItem.getValue(),
     });
     download(backupFileName(), JSON.stringify(backup, null, 2));
     setMessage('백업 파일을 저장했습니다.');
@@ -46,6 +47,7 @@ export function BackupSection() {
     await resumeItem.setValue(backup.resume);
     await coverLettersItem.setValue(backup.coverLetters);
     await learnedRulesItem.setValue(backup.learnedRules);
+    await linkedSitesItem.setValue(backup.linkedSites);
     setPreview(null);
     setMessage('백업 파일을 가져왔습니다.');
   };
@@ -55,6 +57,7 @@ export function BackupSection() {
       resumeItem.removeValue(),
       coverLettersItem.removeValue(),
       learnedRulesItem.removeValue(),
+      linkedSitesItem.removeValue(),
       fillReportItem.removeValue(),
       settingsItem.removeValue(),
       clearFiles(),
@@ -65,7 +68,7 @@ export function BackupSection() {
 
   return (
     <>
-      <p className="desc">이력서·자기소개서·학습 규칙을 JSON 파일로 저장하거나 불러옵니다. 데이터는 이 브라우저에만 저장됩니다.</p>
+      <p className="desc">이력서·자기소개서·학습 규칙·연동 사이트를 JSON 파일로 저장하거나 불러옵니다. 데이터는 이 브라우저에만 저장됩니다.</p>
       {message && (
         <p className="desc" role="status">
           {message}
@@ -91,7 +94,8 @@ export function BackupSection() {
           <>
             <p className="desc">
               이름 {preview.resume?.basics.name.ko || '-'} · 이력서 수정 {formatDate(preview.resume?.meta.updatedAt)} · 학력{' '}
-              {preview.resume?.education.length ?? 0} · 경력 {preview.resume?.work.length ?? 0} · 학습 규칙 {preview.learnedRules.length} ·
+              {preview.resume?.education.length ?? 0} · 경력 {preview.resume?.work.length ?? 0} · 학습 규칙 {preview.learnedRules.length} · 연동 사이트{' '}
+              {preview.linkedSites.length} ·
               백업 {formatDate(preview.exportedAt)}
             </p>
             <p className="desc">현재 데이터를 이 파일 내용으로 덮어씁니다.</p>
@@ -127,7 +131,7 @@ export function BackupSection() {
             </button>
           )}
         </div>
-        <p className="desc">이력서·자기소개서·학습 규칙·설정·첨부 파일·입력 결과를 모두 지웁니다. 되돌릴 수 없습니다.</p>
+        <p className="desc">이력서·자기소개서·학습 규칙·연동 사이트·설정·첨부 파일·입력 결과를 모두 지웁니다. 되돌릴 수 없습니다.</p>
       </div>
     </>
   );

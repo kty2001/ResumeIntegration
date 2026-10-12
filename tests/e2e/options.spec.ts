@@ -131,6 +131,47 @@ test('설정: 자동 입력 제외 사이트 추가·중복·형식 오류·삭�
     .toBe(true);
 });
 
+test('연동 사이트: 추가·형식 오류·중복·제외 사이트 안내·순서 변경·삭제 + 모두 열기', async ({ context, worker, extensionId }) => {
+  const stored = () =>
+    worker.evaluate(async () => (((await chrome.storage.local.get('linkedSites')).linkedSites as { name: string; url: string }[] | undefined) ?? []).map((s) => s.name));
+  const options = await context.newPage();
+  await options.goto(`chrome-extension://${extensionId}/options.html#sites`);
+  await expect(options.getByText('등록한 사이트가 없습니다.')).toBeVisible();
+  await expect(options.getByRole('button', { name: '모두 열기' })).toBeDisabled();
+
+  const name = options.getByLabel('사이트 이름');
+  const url = options.getByLabel('이력서 페이지 주소');
+  const add = async (n: string, u: string) => {
+    await name.fill(n);
+    await url.fill(u);
+    await options.getByRole('button', { name: '추가' }).click();
+  };
+  await add('기본', 'http://localhost/basics.html');
+  await add('섹션', 'http://localhost/sections.html');
+  await expect.poll(stored).toEqual(['기본', '섹션']);
+  await expect(options.getByRole('row').filter({ hasText: '기본' })).toContainText('갱신 필요');
+
+  await add('', 'saramin');
+  await expect(options.getByRole('status')).toHaveText('주소 형식이 아닙니다. 예: https://www.example.com/resume');
+  await add('중복', 'http://localhost/basics.html');
+  await expect(options.getByRole('status')).toHaveText('이미 등록한 주소입니다.');
+  await add('', 'www.linkedin.com/in/me');
+  await expect(options.getByRole('status')).toContainText('자동 입력 제외 사이트입니다');
+  await expect.poll(stored).toEqual(['기본', '섹션', 'www.linkedin.com']);
+
+  await options.getByRole('row').filter({ hasText: 'linkedin' }).getByRole('button', { name: '삭제' }).click();
+  await options.getByRole('row').filter({ hasText: '섹션' }).getByRole('button', { name: '위로' }).click();
+  await expect.poll(stored).toEqual(['섹션', '기본']);
+
+  // 모두 열기: 새 창에 등록 사이트 탭
+  await options.getByRole('button', { name: '모두 열기' }).click();
+  const opened = () => context.pages().map((p) => p.url()).filter((u) => u.startsWith('http://localhost/')).sort();
+  await expect.poll(opened).toEqual([
+    'http://localhost/basics.html',
+    'http://localhost/sections.html',
+  ]);
+});
+
 test('첨부 파일: 구분 선택 후 추가·증명사진 연결·삭제', async ({ context, worker, extensionId }, testInfo) => {
   const stored = () =>
     worker.evaluate(async () => {

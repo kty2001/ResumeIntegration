@@ -1,9 +1,10 @@
+import type { LinkedSite } from '@/core/linked-sites';
 import type { LearnedRule } from '@/core/mapping/learned';
 import { createEmptyResume } from '@/core/schema/empty';
 import { SCHEMA_VERSION, type CoverLetterEntry, type Resume } from '@/core/schema/resume';
 
 // 백업 파일(JSON) 생성·검증: docs/design/architecture.md 8장, resume_schema_v1.md 7장
-// 포함: 이력서·자기소개서·학습 규칙 / 제외: 입력 결과(session), API 키
+// 포함: 이력서·자기소개서·학습 규칙·연동 사이트 / 제외: 입력 결과(session), API 키
 
 export const BACKUP_APP = 'resume-integration';
 export const BACKUP_VERSION = 1;
@@ -12,6 +13,7 @@ export interface BackupData {
   resume: Resume | null;
   coverLetters: CoverLetterEntry[];
   learnedRules: LearnedRule[];
+  linkedSites: LinkedSite[];
 }
 
 export interface Backup extends BackupData {
@@ -79,6 +81,10 @@ const isRule = (r: unknown): r is LearnedRule =>
   typeof r.fingerprint === 'string' &&
   typeof r.schemaKey === 'string';
 
+// 연동 사이트: 열기에 쓰는 url까지 형식 확인 (이전 백업 파일에는 없음 → 빈 목록)
+const isLinkedSite = (s: unknown): s is LinkedSite =>
+  isObject(s) && typeof s.id === 'string' && typeof s.name === 'string' && typeof s.url === 'string' && isUrl(s.url);
+
 export type ParseResult = { ok: true; backup: Backup } | { ok: false; error: string };
 
 export function parseBackup(text: string): ParseResult {
@@ -108,6 +114,7 @@ export function parseBackup(text: string): ParseResult {
       resume,
       coverLetters: normalizeCoverLetters(data.coverLetters),
       learnedRules: Array.isArray(data.learnedRules) ? data.learnedRules.filter(isRule) : [],
+      linkedSites: Array.isArray(data.linkedSites) ? data.linkedSites.filter(isLinkedSite) : [],
     },
   };
 }

@@ -77,6 +77,17 @@ test('작성 → 페이지 입력 + 사이드 패널 결과·복사·재실행 �
   await expect(panel.getByLabel('입력 완료 10 · 확인 필요 0 · 해당 없음 1')).toBeVisible();
 });
 
+test('연동 사이트: 팝업 모두 열기 버튼 + 작성 성공 시 마지막 작성 시각 기록', async ({ context, worker, extensionId }) => {
+  const site = { id: 's1', name: '기본', url: `${FIXTURE_ORIGIN}/basics.html` };
+  await worker.evaluate((value) => chrome.storage.local.set({ linkedSites: value }), [site]);
+  const { popup } = await runFill(context, worker, extensionId);
+  await expect
+    .poll(() => worker.evaluate(async () => ((await chrome.storage.local.get('linkedSites')).linkedSites as { lastFilledAt?: string }[])[0]?.lastFilledAt))
+    .toBeTruthy();
+  // 작성 후 갱신 필요 개수 사라짐
+  await expect(popup.getByRole('button', { name: '연동 사이트 모두 열기', exact: true })).toBeVisible();
+});
+
 test('사이드 패널 직접 입력·입력란 이동·위치 표시·되돌리기', async ({ context, worker, extensionId }) => {
   const { page } = await runFill(context, worker, extensionId);
   const panel = await context.newPage();

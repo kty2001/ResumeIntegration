@@ -12,4 +12,4 @@ body { background: var(--surface); }
 .site { display: flex; align-items: center; gap: 6px; font-size: var(--fs-md); color: var(--text-sub); overflow-wrap: anywhere; }
 .empty { margin: 0; font-size: var(--fs-md); color: var(--text-sub); }
 .actions { display: flex; gap: 6px; margin-top: 8px; }
-.popup-foot { display: flex; padding: 6px 8px; border-top: 1px solid var(--line); }
+.popup-foot { display: flex; justify-content: space-between; padding: 6px 8px; border-top: 1px solid var(--line); }

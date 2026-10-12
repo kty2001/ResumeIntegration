@@ -1,6 +1,7 @@
 import type { FilePayload } from '@/core/attachments';
 import { COVER_LETTER_KEY } from '@/core/coverLetter';
 import { globalFieldId, mergeFrames, mergeResults, planByFrame, splitFieldId } from '@/core/frames';
+import { markFilled } from '@/core/linked-sites';
 import { rulesForOrigin, upsertRule, type LearnedRule } from '@/core/mapping/learned';
 import { getValueByKey, keyForValue, mapFields, resolveValue } from '@/core/mapping/match';
 import { applyFillOne, buildFillReport } from '@/core/mapping/report';
@@ -26,6 +27,7 @@ import {
   coverLettersItem,
   fillReportItem,
   learnedRulesItem,
+  linkedSitesItem,
   pendingPermissionItem,
   resumeItem,
   settingsItem,
@@ -169,6 +171,12 @@ async function startFill(tabId: number, partial = false): Promise<StartFillRespo
   const result = await sendFill(tabId, plan);
   const report = { ...buildFillReport(details, plan, result, tabId), frameIds: frames.map((f) => f.frameId) };
   await fillReportItem.setValue(report);
+  // 연동 사이트면 마지막 작성 시각 기록 ('갱신 필요' 표시 기준)
+  if (tab.url) {
+    const sites = await linkedSitesItem.getValue();
+    const next = markFilled(sites, tab.url);
+    if (next !== sites) await linkedSitesItem.setValue(next);
+  }
 
   // 선택지 불일치(plan.skipped)도 '입력 실패'에 포함되도록 보고서 상태 기준으로 집계
   const count = (status: ReportField['status']) => report.fields.filter((f) => f.status === status).length;

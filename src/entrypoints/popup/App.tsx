@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
+import { needsUpdate, type LinkedSite } from '@/core/linked-sites';
 import type { Resume } from '@/core/schema/resume';
 import { isExcluded } from '@/core/site-policy';
 import { describeStartFill as describe, sendMessage } from '@/messaging/protocol';
-import { CONSENT_VERSION, consentItem, copyOnlyItem, resumeItem, settingsItem } from '@/storage/items';
+import { CONSENT_VERSION, consentItem, copyOnlyItem, linkedSitesItem, resumeItem, settingsItem } from '@/storage/items';
 
 // 화면 설계: docs/design/screens.md 2장 (현재: 동의 전·작성 가능·이력서 미입력(JSON 가져오기 포함)·제외 사이트·권한 필요 상태)
 
@@ -15,9 +16,11 @@ export default function App() {
   const [tabUrl, setTabUrl] = useState<string>();
   const [excluded, setExcluded] = useState<'excluded' | 'user-excluded'>();
   const [blocked, setBlocked] = useState<string[]>([]);
+  const [sites, setSites] = useState<LinkedSite[]>([]);
 
   useEffect(() => {
     resumeItem.getValue().then(setResume, () => setResume(null));
+    linkedSitesItem.getValue().then(setSites, () => {});
     // 최초 실행 동의 전에는 옵션 화면 동의 모달로 안내 (screens.md 5장 ①)
     consentItem.getValue().then(
       (c) => setConsented(c?.version === CONSENT_VERSION),
@@ -32,6 +35,8 @@ export default function App() {
       if (isExcluded(tab.url)) setExcluded('excluded');
       else if (isExcluded(tab.url, settings.excludedSites)) setExcluded('user-excluded');
     });
+    // '작성' 성공 시 마지막 작성 시각이 바뀌므로 갱신 필요 개수 반영
+    return linkedSitesItem.watch(setSites);
   }, []);
 
   // 복사 전용 모드: 페이지 조작 없이 사이드 패널만 열기 (open을 먼저 호출해 사용자 제스처 유지)
@@ -43,6 +48,9 @@ export default function App() {
 
   const openOptions = () => void browser.runtime.openOptionsPage();
   const openBackup = () => void browser.tabs.create({ url: browser.runtime.getURL('/options.html#backup') });
+  // 연동 사이트 일괄 열기: 새 창 (로그인·'작성'은 탭별로 사용자가 진행, architecture.md 7.5)
+  const openSites = () => void browser.windows.create({ url: sites.map((s) => s.url) });
+  const outdated = sites.filter((s) => needsUpdate(s, resume?.meta.updatedAt)).length;
 
   /** partial: 권한 없는 교차 출처 iframe은 건너뜀 ('이 페이지 부분만 입력') */
   const fill = async (partial = false) => {
@@ -145,6 +153,11 @@ export default function App() {
         <button className="btn ghost sm" onClick={openOptions}>
           이력서 편집
         </button>
+        {consented && sites.length > 0 && (
+          <button className="btn ghost sm" onClick={openSites}>
+            연동 사이트 모두 열기{outdated > 0 && ` (갱신 필요 ${outdated})`}
+          </button>
+        )}
       </footer>
     </main>
   );
