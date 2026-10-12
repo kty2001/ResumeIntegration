@@ -2,6 +2,7 @@ import {
   collectedFieldIds,
   collectPageDetails,
   fieldIdOf,
+  getAddButton,
   getElement,
   isCheckbox,
   isCheckboxGroup,
@@ -10,6 +11,7 @@ import {
   isRadio,
   type FillElement,
 } from '@/dom/collect';
+import { clickAdd } from '@/dom/addBlock';
 import { clearHighlights, showHighlights } from '@/dom/highlight';
 import { restoreAll, saveSnapshot } from '@/dom/snapshot';
 import { fillElement, readValue } from '@/dom/widgets';
@@ -62,6 +64,14 @@ export default defineUnlistedScript(() => {
       const el = getElement(fieldId);
       const value = el?.isConnected ? readValue(el) : '';
       return value.trim() ? [{ fieldId, value }] : [];
+    }),
+  );
+
+  // 반복 항목 '추가' 버튼 클릭 (추가 중 사이트가 일으킨 change는 사용자 수정으로 보지 않음)
+  onMessage('addBlocks', ({ data }) =>
+    whileFilling(async () => {
+      const el = getAddButton(data.buttonId);
+      return { added: el ? await clickAdd(el, data.count) : 0 };
     }),
   );
 

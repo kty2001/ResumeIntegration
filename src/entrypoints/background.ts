@@ -2,9 +2,9 @@ import type { FilePayload } from '@/core/attachments';
 import { COVER_LETTER_KEY } from '@/core/coverLetter';
 import { globalFieldId, mergeFrames, mergeResults, planByFrame, splitFieldId } from '@/core/frames';
 import { markFilled } from '@/core/linked-sites';
-import { rulesForOrigin, upsertRule, type LearnedRule } from '@/core/mapping/learned';
+import { rulesForOrigin, upsertRule, type LearnedMatch, type LearnedRule } from '@/core/mapping/learned';
 import { parseImport } from '@/core/import';
-import { assignKeys, getValueByKey, keyForValue, mapFields, resolveValue } from '@/core/mapping/match';
+import { assignKeys, blocksToAdd, getValueByKey, keyForValue, mapFields, resolveValue } from '@/core/mapping/match';
 import { applyFillOne, buildFillReport } from '@/core/mapping/report';
 import { isExcluded, matchesHostPattern } from '@/core/site-policy';
 import {
@@ -171,10 +171,17 @@ async function startFill(tabId: number, partial = false): Promise<StartFillRespo
     }
   }
   await fillReportItem.setValue(null);
-  const frames = await collectFrames(tabId, frameIds);
-  const details = mergeFrames(frames);
+  let frames = await collectFrames(tabId, frameIds);
+  let details = mergeFrames(frames);
   const learned = rulesForOrigin(await learnedRulesItem.getValue(), new URL(details.url).origin);
-  const mapped = mapFields(details.fields, resume, learned, settings.sensitiveAutofill ?? false);
+  const sensitive = settings.sensitiveAutofill ?? false;
+  // 이력서 항목이 페이지 블록보다 많으면 '추가' 버튼으로 늘린 뒤 다시 수집
+  const added = await addBlocks(tabId, details, resume, learned, sensitive);
+  if (added) {
+    frames = await collectFrames(tabId, frameIds);
+    details = mergeFrames(frames);
+  }
+  const mapped = mapFields(details.fields, resume, learned, sensitive);
   const plan = await withFilePayloads(mapped, details.fields, resume);
   const result = await sendFill(tabId, plan);
   const report = { ...buildFillReport(details, plan, result, tabId), frameIds: frames.map((f) => f.frameId) };
@@ -188,7 +195,28 @@ async function startFill(tabId: number, partial = false): Promise<StartFillRespo
 
   // 선택지 불일치(plan.skipped)도 '입력 실패'에 포함되도록 보고서 상태 기준으로 집계
   const count = (status: ReportField['status']) => report.fields.filter((f) => f.status === status).length;
-  return { status: 'ok', filled: count('filled'), failed: count('failed'), unmatched: count('unmatched') };
+  return { status: 'ok', filled: count('filled'), failed: count('failed'), unmatched: count('unmatched'), added };
+}
+
+/** 반복 항목 '추가' 버튼 클릭 (blocksToAdd) → 추가한 블록 수. 실패한 iframe은 건너뜀 (collectFrames와 같은 규칙) */
+async function addBlocks(
+  tabId: number,
+  details: PageDetails,
+  resume: Resume,
+  learned: Map<string, LearnedMatch>,
+  sensitive: boolean,
+): Promise<number> {
+  const { keys } = assignKeys(details.fields, learned, sensitive);
+  let added = 0;
+  for (const { buttonId, count } of blocksToAdd(keys, details.addButtons ?? [], resume)) {
+    const { frameId, localId } = splitFieldId(buttonId);
+    try {
+      added += (await sendMessage('addBlocks', { buttonId: localId, count }, { tabId, frameId })).added;
+    } catch (e) {
+      if (frameId === 0) throw e;
+    }
+  }
+  return added;
 }
 
 /**

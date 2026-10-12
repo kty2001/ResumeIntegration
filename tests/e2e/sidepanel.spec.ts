@@ -326,6 +326,37 @@ test('섹션 문맥으로 학력·경력·자격증·어학·병역 항목 입�
   await expect(panel.getByText('입사년월 → 경력 1 입사 연월')).toBeVisible();
 });
 
+test('반복 항목: 이력서 항목 수만큼 추가 버튼 클릭 후 입력, 폼 미제출·다른 추가 버튼 미클릭, 다시 작성 시 추가 없음', async ({ context, worker, extensionId }) => {
+  const data: Resume = {
+    ...resume,
+    education: [
+      { id: 'e1', level: 'university', status: 'graduated', school: { ko: '한국대학교' }, major: { ko: '컴퓨터공학' } },
+      { id: 'e2', level: 'master', status: 'graduated', school: { ko: '한국대학원' }, major: { ko: '인공지능' } },
+    ],
+    certificates: [
+      { id: 'c1', name: '정보처리기사', issuer: '한국산업인력공단' },
+      { id: 'c2', name: 'SQLD', issuer: '한국데이터산업진흥원' },
+    ],
+  };
+  const { page } = await runFill(context, worker, extensionId, 'repeat.html', '입력 완료 8개 · 입력 실패 0개 · 해당 없음 0개 · 블록 추가 3개', data);
+  await expect(page.locator('#school-0')).toHaveValue('한국대학교');
+  await expect(page.locator('#school-1')).toHaveValue('한국대학원');
+  await expect(page.locator('#major-1')).toHaveValue('인공지능');
+  await expect(page.locator('#cert-name-0')).toHaveValue('정보처리기사');
+  await expect(page.locator('#cert-name-1')).toHaveValue('SQLD');
+  await expect(page.locator('#cert-issuer-1')).toHaveValue('한국데이터산업진흥원');
+  await expect(page.locator('body')).not.toHaveAttribute('data-submitted');
+  await expect(page.locator('body')).not.toHaveAttribute('data-photo');
+
+  // 다시 작성: 블록 수가 이력서 항목 수와 같아 추가 없음
+  const panel = await context.newPage();
+  await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+  await panel.getByRole('button', { name: '다시 작성' }).click();
+  await expect(panel.getByRole('status')).toHaveText('입력 완료 8개 · 입력 실패 0개 · 해당 없음 0개');
+  await expect(page.locator('[id^=school-]')).toHaveCount(2);
+  await expect(page.locator('[id^=cert-name-]')).toHaveCount(2);
+});
+
 test('직접 입력 → 학습 규칙 저장 → 재실행 시 자동 입력', async ({ context, worker, extensionId }) => {
   const { page, popup } = await runFill(context, worker, extensionId);
   const panel = await context.newPage();

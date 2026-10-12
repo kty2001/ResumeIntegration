@@ -1,10 +1,10 @@
-import type { FieldDescriptor, PageDetails } from '@/messaging/protocol';
+import type { AddButton, FieldDescriptor, PageDetails } from '@/messaging/protocol';
 import { comboboxOptions } from './widgets/combobox';
 
 // 필드 수집 (Page Details): docs/design/architecture.md 5장
 // 현재 범위: 최상위 문서의 text·textarea·date 입력란, 기본 select, radio 그룹(같은 form·name → 입력란 1개),
 // 단일 checkbox(값 'true'/'false'), 다중 선택 checkbox 그룹(같은 form·name 2개 이상, 값 = 체크된 value JSON 배열),
-// ARIA 콤보박스(선택 전용 커스텀 드롭다운, 선택지는 열어서 읽음), 파일 입력란(accept 포함)
+// ARIA 콤보박스(선택 전용 커스텀 드롭다운, 선택지는 열어서 읽음), 파일 입력란(accept 포함), 반복 항목 '추가' 버튼
 
 export type TextElement = HTMLInputElement | HTMLTextAreaElement;
 /** 폼 입력 요소. radio·checkbox 그룹은 그룹의 첫 입력란으로 보관 */
@@ -15,6 +15,11 @@ export type FillElement = FormControl | HTMLElement;
 // 입력형 콤보박스(input[role=combobox], 검색·자동완성)는 텍스트 입력란으로 처리
 const COMBOBOX = '[role=combobox]:not(input), button[aria-haspopup=listbox]';
 
+// 반복 항목 '추가' 버튼 후보: 짧은 표시 텍스트가 '추가'·'add'·'+' (파일·사진 추가, 삭제 버튼 제외)
+const BUTTON = 'button, input[type=button], a, [role=button]';
+const ADD_TEXT = /추가|\badd\b|^\+$/i;
+const ADD_EXCLUDE = /삭제|제거|파일|첨부|사진|이미지|업로드|delete|remove|file|photo|image|upload/i;
+
 const TEXT_INPUT_TYPES = new Set(['text', 'email', 'tel', 'url', 'search', 'date']);
 
 /** fieldId → 요소. DOM에 식별 속성을 추가하지 않고 메모리에만 보관 */
@@ -23,8 +28,15 @@ const elements = new Map<string, FillElement>();
 /** checkbox 그룹으로 수집한 첫 checkbox (단일 checkbox와 구분, 수집마다 초기화) */
 let checkboxGroups = new WeakSet<Element>();
 
+/** buttonId → 반복 항목 '추가' 버튼 (fieldId와 별개, 수집마다 초기화) */
+const addButtons = new Map<string, HTMLElement>();
+
 export function getElement(fieldId: string): FillElement | undefined {
   return elements.get(fieldId);
+}
+
+export function getAddButton(buttonId: string): HTMLElement | undefined {
+  return addButtons.get(buttonId);
 }
 
 /** 마지막 수집의 fieldId 목록 (수집 순서) */
@@ -100,6 +112,23 @@ function isComboboxFillable(el: HTMLElement): boolean {
   if (el.getAttribute('aria-disabled') === 'true' || (el instanceof HTMLButtonElement && el.disabled)) return false;
   // 다른 콤보박스 안의 버튼 등 중첩 요소는 바깥 콤보박스만 수집
   return !el.parentElement?.closest(COMBOBOX) && isVisible(el);
+}
+
+/**
+ * 반복 항목 '추가' 버튼이면 표시 정보 (섹션 판별은 background)
+ * 제출 버튼·다른 페이지로 이동하는 링크·콤보박스나 다른 버튼 안의 요소는 제외
+ */
+function describeAddButton(el: HTMLElement, heading: string | undefined): Omit<AddButton, 'buttonId'> | undefined {
+  if (el.getAttribute('type') === 'submit' || el.getAttribute('aria-disabled') === 'true') return undefined;
+  if ((el instanceof HTMLButtonElement || el instanceof HTMLInputElement) && el.disabled) return undefined;
+  const href = el instanceof HTMLAnchorElement ? el.getAttribute('href') : null;
+  if (href && !href.startsWith('#') && !href.startsWith('javascript:')) return undefined;
+  if (el.closest(COMBOBOX) || el.parentElement?.closest(BUTTON) || !isVisible(el)) return undefined;
+  const label = cleanText(el instanceof HTMLInputElement ? el.value : el.textContent);
+  const ariaLabel = cleanText(el.getAttribute('aria-label'));
+  const texts = [label, ariaLabel].filter((t): t is string => !!t && t.length <= 20);
+  if (!texts.some((t) => ADD_TEXT.test(t)) || texts.some((t) => ADD_EXCLUDE.test(t))) return undefined;
+  return { label, ariaLabel, section: resolveSection(el, heading) };
 }
 
 function cleanText(text: string | null | undefined): string | undefined {
@@ -215,15 +244,27 @@ function describeGroup(
 
 export async function collectPageDetails(): Promise<PageDetails> {
   elements.clear();
+  addButtons.clear();
   checkboxGroups = new WeakSet();
   const fields: FieldDescriptor[] = [];
+  const buttons: AddButton[] = [];
   const comboboxes: [FieldDescriptor, HTMLElement][] = [];
   let heading: string | undefined;
   // 제목과 입력란을 문서 순서로 함께 순회해 직전 제목 추적
-  const nodes = document.querySelectorAll<HTMLElement>(`h1, h2, h3, h4, h5, h6, input, textarea, select, ${COMBOBOX}`);
+  const nodes = document.querySelectorAll<HTMLElement>(
+    `h1, h2, h3, h4, h5, h6, input, textarea, select, ${COMBOBOX}, ${BUTTON}`,
+  );
   nodes.forEach((node) => {
     if (HEADING.test(node.tagName)) {
       heading = cleanText(node.textContent);
+      return;
+    }
+    if (!node.matches(COMBOBOX) && node.matches(BUTTON)) {
+      const button = describeAddButton(node, heading);
+      if (!button) return;
+      const buttonId = String(addButtons.size);
+      addButtons.set(buttonId, node);
+      buttons.push({ buttonId, ...button });
       return;
     }
     if (!isFormControl(node)) {
@@ -257,7 +298,7 @@ export async function collectPageDetails(): Promise<PageDetails> {
   // 콤보박스 선택지: 하나씩 열고 닫으며 읽기 (동시에 열면 서로 닫힘)
   for (const [field, el] of comboboxes) field.options = await comboboxOptions(el);
   assignClusters(fields);
-  return { url: location.origin + location.pathname, fields };
+  return { url: location.origin + location.pathname, fields, addButtons: buttons };
 }
 
 /**

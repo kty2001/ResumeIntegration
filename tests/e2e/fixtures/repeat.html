@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>반복 항목 추가 버튼 fixture</title>
+</head>
+<body>
+  <!-- 반복 항목 '추가' 버튼: 이력서 항목이 페이지 블록보다 많으면 클릭해 블록을 늘린 뒤 입력 -->
+  <!-- 학력: 블록 1개 + 타입 미지정 버튼(기본 submit, 지연 후 추가) / 자격증: 블록 0개 / '사진 추가'는 클릭 안 함 -->
+  <form onsubmit="document.body.dataset.submitted = '1'; return false">
+    <h2>학력사항</h2>
+    <div id="edu-list">
+      <div>
+        <p><label>학교명 <input name="school" id="school-0"></label></p>
+        <p><label>전공 <input name="major" id="major-0"></label></p>
+      </div>
+    </div>
+    <button id="edu-add">+ 학력 추가</button>
+    <button type="button" id="photo-add">사진 추가</button>
+
+    <h2>자격증</h2>
+    <div id="cert-list"></div>
+    <button type="button" id="cert-add">자격증 추가</button>
+  </form>
+  <script>
+    const block = (fields) => {
+      const div = document.createElement('div');
+      div.innerHTML = fields.map(([label, id]) => `<p><label>${label} <input id="${id}"></label></p>`).join('');
+      return div;
+    };
+    let edu = 1;
+    document.getElementById('edu-add').addEventListener('click', () => {
+      const i = edu++;
+      setTimeout(() => document.getElementById('edu-list').append(block([['학교명', `school-${i}`], ['전공', `major-${i}`]])), 200);
+    });
+    let cert = 0;
+    document.getElementById('cert-add').addEventListener('click', () => {
+      const i = cert++;
+      document.getElementById('cert-list').append(block([['자격증명', `cert-name-${i}`], ['발행기관', `cert-issuer-${i}`]]));
+    });
+    document.getElementById('photo-add').addEventListener('click', () => (document.body.dataset.photo = '1'));
+  </script>
+</body>
+</html>

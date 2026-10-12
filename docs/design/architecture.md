@@ -87,7 +87,8 @@ tests/
 
 | 타입 | 방향 | 요점 |
 |---|---|---|
-| `PageDetails` | filler → background | `url`(origin + pathname) + `fields: FieldDescriptor[]`. 값 미포함 |
+| `PageDetails` | filler → background | `url`(origin + pathname) + `fields: FieldDescriptor[]` + `addButtons: AddButton[]`. 값 미포함 |
+| `AddButton` | | `buttonId`(filler 메모리 인덱스, fieldId와 별개), `label`(표시 텍스트)·`ariaLabel`·`section`. 반복 항목 '추가' 버튼 후보 (7.1) |
 | `FieldDescriptor` | | `fieldId`(filler 메모리 인덱스, DOM 속성 추가 안 함), `widget`(text·textarea·date·select·radio·checkbox·checkboxes·combobox·file), 라벨류(label·ariaLabel·placeholder·name·id), `autocomplete`, `maxLength`, `section`(fieldset legend → 직전 제목), `options`(선택지 value·text), `cluster`(분리 입력 묶음), `accept`, `readOnly`(달력 팝업형) |
 | `FillPlan` | background → filler | `items`(fieldId·schemaKey·value·source), `unmatched`, `skipped`(선택지 불일치 `no-option`·첨부 없음 `no-file`) |
 | `FillResult` | filler → background | `filled`(전략), `failed`(사유) |
@@ -98,14 +99,15 @@ tests/
 
 - `MatchSource`: `learned`·`autocomplete`·`rule`·`manual`(사이드 패널 직접 입력). `llm`·`adapter`는 미구현
 - 프레임: 같은 출처 iframe의 fieldId·cluster는 `프레임id:로컬id`, 최상위는 그대로 (`core/frames.ts`)
-- 설계 초안에 있었으나 미구현: `repeatGroups`(반복 항목 '추가' 버튼 묶음), `dateFormat`, `groupIndex`(반복 인덱스는 매핑 시 등장 순서로 부여)
+- 설계 초안에 있었으나 미구현: `dateFormat`, `groupIndex`(반복 인덱스는 매핑 시 등장 순서로 부여). `repeatGroups`는 `addButtons`로 대체
 
 ## 6. 메시지 규격
 
 | 메시지 | 방향 | 요청 | 응답 |
 |---|---|---|---|
-| `startFill` | popup·sidepanel → background | `{ tabId, partial? }` (`partial`: 권한 없는 교차 출처 iframe 건너뜀) | `{ status: 'ok', filled, failed, unmatched }`(개수) 또는 `excluded`·`user-excluded`·`no-resume`·`needs-permission { origins }`·`error` |
+| `startFill` | popup·sidepanel → background | `{ tabId, partial? }` (`partial`: 권한 없는 교차 출처 iframe 건너뜀) | `{ status: 'ok', filled, failed, unmatched, added }`(개수, `added`: 추가한 반복 블록) 또는 `excluded`·`user-excluded`·`no-resume`·`needs-permission { origins }`·`error` |
 | `collect` | background → filler | — | `PageDetails` (콤보박스 선택지를 열어 읽으므로 비동기) |
+| `addBlocks` | background → filler | `{ buttonId, count }` | `{ added }` (버튼을 count번 클릭, 클릭마다 새 입력란 생길 때까지 최대 2초 대기, 안 생기면 중단) |
 | `fill` | background → filler | `FillPlan` | `FillResult` |
 | `fillOne` | sidepanel → background → filler | `{ fieldId, schemaKey, optionValue? }` (값은 background가 이력서에서 조회, `optionValue`는 선택지 직접 선택. filler에는 `fill`로 전달) | `{ status: 'ok' \| 'error' }` (성공 시 학습, `session:fillReport` 갱신) |
 | `fillAnswer` | sidepanel → background → filler | `{ fieldId, coverLetterId }` (filler에는 `fill`로 전달, 학습 없음) | `{ status: 'ok' \| 'error' }` (글자수 초과 시 오류 안내) |
@@ -134,6 +136,12 @@ Popup '작성' 클릭 (activeTab 부여) → sidePanel.open (클릭 제스처 �
       → 팝업 '접근 허용' → permissions.request → 허용 시 permissions.onAdded에서 background가 다시 작성
       → 팝업 '이 페이지 부분만 입력' → startFill { partial: true }
  → 프레임별 collect → 병합 (core/frames.ts)
+ → 반복 항목 블록 늘리기 (blocksToAdd, core/mapping/match.ts)
+      섹션별 이력서 항목 수 > 페이지 블록 수(assignKeys 반복 인덱스 최대 + 1)이고 섹션 '추가' 버튼 있으면
+      → 프레임별 addBlocks로 부족분만큼 클릭 → 추가됐으면 다시 collect·병합
+      버튼 후보: 20자 이하 표시 텍스트·aria-label이 '추가'·'add'·'+' (파일·사진·삭제 등 제외), type=submit·외부 이동 링크 제외
+      버튼 섹션: 버튼 텍스트 → 섹션 텍스트(detectSection), 섹션별 버튼 여럿이면 마지막
+      클릭 중 submit 이벤트 차단 (타입 미지정 <button>의 폼 제출 방지)
  → 매핑 엔진 (background, core/mapping/match.ts)
       1. LearnedRule (origin + fingerprint)
       2. autocomplete 속성
@@ -159,6 +167,7 @@ Popup '작성' 클릭 (activeTab 부여) → sidePanel.open (클릭 제스처 �
 ### 7.3 되돌리기
 - filler가 입력 직전 값을 메모리에 보관 → `undo` 시 위젯별로 복원
 - 페이지 이동 시 snapshot 소멸 (저장하지 않음)
+- '추가' 버튼으로 늘린 반복 블록은 제거하지 않음 (입력값만 복원)
 
 ### 7.4 이력서 가져오기
 - 목적: 채용 사이트에 이미 작성한 이력서를 확장 프로그램에 다시 입력하지 않고 수집
@@ -203,7 +212,7 @@ Popup '이 페이지에서 가져오기' 클릭 (activeTab 부여)
  → lastFilledAt < resume.meta.updatedAt 이면 '갱신 필요' 표시 (옵션 목록·팝업)
 ```
 - 제외 사이트 URL 등록 가능, 열기만 수행 → 해당 탭은 복사 전용 모드(9장)
-- 제약: 사이트에 이미 있는 반복 블록 수만큼만 입력(반복 항목 '추가' 버튼 미구현, 5장), 사이트 쪽 항목 삭제 미지원, 덮어쓴 값은 사이드 패널 '되돌리기'로 복구
+- 제약: 반복 블록은 '추가' 버튼을 찾은 섹션만 늘림(7.1), 사이트 쪽 항목 삭제 미지원, 덮어쓴 값은 사이드 패널 '되돌리기'로 복구
 
 ## 8. 저장 구조
 

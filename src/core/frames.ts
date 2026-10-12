@@ -12,7 +12,7 @@ export function splitFieldId(fieldId: string): { frameId: number; localId: strin
   return m ? { frameId: Number(m[1]), localId: m[2]! } : { frameId: 0, localId: fieldId };
 }
 
-/** 프레임별 수집 결과 → 하나로 (프레임 순서대로, fieldId·cluster에 프레임 접두어). url은 최상위 프레임 */
+/** 프레임별 수집 결과 → 하나로 (프레임 순서대로, fieldId·cluster·buttonId에 프레임 접두어). url은 최상위 프레임 */
 export function mergeFrames(frames: { frameId: number; details: PageDetails }[]): PageDetails {
   const top = frames.find((f) => f.frameId === 0) ?? frames[0];
   return {
@@ -23,6 +23,9 @@ export function mergeFrames(frames: { frameId: number; details: PageDetails }[])
         fieldId: globalFieldId(frameId, f.fieldId),
         cluster: f.cluster && globalFieldId(frameId, f.cluster),
       })),
+    ),
+    addButtons: frames.flatMap(({ frameId, details }) =>
+      (details.addButtons ?? []).map((b) => ({ ...b, buttonId: globalFieldId(frameId, b.buttonId) })),
     ),
   };
 }

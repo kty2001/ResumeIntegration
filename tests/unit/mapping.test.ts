@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { acceptsFile } from '@/core/attachments';
 import { fieldFingerprint } from '@/core/mapping/learned';
-import { detectSection, getValueByKey, keyForValue, mapFields, matchField } from '@/core/mapping/match';
+import { blocksToAdd, detectSection, getValueByKey, keyForValue, mapFields, matchField } from '@/core/mapping/match';
 import { createEmptyResume } from '@/core/schema/empty';
 import { groupKeyOptions, schemaKeyLabel, schemaKeyOptions } from '@/core/schema/labels';
 import { isExcluded, matchesHostPattern, normalizeDomain } from '@/core/site-policy';
@@ -495,6 +495,31 @@ describe('mapFields', () => {
   it('getValueByKey: 없는 경로·빈 문자열은 undefined', () => {
     expect(getValueByKey(resume, 'basics.phone.mobile')).toBeUndefined();
     expect(getValueByKey(resume, 'basics.name.en')).toBeUndefined();
+  });
+});
+
+describe('blocksToAdd', () => {
+  const r = createEmptyResume();
+  r.education = [{ id: 'e1' }, { id: 'e2' }, { id: 'e3' }] as typeof r.education;
+  r.certificates = [{ id: 'c1' }, { id: 'c2' }] as typeof r.certificates;
+  r.work = [{ id: 'w1' }] as typeof r.work;
+  const button = (buttonId: string, props: { label?: string; ariaLabel?: string; section?: string }) => ({ buttonId, ...props });
+
+  it('섹션별 이력서 항목 수 − 페이지 블록 수만큼, 블록 없는 섹션은 항목 수만큼', () => {
+    const keys = ['basics.name.ko', 'education.0.school.ko', 'education.0.major.ko', 'education.1.school.ko', undefined];
+    const buttons = [button('0', { label: '+ 학력 추가' }), button('1', { label: '추가', section: '자격증' })];
+    expect(blocksToAdd(keys, buttons, r)).toEqual([{ buttonId: '0', count: 1 }, { buttonId: '1', count: 2 }]);
+  });
+
+  it('이력서 항목 수 ≤ 블록 수, 버튼 없는 섹션, 섹션 판별 안 되는 버튼은 제외', () => {
+    const keys = ['work.0.company.ko', 'education.2.school.ko'];
+    const buttons = [button('0', { label: '경력 추가' }), button('1', { label: '추가' }), button('2', { label: 'Add', section: '학력·경력 사항' })];
+    expect(blocksToAdd(keys, buttons, r)).toEqual([]);
+  });
+
+  it('섹션별 버튼이 여럿이면 마지막 버튼, aria-label로도 판별', () => {
+    const buttons = [button('0', { label: '+', ariaLabel: '학력 추가' }), button('1', { label: '+', ariaLabel: '학력 추가' })];
+    expect(blocksToAdd([], buttons, r)).toEqual([{ buttonId: '1', count: 3 }]);
   });
 });
 

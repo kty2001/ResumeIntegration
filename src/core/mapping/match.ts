@@ -1,8 +1,8 @@
 import type { Resume } from '@/core/schema/resume';
 import { formatValue, isDateKey } from '@/core/format';
-import { schemaKeyOptions } from '@/core/schema/labels';
+import { schemaKeyOptions, SECTION_LABELS, type SectionKey } from '@/core/schema/labels';
 import { isSplitPart, partValue, splitValue } from '@/core/format/split';
-import type { FieldDescriptor, FillPlan, FormatHint, MatchSource, WidgetKind } from '@/messaging/protocol';
+import type { AddButton, FieldDescriptor, FillPlan, FormatHint, MatchSource, WidgetKind } from '@/messaging/protocol';
 import { attachmentFor } from '@/core/attachments';
 import {
   FIELD_RULES,
@@ -68,7 +68,9 @@ export function matchField(
 }
 
 /** 입력란 텍스트 → 섹션 텍스트 순으로 섹션 판별. 한 텍스트에 두 섹션이 함께 걸리면 다음 텍스트로 */
-export function detectSection(field: FieldDescriptor): RuleSection | undefined {
+export function detectSection(
+  field: Pick<FieldDescriptor, 'label' | 'ariaLabel' | 'placeholder' | 'name' | 'id' | 'section'>,
+): RuleSection | undefined {
   const texts = [field.label, field.ariaLabel, field.placeholder, field.name, field.id, field.section];
   for (const text of texts) {
     if (!text) continue;
@@ -224,6 +226,34 @@ export function assignKeys(fields: FieldDescriptor[], learned?: Map<string, Lear
     keys[i] = schemaKey;
   });
   return { matches, keys, runOf };
+}
+
+/**
+ * 반복 항목 '추가' 버튼 클릭 계획: 섹션별 (이력서 항목 수 − 페이지 블록 수) > 0 인 섹션의 버튼과 클릭 횟수
+ * 페이지 블록 수 = assignKeys 반복 인덱스 최대 + 1. 버튼 섹션은 버튼 텍스트 → 섹션 텍스트 순 판별,
+ * 섹션별 버튼이 여럿이면 마지막 버튼 (블록마다 버튼이 있는 사이트 대비)
+ */
+export function blocksToAdd(
+  keys: (string | undefined)[],
+  buttons: AddButton[],
+  resume: Pick<Resume, SectionKey>,
+): { buttonId: string; count: number }[] {
+  const buttonOf = new Map<SectionKey, string>();
+  for (const button of buttons) {
+    const section = detectSection(button);
+    if (section && section in SECTION_LABELS) buttonOf.set(section as SectionKey, button.buttonId);
+  }
+  return [...buttonOf].flatMap(([section, buttonId]) => {
+    const blocks = Math.max(
+      0,
+      ...keys.map((key) => {
+        const m = key?.match(/^(\w+)\.(\d+)\./);
+        return m && m[1] === section ? Number(m[2]) + 1 : 0;
+      }),
+    );
+    const count = resume[section].length - blocks;
+    return count > 0 ? [{ buttonId, count }] : [];
+  });
 }
 
 /** sensitive: 설정 '민감정보 자동 입력 사용' (matchField 참고) */

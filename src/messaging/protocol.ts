@@ -25,9 +25,18 @@ export interface FieldDescriptor {
 
 /** 형식 변환(core/format)·첨부 파일 선택 판단에 쓰는 입력란 정보 */
 export type FormatHint = Pick<FieldDescriptor, 'widget' | 'placeholder' | 'maxLength' | 'options' | 'accept'>;
+/** 반복 항목 '추가' 버튼 (섹션 판별은 background, core/mapping/match.ts blocksToAdd) */
+export interface AddButton {
+  buttonId: string;         // filler 메모리 인덱스 (fieldId와 별개)
+  label?: string;           // 표시 텍스트
+  ariaLabel?: string;
+  section?: string;         // 소속 섹션 텍스트 (fieldset legend → 직전 제목)
+}
+
 export interface PageDetails {
   url: string;              // origin + pathname만 (쿼리 제거)
   fields: FieldDescriptor[];
+  addButtons?: AddButton[];
 }
 
 export type MatchSource = 'learned' | 'autocomplete' | 'rule' | 'manual';
@@ -66,7 +75,7 @@ export interface FillReport {
 }
 
 export type StartFillResponse =
-  | { status: 'ok'; filled: number; failed: number; unmatched: number }
+  | { status: 'ok'; filled: number; failed: number; unmatched: number; added: number } // added: '추가' 버튼으로 늘린 블록 수
   | { status: 'excluded' | 'user-excluded' | 'no-resume' }
   | { status: 'needs-permission'; origins: string[] } // 권한 없는 교차 출처 iframe (팝업에서 허용 또는 부분 입력)
   | { status: 'error'; message: string };
@@ -75,7 +84,7 @@ export type StartFillResponse =
 export function describeStartFill(res: StartFillResponse): string {
   switch (res.status) {
     case 'ok':
-      return `입력 완료 ${res.filled}개 · 입력 실패 ${res.failed}개 · 해당 없음 ${res.unmatched}개`;
+      return `입력 완료 ${res.filled}개 · 입력 실패 ${res.failed}개 · 해당 없음 ${res.unmatched}개${res.added ? ` · 블록 추가 ${res.added}개` : ''}`;
     case 'excluded':
       return '이용약관상 자동 입력을 지원하지 않는 사이트입니다.';
     case 'user-excluded':
@@ -123,6 +132,8 @@ interface ProtocolMap {
   startImport(data: { tabId: number }): StartImportResponse;
   /** 마지막 collect로 매긴 입력란의 현재 값 (빈 값·파일 제외) */
   readValues(): { fieldId: string; value: string }[];
+  /** 반복 항목 '추가' 버튼을 count번 클릭 (새 입력란이 생길 때까지 대기, 생기지 않으면 중단) → 실제 추가 횟수 */
+  addBlocks(data: { buttonId: string; count: number }): { added: number };
   fill(plan: FillPlan): FillResult;
   /** optionValue: select 선택지 직접 선택 (이력서 값 대신 해당 선택지 입력 + 학습) */
   fillOne(data: { fieldId: string; schemaKey: string; optionValue?: string }): ActionResponse;

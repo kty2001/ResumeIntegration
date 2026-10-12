@@ -9,13 +9,14 @@ describe('iframe fieldId', () => {
     expect(splitFieldId('7:3')).toEqual({ frameId: 7, localId: '3' });
   });
 
-  it('mergeFrames: 프레임 순서대로 합치고 id·cluster에 접두어, url은 최상위 프레임', () => {
+  it('mergeFrames: 프레임 순서대로 합치고 id·cluster·buttonId에 접두어, url은 최상위 프레임', () => {
     const merged = mergeFrames([
       { frameId: 0, details: { url: 'https://a.com/apply', fields: [{ fieldId: '0', widget: 'text', cluster: '0' }] } },
-      { frameId: 5, details: { url: 'https://a.com/frame', fields: [{ fieldId: '0', widget: 'text', cluster: '0' }, { fieldId: '1', widget: 'text' }] } },
+      { frameId: 5, details: { url: 'https://a.com/frame', fields: [{ fieldId: '0', widget: 'text', cluster: '0' }, { fieldId: '1', widget: 'text' }], addButtons: [{ buttonId: '0' }] } },
     ]);
     expect(merged.url).toBe('https://a.com/apply');
     expect(merged.fields.map((f) => [f.fieldId, f.cluster])).toEqual([['0', '0'], ['5:0', '5:0'], ['5:1', undefined]]);
+    expect(merged.addButtons).toEqual([{ buttonId: '5:0' }]);
   });
 
   it('planByFrame·mergeResults: 프레임별 로컬 id로 나누고 결과는 전체 id로', () => {
