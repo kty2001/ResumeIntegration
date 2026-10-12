@@ -78,7 +78,8 @@ export function detectSection(field: FieldDescriptor): RuleSection | undefined {
   return undefined;
 }
 
-function getByPath(resume: Resume, schemaKey: string): unknown {
+/** 점 경로 값 조회 (가공 없음) */
+export function getByPath(resume: Resume, schemaKey: string): unknown {
   let cur: unknown = resume;
   for (const part of schemaKey.split('.')) {
     if (cur == null || typeof cur !== 'object') return undefined;
@@ -186,15 +187,19 @@ function splitRuns(fields: FieldDescriptor[], matches: FieldMatch[]): Map<number
   return runOf;
 }
 
-/** sensitive: 설정 '민감정보 자동 입력 사용' (matchField 참고) */
-export function mapFields(
-  fields: FieldDescriptor[],
-  resume: Resume,
-  learned?: Map<string, LearnedMatch>,
-  sensitive = false,
-): FillPlan {
-  const skipped: NonNullable<FillPlan['skipped']> = [];
-  const plan: FillPlan = { items: [], unmatched: [], skipped };
+export interface KeyAssignment {
+  matches: FieldMatch[];          // 입력란별 매칭 (분리 입력 묶음의 미매칭 칸은 null)
+  keys: (string | undefined)[];   // 입력란별 스키마 키 (반복 인덱스 부여, 묶음 구성원은 같은 키)
+  runOf: Map<number, number[]>;   // 분리 입력 묶음
+}
+
+const runMatch = (matches: FieldMatch[], run: number[]) => run.map((j) => matches[j]).find((m) => m)!;
+
+/**
+ * 이력서 값과 무관하게 입력란별 스키마 키 결정 (자동 입력 mapFields·가져오기 core/import.ts 공용)
+ * sensitive: 설정 '민감정보 자동 입력 사용' (matchField 참고)
+ */
+export function assignKeys(fields: FieldDescriptor[], learned?: Map<string, LearnedMatch>, sensitive = false): KeyAssignment {
   // 달력 팝업형 readonly 입력란은 날짜 키만 입력
   const matches = fields.map((field) => {
     const match = matchField(field, learned, sensitive);
@@ -204,14 +209,13 @@ export function mapFields(
   // 반복 항목 키('education.*.school.ko')는 페이지 등장 순서대로 인덱스 부여 (분리 입력 묶음은 하나로)
   const counts = new Map<string, number>();
   const keys: (string | undefined)[] = [];
-  const runMatch = (run: number[]) => run.map((j) => matches[j]).find((m) => m)!;
   fields.forEach((_, i) => {
     const run = runOf.get(i);
     if (run && run[0] !== i) {
       keys[i] = keys[run[0]!];
       return;
     }
-    let schemaKey = (run ? runMatch(run) : matches[i])?.schemaKey;
+    let schemaKey = (run ? runMatch(matches, run) : matches[i])?.schemaKey;
     if (schemaKey?.includes('*')) {
       const index = counts.get(schemaKey) ?? 0;
       counts.set(schemaKey, index + 1);
@@ -219,12 +223,25 @@ export function mapFields(
     }
     keys[i] = schemaKey;
   });
+  return { matches, keys, runOf };
+}
+
+/** sensitive: 설정 '민감정보 자동 입력 사용' (matchField 참고) */
+export function mapFields(
+  fields: FieldDescriptor[],
+  resume: Resume,
+  learned?: Map<string, LearnedMatch>,
+  sensitive = false,
+): FillPlan {
+  const skipped: NonNullable<FillPlan['skipped']> = [];
+  const plan: FillPlan = { items: [], unmatched: [], skipped };
+  const { matches, keys, runOf } = assignKeys(fields, learned, sensitive);
 
   fields.forEach((field, i) => {
     const run = runOf.get(i);
     const parts = run && splitValue(keys[i]!, getValueByKey(resume, keys[i]!) ?? '', run.length);
     // 분할 실패 시 묶음 구성원은 자기 매칭대로 (미매칭 칸은 해당 없음)
-    const match = parts ? runMatch(run!) : matches[i];
+    const match = parts ? runMatch(matches, run!) : matches[i];
     const schemaKey = match ? keys[i] : undefined;
     const value = parts
       ? partValue(parts[run!.indexOf(i)]!, field)

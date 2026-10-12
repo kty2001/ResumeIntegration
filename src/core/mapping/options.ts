@@ -125,6 +125,25 @@ export function normalizeOption(text: string): string {
 }
 
 /**
+ * 가져오기용 역방향 매칭: 사이트 선택지·입력 텍스트 → enum 코드 (enum 키 아니면 텍스트 그대로)
+ * 1단계: 코드별 [표시명, 동의어…, 코드] 중 일치 / 2단계: 텍스트가 후보를 포함하는 코드가 하나뿐이면 선택. 없으면 undefined
+ */
+export function optionCode(schemaKey: string, text: string): string | undefined {
+  const spec = enumOf(schemaKey);
+  if (!spec) return text.trim() || undefined;
+  const target = normalizeOption(text);
+  if (!target) return undefined;
+  const entries = Object.keys(spec.labels).map((code) => ({
+    code,
+    candidates: [spec.labels[code], ...(spec.synonyms[code] ?? []), code].filter((c): c is string => !!c).map(normalizeOption),
+  }));
+  const exact = entries.find((e) => e.candidates.includes(target));
+  if (exact) return exact.code;
+  const contains = entries.filter((e) => e.candidates.some((c) => c.length >= 2 && target.includes(c)));
+  return contains.length === 1 ? contains[0]!.code : undefined;
+}
+
+/**
  * 선택지 매칭 → 옵션 value. 후보 = [표시명, 동의어…, 코드] (enum 아니면 [값])
  * 1단계: 후보 순서대로 옵션 text·value와 일치 / 2단계: 후보를 포함하는 옵션이 하나뿐이면 선택
  */

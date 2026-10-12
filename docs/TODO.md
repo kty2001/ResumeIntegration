@@ -44,28 +44,28 @@
 
 ## 구현 (가져오기·연동 사이트)
 ### 이력서 가져오기 ([architecture](design/architecture.md) 7.4)
-- [ ] 메시지 `startImport`·`readValues`, filler 입력란 값 읽기 (위젯별 `readValue` 재사용, 파일·비밀번호 제외)
-- [ ] 매핑: 이력서 값 없이 스키마 키만 결정하는 모드
-- [ ] 역변환 `core/import.ts`: 날짜·연월·전화번호·분리 입력 합치기·선택지 텍스트 → enum 코드·checkbox
-- [ ] 반복 항목 같은 항목 판별(대표 키) → 갱신·추가, 서술형 입력란 → 자기소개서 후보
-- [ ] `session:importDraft` + 옵션 '가져오기 미리 보기'(항목별 선택·반영·취소)
-- [ ] 팝업 '이 페이지에서 가져오기' (이력서 미입력 상태 포함)
-- [ ] 최초 실행 동의 문구에 가져오기 안내 추가 + `CONSENT_VERSION` 증가 ([screens](design/screens.md) 5장 ①)
+- [x] 메시지 `startImport`·`readValues`, filler 입력란 값 읽기 (위젯별 `readValue` 재사용, 파일 제외)
+- [x] 매핑: 이력서 값 없이 스키마 키만 결정 (`assignKeys`, 자동 입력과 공용)
+- [x] 역변환 `core/import.ts`: 날짜·연월·전화번호·분리 입력 합치기·숫자·배열·선택지 텍스트 → enum 코드·checkbox
+- [x] 반복 항목 같은 항목 판별(대표 항목) → 갱신·추가, 서술형 입력란 → 자기소개서 후보
+- [x] `session:importDraft` + 옵션 '가져오기' 미리 보기(항목별 선택·반영·취소)
+- [x] 팝업 '이 페이지에서 가져오기' (이력서 미입력 상태 포함)
+- [x] 최초 실행 동의 문구에 가져오기 안내 추가 + `CONSENT_VERSION` 2 ([screens](design/screens.md) 5장 ①)
 - [ ] 열람 페이지 가져오기: 범용 라벨-값 추출(`readPairs`) → 범용 처리 불가 사이트만 사이트별 어댑터 (DOM 조사 후 범위 결정)
 
 ### 연동 사이트 일괄 열기 ([architecture](design/architecture.md) 7.5)
-- [ ] `local:linkedSites` 저장 + 백업 내보내기·가져오기 포함
-- [ ] 옵션 '연동 사이트' 메뉴: 추가·삭제·순서 변경, 제외 사이트 안내
-- [ ] '모두 열기'(팝업·옵션, `windows.create`)
-- [ ] `startFill` 성공 시 `lastFilledAt` 기록, '갱신 필요' 표시
+- [x] `local:linkedSites` 저장 + 백업 내보내기·가져오기·전체 삭제 포함
+- [x] 옵션 '연동 사이트' 메뉴: 추가·삭제·순서 변경, 제외 사이트 안내
+- [x] '모두 열기'(팝업·옵션, `windows.create`)
+- [x] `startFill` 성공 시 `lastFilledAt` 기록, '갱신 필요' 표시
 - [ ] 기본 추천 URL (DOM 현장 조사 후)
 
 ### 테스트
-- [ ] 단위: 역변환·같은 항목 판별·갱신 필요 판정
-- [ ] E2E: 값이 채워진 fixture에서 가져오기 → 미리 보기 반영
+- [x] 단위: 역변환·같은 항목 판별·갱신 필요 판정
+- [x] E2E: 값이 채워진 fixture에서 가져오기 → 미리 보기 반영, 연동 사이트 화면·작성 시각 기록
 
 ## 테스트
-- [x] 위젯 종류별 로컬 HTML fixture (`tests/e2e/fixtures/`, 18종)
+- [x] 위젯 종류별 로컬 HTML fixture (`tests/e2e/fixtures/`, 19종)
 - [x] Playwright E2E 테스트 환경 (`npm run test:e2e`)
 - [ ] 실제 채용 사이트 검증 (사람인·잡코리아)
 

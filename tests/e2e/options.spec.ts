@@ -172,6 +172,72 @@ test('연동 사이트: 추가·형식 오류·중복·제외 사이트 안내·
   ]);
 });
 
+test('이력서 가져오기: 팝업 → 미리 보기(갱신·추가) → 선택 반영 → 자기소개서 추가', async ({ context, worker, extensionId }) => {
+  // 기존 이력서: 이메일 다름(기본 미선택), 예시대학교는 같은 항목으로 갱신
+  const existing = {
+    ...resume,
+    basics: { ...resume.basics, email: 'old@example.com', phone: undefined, birthDate: undefined },
+    education: [{ id: 'e1', level: 'university', school: { ko: '예시대학교' }, status: 'graduated' }],
+  };
+  await worker.evaluate((value) => chrome.storage.local.set({ resume: value, resume$: { v: 1 } }), existing);
+
+  const page = await context.newPage();
+  await page.goto('http://localhost/import.html');
+  await page.bringToFront();
+  const popupOpened = context.waitForEvent('page');
+  await worker.evaluate((url) => chrome.tabs.create({ url, active: false }), `chrome-extension://${extensionId}/popup.html`);
+  const popup = await popupOpened;
+  const optionsOpened = context.waitForEvent('page');
+  await popup.getByRole('button', { name: '이 페이지에서 가져오기' }).click();
+  await expect(popup.getByText(/이력서 항목 \d+개를 읽었습니다/)).toBeVisible();
+  const options = await optionsOpened;
+  await expect(options).toHaveURL(/options\.html#import$/);
+
+  // 기본 정보: 이름은 같은 값이라 생략, 이메일은 값이 달라 미선택, 휴대폰(3칸 결합)·생년월일·성별은 선택
+  const basics = options.locator('.card').filter({ hasText: '기본 정보' });
+  await expect(basics.getByRole('row').filter({ hasText: '이름' })).toHaveCount(0);
+  await expect(options.getByLabel('기본 정보 이메일 반영')).not.toBeChecked();
+  await expect(options.getByLabel('기본 정보 휴대폰 반영')).toBeChecked();
+  await expect(basics.getByRole('row').filter({ hasText: '휴대폰' })).toContainText('01098765432');
+  await expect(options.getByLabel('기본 정보 생년월일 반영')).toBeChecked();
+  await expect(options.getByLabel('기본 정보 성별 반영')).toBeChecked();
+  await expect(basics).not.toContainText('secret');
+  // 학력: 기존 항목 갱신 + 새 항목 추가
+  await expect(options.getByText('학력 · 예시대학교 (갱신)')).toBeVisible();
+  await expect(options.getByText('학력 · 예시고등학교 (추가)')).toBeVisible();
+  await expect(options.getByText('지원 동기를 작성해 주세요')).toBeVisible();
+
+  await options.getByLabel('기본 정보 이메일 반영').check();
+  await options.getByRole('button', { name: /^선택 항목 반영/ }).click();
+  await expect(options.getByRole('status')).toHaveText('선택한 항목을 이력서에 반영했습니다.');
+
+  const stored = () =>
+    worker.evaluate(async () => {
+      const { resume: r, coverLetters } = await chrome.storage.local.get(['resume', 'coverLetters']);
+      const value = r as typeof resume;
+      return {
+        email: value.basics.email,
+        mobile: value.basics.phone?.mobile,
+        birthDate: value.basics.birthDate,
+        gender: value.basics.gender,
+        education: value.education.map((e) => [e.school.ko, e.startDate]),
+        questions: ((coverLetters as { question: string }[] | undefined) ?? []).map((c) => c.question),
+      };
+    });
+  await expect.poll(stored).toEqual({
+    email: 'new@example.com',
+    mobile: '01098765432',
+    birthDate: '1995-03-15',
+    gender: 'male',
+    education: [
+      ['예시대학교', '2014-03'],
+      ['예시고등학교', '2011-03'],
+    ],
+    questions: ['지원 동기를 작성해 주세요'],
+  });
+  expect(await worker.evaluate(async () => (await chrome.storage.session.get('importDraft')).importDraft ?? null)).toBeNull();
+});
+
 test('첨부 파일: 구분 선택 후 추가·증명사진 연결·삭제', async ({ context, worker, extensionId }, testInfo) => {
   const stored = () =>
     worker.evaluate(async () => {
@@ -225,7 +291,7 @@ test('최초 실행 동의 전 팝업 안내 → 옵션 화면 동의 모달 →
   await start.click();
   await expect(dialog).toHaveCount(0);
   const consent = await worker.evaluate(async () => (await chrome.storage.local.get('consent')).consent as { version: number } | undefined);
-  expect(consent?.version).toBe(1);
+  expect(consent?.version).toBe(2);
 
   await popup.reload();
   await expect(popup.getByRole('button', { name: 'JSON 가져오기' })).toBeVisible();

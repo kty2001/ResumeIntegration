@@ -1,4 +1,5 @@
 import { storage } from 'wxt/utils/storage';
+import type { ImportDraft } from '@/core/import';
 import type { LinkedSite } from '@/core/linked-sites';
 import type { LearnedRule } from '@/core/mapping/learned';
 import { SCHEMA_VERSION, type CoverLetterEntry, type Resume } from '@/core/schema/resume';
@@ -29,7 +30,7 @@ export const settingsItem = storage.defineItem<Settings>('local:settings', {
 
 // 최초 실행 동의 (docs/design/screens.md 5장 ①). 문구가 바뀌면 CONSENT_VERSION을 올려 다시 동의 받음
 // settings와 분리: 백업 '전체 삭제'가 settings를 지워도 동의는 유지
-export const CONSENT_VERSION = 1;
+export const CONSENT_VERSION = 2; // 2: 이력서 가져오기 안내 추가
 
 export const consentItem = storage.defineItem<{ version: number; acceptedAt: string } | null>('local:consent', {
   fallback: null,
@@ -58,5 +59,10 @@ export const pendingPermissionItem = storage.defineItem<{ tabId: number; origins
 
 // 제외 사이트 복사 전용 모드 (팝업 '복사 전용 모드 열기' → 사이드 패널, '작성' 시 해제)
 export const copyOnlyItem = storage.defineItem<{ tabId: number; url: string } | null>('session:copyOnly', {
+  fallback: null,
+});
+
+// 반영 전 이력서 가져오기 결과 (팝업 '이 페이지에서 가져오기' → 옵션 '가져오기' 미리 보기, 반영·취소 시 삭제)
+export const importDraftItem = storage.defineItem<ImportDraft | null>('session:importDraft', {
   fallback: null,
 });

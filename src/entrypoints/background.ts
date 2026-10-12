@@ -3,7 +3,8 @@ import { COVER_LETTER_KEY } from '@/core/coverLetter';
 import { globalFieldId, mergeFrames, mergeResults, planByFrame, splitFieldId } from '@/core/frames';
 import { markFilled } from '@/core/linked-sites';
 import { rulesForOrigin, upsertRule, type LearnedRule } from '@/core/mapping/learned';
-import { getValueByKey, keyForValue, mapFields, resolveValue } from '@/core/mapping/match';
+import { parseImport } from '@/core/import';
+import { assignKeys, getValueByKey, keyForValue, mapFields, resolveValue } from '@/core/mapping/match';
 import { applyFillOne, buildFillReport } from '@/core/mapping/report';
 import { isExcluded, matchesHostPattern } from '@/core/site-policy';
 import {
@@ -18,6 +19,7 @@ import {
   type PageDetails,
   type ReportField,
   type StartFillResponse,
+  type StartImportResponse,
   type UndoResponse,
 } from '@/messaging/protocol';
 import type { Resume } from '@/core/schema/resume';
@@ -26,6 +28,7 @@ import {
   copyOnlyItem,
   coverLettersItem,
   fillReportItem,
+  importDraftItem,
   learnedRulesItem,
   linkedSitesItem,
   pendingPermissionItem,
@@ -33,7 +36,7 @@ import {
   settingsItem,
 } from '@/storage/items';
 
-// 자동 입력 흐름: docs/design/architecture.md 7.1 (최상위 프레임 + 주입 가능한 같은 출처 iframe)
+// 자동 입력 흐름: docs/design/architecture.md 7.1 (최상위 프레임 + 주입 가능한 같은 출처 iframe), 가져오기: 7.4
 // 사이드 패널 동작(fillOne·fillAnswer·focusField·highlight·undo): 7.2·7.3, 대상 탭은 session:fillReport의 tabId
 // fillOne 성공·페이지 직접 수정(userEdit) 시 학습 규칙 저장 → 다음 startFill에서 매핑 1순위
 
@@ -126,6 +129,19 @@ async function sendFill(tabId: number, plan: FillPlan): Promise<FillResult> {
   return mergeResults(results);
 }
 
+/** 프레임별 입력란 수집 (수집 중 이동·제거된 iframe은 건너뜀, 최상위 프레임 실패는 오류) */
+async function collectFrames(tabId: number, frameIds: number[]): Promise<{ frameId: number; details: PageDetails }[]> {
+  const frames: { frameId: number; details: PageDetails }[] = [];
+  for (const frameId of frameIds) {
+    try {
+      frames.push({ frameId, details: await sendMessage('collect', undefined, { tabId, frameId }) });
+    } catch (e) {
+      if (frameId === 0) throw e;
+    }
+  }
+  return frames;
+}
+
 /** partial: 권한 없는 교차 출처 iframe을 건너뛰고 입력 (아니면 needs-permission 반환, 기존 결과 유지) */
 async function startFill(tabId: number, partial = false): Promise<StartFillResponse> {
   await pendingPermissionItem.setValue(null);
@@ -155,15 +171,7 @@ async function startFill(tabId: number, partial = false): Promise<StartFillRespo
     }
   }
   await fillReportItem.setValue(null);
-  const frames: { frameId: number; details: PageDetails }[] = [];
-  for (const frameId of frameIds) {
-    // 수집 중 이동·제거된 iframe은 건너뜀 (최상위 프레임 실패는 오류)
-    try {
-      frames.push({ frameId, details: await sendMessage('collect', undefined, { tabId, frameId }) });
-    } catch (e) {
-      if (frameId === 0) throw e;
-    }
-  }
+  const frames = await collectFrames(tabId, frameIds);
   const details = mergeFrames(frames);
   const learned = rulesForOrigin(await learnedRulesItem.getValue(), new URL(details.url).origin);
   const mapped = mapFields(details.fields, resume, learned, settings.sensitiveAutofill ?? false);
@@ -181,6 +189,37 @@ async function startFill(tabId: number, partial = false): Promise<StartFillRespo
   // 선택지 불일치(plan.skipped)도 '입력 실패'에 포함되도록 보고서 상태 기준으로 집계
   const count = (status: ReportField['status']) => report.fields.filter((f) => f.status === status).length;
   return { status: 'ok', filled: count('filled'), failed: count('failed'), unmatched: count('unmatched') };
+}
+
+/**
+ * 이력서 가져오기 (architecture.md 7.4): 입력란 수집 + 현재 값 읽기 → 스키마 키 결정 → 저장 형식 역변환 → session:importDraft
+ * 페이지는 조작하지 않음. 권한 없는 교차 출처 iframe은 권한 요청 없이 건너뜀
+ */
+async function startImport(tabId: number): Promise<StartImportResponse> {
+  const tab = await browser.tabs.get(tabId);
+  if (tab.url && isExcluded(tab.url)) return { status: 'excluded' };
+  const settings = await settingsItem.getValue();
+  if (tab.url && isExcluded(tab.url, settings.excludedSites)) return { status: 'user-excluded' };
+
+  const frames = await collectFrames(tabId, await injectFiller(tabId));
+  const values = new Map<string, string>();
+  for (const { frameId } of frames) {
+    let read: { fieldId: string; value: string }[];
+    try {
+      read = await sendMessage('readValues', undefined, { tabId, frameId });
+    } catch (e) {
+      if (frameId === 0) throw e;
+      continue;
+    }
+    for (const { fieldId, value } of read) values.set(globalFieldId(frameId, fieldId), value);
+  }
+  const details = mergeFrames(frames);
+  const learned = rulesForOrigin(await learnedRulesItem.getValue(), new URL(details.url).origin);
+  const assignment = assignKeys(details.fields, learned, settings.sensitiveAutofill ?? false);
+  const { items, coverLetters } = parseImport(details.fields, values, assignment);
+  if (!items.length && !coverLetters.length) return { status: 'empty' };
+  await importDraftItem.setValue({ url: details.url, at: new Date().toISOString(), items, coverLetters });
+  return { status: 'ok', count: items.length + coverLetters.length };
 }
 
 /**
@@ -325,6 +364,7 @@ export default defineBackground(() => {
   });
 
   onMessage('startFill', ({ data }) => withErrors(() => startFill(data.tabId, data.partial)));
+  onMessage('startImport', ({ data }) => withErrors(() => startImport(data.tabId)));
   // 팝업 '접근 허용' → 권한 대화상자에서 허용: 팝업은 대화상자로 닫히므로 대기 중인 '작성'을 여기서 다시 실행
   browser.permissions.onAdded.addListener(async () => {
     const pending = await pendingPermissionItem.getValue();

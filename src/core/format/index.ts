@@ -33,6 +33,14 @@ export function formatValue(schemaKey: string, value: string, hint: FormatHint):
   return formatterOf(schemaKey)?.(value, hint) ?? value;
 }
 
+/** 날짜 키의 저장 형식 (가져오기 역변환용): 연월일·연월·둘 다 허용. 날짜 키 아니면 undefined */
+export function dateKind(schemaKey: string): 'date' | 'month' | 'partial' | undefined {
+  const formatter = formatterOf(schemaKey);
+  if (formatter === formatDate) return 'date';
+  if (formatter === formatYearMonth) return 'month';
+  return formatter === formatPartialDate ? 'partial' : undefined;
+}
+
 /** 날짜(연월·연월일) 키 — 달력 팝업형 readonly 입력란은 이 키만 입력 */
 export function isDateKey(schemaKey: string): boolean {
   const formatter = formatterOf(schemaKey);

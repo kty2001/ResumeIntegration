@@ -89,6 +89,27 @@ export function describeStartFill(res: StartFillResponse): string {
   }
 }
 
+export type StartImportResponse =
+  | { status: 'ok'; count: number }
+  | { status: 'excluded' | 'user-excluded' | 'empty' }
+  | { status: 'error'; message: string };
+
+/** '가져오기' 결과 문구 (팝업) */
+export function describeStartImport(res: StartImportResponse): string {
+  switch (res.status) {
+    case 'ok':
+      return `이력서 항목 ${res.count}개를 읽었습니다. 미리 보기에서 반영할 항목을 골라 주세요.`;
+    case 'excluded':
+      return '이용약관상 가져오기를 지원하지 않는 사이트입니다.';
+    case 'user-excluded':
+      return '설정에서 제외한 사이트입니다.';
+    case 'empty':
+      return '이 페이지에서 가져올 이력서 값을 찾지 못했습니다. 이력서 수정 페이지에서 다시 시도해 주세요.';
+    case 'error':
+      return `가져오지 못했습니다: ${res.message}`;
+  }
+}
+
 export type ErrorResponse = { status: 'error'; message: string };
 export type ActionResponse = { status: 'ok' } | ErrorResponse;
 export type UndoResponse = { status: 'ok'; restored: number } | ErrorResponse;
@@ -98,6 +119,10 @@ interface ProtocolMap {
   /** partial: 권한 없는 교차 출처 iframe은 건너뛰고 입력 ('이 페이지 부분만 입력') */
   startFill(data: { tabId: number; partial?: boolean }): StartFillResponse;
   collect(): PageDetails;
+  /** 이력서 가져오기 (architecture.md 7.4): 결과는 session:importDraft */
+  startImport(data: { tabId: number }): StartImportResponse;
+  /** 마지막 collect로 매긴 입력란의 현재 값 (빈 값·파일 제외) */
+  readValues(): { fieldId: string; value: string }[];
   fill(plan: FillPlan): FillResult;
   /** optionValue: select 선택지 직접 선택 (이력서 값 대신 해당 선택지 입력 + 학습) */
   fillOne(data: { fieldId: string; schemaKey: string; optionValue?: string }): ActionResponse;

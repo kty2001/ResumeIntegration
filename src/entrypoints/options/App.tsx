@@ -9,6 +9,7 @@ import { BasicSection } from './sections/BasicSection';
 import { CoverLetterSection } from './sections/CoverLetterSection';
 import { DesiredSection } from './sections/DesiredSection';
 import { EducationSection } from './sections/EducationSection';
+import { ImportSection } from './sections/ImportSection';
 import { LanguageSection } from './sections/LanguageSection';
 import { LinkedSitesSection } from './sections/LinkedSitesSection';
 import { MilitarySection } from './sections/MilitarySection';
@@ -33,6 +34,7 @@ const SECTIONS: { id: string; title: string; component: ComponentType<SectionPro
   { id: 'sites', title: '연동 사이트', component: LinkedSitesSection },
   { id: 'rules', title: '학습 규칙', component: RulesSection },
   { id: 'settings', title: '설정', component: SettingsSection },
+  { id: 'import', title: '가져오기', component: ImportSection },
   { id: 'backup', title: '백업', component: BackupSection },
 ];
 

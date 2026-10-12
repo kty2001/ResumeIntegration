@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>이력서 가져오기 fixture</title>
+</head>
+<body>
+  <!-- 가져오기 확인용: 값이 채워진 이력서 수정 폼 (select·radio·전화번호 3칸·학력 반복 블록·자기소개서 textarea) -->
+  <form onsubmit="return false">
+    <h2>기본 정보</h2>
+    <p><label for="nm">이름</label> <input id="nm" value="홍길동"></p>
+    <p><label for="email">이메일</label> <input id="email" type="email" value="new@example.com"></p>
+    <p><label for="birth">생년월일</label> <input id="birth" value="1995.03.15"></p>
+    <fieldset>
+      <legend>성별</legend>
+      <input type="radio" id="g-m" name="gender" value="M" checked><label for="g-m">남자</label>
+      <input type="radio" id="g-f" name="gender" value="F"><label for="g-f">여자</label>
+    </fieldset>
+    <p>
+      <label for="p1">휴대폰</label>
+      <span><input id="p1" maxlength="3" value="010"> - <input id="p2" maxlength="4" value="9876"> - <input id="p3" maxlength="4" value="5432"></span>
+    </p>
+    <p><label for="pw">비밀번호</label> <input id="pw" type="password" value="secret"></p>
+
+    <h2>학력사항</h2>
+    <div>
+      <p><label>학교명 <input name="school" value="예시대학교"></label></p>
+      <p><label>입학년월 <input name="edu_start" placeholder="YYYY.MM" value="2014.03"></label></p>
+      <p><label>졸업 구분 <select name="grad"><option value="">선택</option><option value="1" selected>졸업</option><option value="2">졸업예정</option></select></label></p>
+    </div>
+    <div>
+      <p><label>학교명 <input name="school" value="예시고등학교"></label></p>
+      <p><label>입학년월 <input name="edu_start" placeholder="YYYY.MM" value="2011.03"></label></p>
+      <p><label>졸업 구분 <select name="grad"><option value="">선택</option><option value="1" selected>졸업</option><option value="2">졸업예정</option></select></label></p>
+    </div>
+
+    <h2>자기소개서</h2>
+    <p><label for="motive">지원 동기를 작성해 주세요</label> <textarea id="motive">사용자 경험을 개선하는 일에 관심이 많아 지원했습니다.</textarea></p>
+  </form>
+</body>
+</html>

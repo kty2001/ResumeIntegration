@@ -27,6 +27,11 @@ export function getElement(fieldId: string): FillElement | undefined {
   return elements.get(fieldId);
 }
 
+/** 마지막 수집의 fieldId 목록 (수집 순서) */
+export function collectedFieldIds(): string[] {
+  return [...elements.keys()];
+}
+
 /** 페이지 요소 → fieldId (radio·checkbox 그룹은 구성원 어느 것이든 그룹의 fieldId) */
 export function fieldIdOf(target: Element): string | undefined {
   for (const [fieldId, el] of elements) {

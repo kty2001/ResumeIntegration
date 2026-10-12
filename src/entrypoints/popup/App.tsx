@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react';
 import { needsUpdate, type LinkedSite } from '@/core/linked-sites';
 import type { Resume } from '@/core/schema/resume';
 import { isExcluded } from '@/core/site-policy';
-import { describeStartFill as describe, sendMessage } from '@/messaging/protocol';
+import { describeStartFill as describe, describeStartImport, sendMessage } from '@/messaging/protocol';
 import { CONSENT_VERSION, consentItem, copyOnlyItem, linkedSitesItem, resumeItem, settingsItem } from '@/storage/items';
 
-// 화면 설계: docs/design/screens.md 2장 (현재: 동의 전·작성 가능·이력서 미입력(JSON 가져오기 포함)·제외 사이트·권한 필요 상태)
+// 화면 설계: docs/design/screens.md 2장 (현재: 동의 전·작성 가능·이력서 미입력(JSON 가져오기 포함)·제외 사이트·권한 필요·가져오기 상태)
 
 export default function App() {
   const [resume, setResume] = useState<Resume | null | undefined>(undefined);
@@ -74,6 +74,27 @@ export default function App() {
     }
   };
 
+  // 이력서 가져오기: 페이지 값을 읽어 미리 보기(옵션 '가져오기')로 이동, 반영은 미리 보기에서 선택 (architecture.md 7.4)
+  const importPage = async () => {
+    if (tabId == null) return;
+    setRunning(true);
+    setMessage(undefined);
+    try {
+      const res = await sendMessage('startImport', { tabId });
+      setMessage(describeStartImport(res));
+      if (res.status === 'ok') void browser.tabs.create({ url: browser.runtime.getURL('/options.html#import') });
+    } catch (e) {
+      setMessage(describeStartImport({ status: 'error', message: e instanceof Error ? e.message : String(e) }));
+    } finally {
+      setRunning(false);
+    }
+  };
+  const importButton = !excluded && (
+    <button className="btn lg" onClick={() => void importPage()} disabled={running}>
+      이 페이지에서 가져오기
+    </button>
+  );
+
   // 권한 요청은 사용자 클릭 처리 안에서 바로 호출
   // 권한 대화상자가 뜨면 팝업이 닫히므로 허용 후 입력은 background(permissions.onAdded)가 실행
   const allow = async () => {
@@ -121,6 +142,7 @@ export default function App() {
             <button className={excluded ? 'btn lg' : 'btn primary lg'} onClick={() => void fill()} disabled={running || !!excluded}>
               {running ? '입력 중…' : '작성'}
             </button>
+            {importButton}
             {blocked.length > 0 && (
               <div className="msg warn" role="alert">
                 이 페이지의 일부 입력 영역이 다른 사이트({blocked.join(', ')})에 있습니다. 접근을 허용하면 그 영역도
@@ -145,6 +167,7 @@ export default function App() {
             <button className="btn lg" onClick={openBackup}>
               JSON 가져오기
             </button>
+            {importButton}
           </>
         )}
         {message && <p className="msg">{message}</p>}

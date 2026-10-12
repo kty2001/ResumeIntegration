@@ -1,4 +1,5 @@
 import {
+  collectedFieldIds,
   collectPageDetails,
   fieldIdOf,
   getElement,
@@ -54,6 +55,15 @@ export default defineUnlistedScript(() => {
     clearHighlights();
     return whileFilling(collectPageDetails);
   });
+
+  // 이력서 가져오기: 수집한 입력란의 현재 값 (파일 입력란은 readValue가 '' → 제외)
+  onMessage('readValues', () =>
+    collectedFieldIds().flatMap((fieldId) => {
+      const el = getElement(fieldId);
+      const value = el?.isConnected ? readValue(el) : '';
+      return value.trim() ? [{ fieldId, value }] : [];
+    }),
+  );
 
   // 사용자가 페이지에서 직접 바꾼 값 → background가 같은 값의 이력서 항목이면 결과 갱신·학습
   document.addEventListener(

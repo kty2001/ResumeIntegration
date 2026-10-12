@@ -30,7 +30,11 @@ export function ConsentModal({ onAccept }: { onAccept: () => void }) {
             <li className="yes">
               이력서는 <b>이 브라우저에만</b> 저장됩니다.
             </li>
-            <li className="yes">'작성' 버튼을 누른 탭에서만 동작합니다.</li>
+            <li className="yes">'작성'·'가져오기' 버튼을 누른 탭에서만 동작합니다.</li>
+            <li className="yes">
+              '이 페이지에서 가져오기'는 그 페이지에 작성된 이력서 값을 읽어 <b>이 브라우저에만</b> 보관하며, 미리 보기에서 고른
+              항목만 반영합니다.
+            </li>
             <li className="yes">
               입력만 하고 <b>제출은 하지 않습니다</b>. 제출 전 꼭 확인해 주세요.
             </li>

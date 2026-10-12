@@ -53,7 +53,7 @@ export const test = base.extend<{ context: BrowserContext; worker: Worker; exten
   // 기본은 최초 실행 동의 완료 상태 (동의 모달 E2E는 consent를 지우고 시작)
   worker: async ({ context }, use) => {
     const worker = context.serviceWorkers()[0] ?? (await context.waitForEvent('serviceworker'));
-    await worker.evaluate(() => chrome.storage.local.set({ consent: { version: 1, acceptedAt: '2026-10-09T00:00:00.000Z' } }));
+    await worker.evaluate(() => chrome.storage.local.set({ consent: { version: 2, acceptedAt: '2026-10-09T00:00:00.000Z' } }));
     await use(worker);
   },
   extensionId: async ({ worker }, use) => {
