@@ -17,7 +17,12 @@ export function SettingsSection() {
 
   if (!settings) return <p className="desc">불러오는 중…</p>;
 
-  const save = (excludedSites: string[]) => settingsItem.setValue({ ...settings, excludedSites });
+  // 화면 먼저 갱신 후 저장: 제어형 checkbox가 저장(watch) 완료 전까지 이전 값으로 되돌아가지 않도록
+  const update = (next: Settings) => {
+    setSettings(next);
+    return settingsItem.setValue(next);
+  };
+  const save = (excludedSites: string[]) => update({ ...settings, excludedSites });
 
   const add = async (e: FormEvent) => {
     e.preventDefault();
@@ -39,7 +44,7 @@ export function SettingsSection() {
         <CheckField
           label="민감정보(보훈·장애·취업보호 대상, 병역 면제 사유) 자동 입력 사용"
           checked={!!settings.sensitiveAutofill}
-          onChange={(on) => void settingsItem.setValue({ ...settings, sensitiveAutofill: on })}
+          onChange={(on) => void update({ ...settings, sensitiveAutofill: on })}
         />
         <p className="desc">끄면 자동 입력·사이드 패널 목록·직접 고친 값 학습에서 민감정보 항목을 쓰지 않습니다. 기본값은 사용 안 함입니다.</p>
       </div>
