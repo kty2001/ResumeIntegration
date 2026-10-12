@@ -159,6 +159,7 @@ Popup '작성' 클릭 (activeTab 부여) → sidePanel.open (클릭 제스처 �
 | `local:resume` | 이력서 데이터 (스키마 v1) | `version`·`migrations` 적용 |
 | `local:coverLetters` | 자기소개서 문항-답변 라이브러리 | |
 | `local:learnedRules` | `LearnedRule[]` | 옵션 화면에서 조회·삭제 |
+| `local:consent` | 최초 실행 동의 (`version`·`acceptedAt`) | settings와 분리 (백업 '전체 삭제'·내보내기 대상 아님) |
 | `local:settings` | `excludedSites`(사용자 제외 도메인), `sensitiveAutofill`(민감정보 자동 입력) | BYOK 제공자 (미구현) |
 | IndexedDB `resume-files` | 첨부 파일 본문(Blob, 키 = 첨부 id) | 옵션·background 공용, 입력 시 background가 base64로 filler에 전달 |
 | `session:fillReport` | 마지막 자동 입력 결과 (`FillReport`) | 사이드 패널 표시용 |

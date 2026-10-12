@@ -1,7 +1,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { expect, resume, test } from './extension';
 
-// 옵션 화면 '백업' E2E: 내보내기 → 전체 삭제 → 가져오기, 팝업 'JSON 가져오기'
+// 옵션 화면 '백업' E2E: 내보내기 → 전체 삭제 → 가져오기, 팝업 'JSON 가져오기', 최초 실행 동의
 
 declare const chrome: typeof browser;
 
@@ -164,4 +164,28 @@ test('팝업 이력서 없음 → JSON 가져오기 → 옵션 백업 화면', a
   const options = await opened;
   await expect(options).toHaveURL(/options\.html#backup$/);
   await expect(options.getByRole('heading', { name: '백업' })).toBeVisible();
+});
+
+test('최초 실행 동의 전 팝업 안내 → 옵션 화면 동의 모달 → 동의 후 팝업 정상', async ({ context, worker, extensionId }) => {
+  await worker.evaluate(() => chrome.storage.local.remove('consent'));
+  const popup = await context.newPage();
+  await popup.goto(`chrome-extension://${extensionId}/popup.html`);
+  await expect(popup.getByText('시작하기 전에 데이터 처리 방식을 확인해 주세요.')).toBeVisible();
+  await expect(popup.getByRole('button', { name: 'JSON 가져오기' })).toHaveCount(0);
+
+  const opened = context.waitForEvent('page');
+  await popup.getByRole('button', { name: '확인하러 가기' }).click();
+  const options = await opened;
+  const dialog = options.getByRole('dialog', { name: '시작하기 전에 확인해 주세요' });
+  await expect(dialog).toBeVisible();
+  const start = dialog.getByRole('button', { name: '시작하기' });
+  await expect(start).toBeDisabled();
+  await dialog.getByLabel('위 내용을 확인했습니다.').check();
+  await start.click();
+  await expect(dialog).toHaveCount(0);
+  const consent = await worker.evaluate(async () => (await chrome.storage.local.get('consent')).consent as { version: number } | undefined);
+  expect(consent?.version).toBe(1);
+
+  await popup.reload();
+  await expect(popup.getByRole('button', { name: 'JSON 가져오기' })).toBeVisible();
 });

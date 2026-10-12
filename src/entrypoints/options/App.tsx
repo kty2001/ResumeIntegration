@@ -1,4 +1,6 @@
-import { useState, type ComponentType } from 'react';
+import { useEffect, useState, type ComponentType } from 'react';
+import { CONSENT_VERSION, consentItem } from '@/storage/items';
+import { ConsentModal } from './ConsentModal';
 import type { SectionProps } from './fields';
 import { ActivitySection } from './sections/ActivitySection';
 import { AttachmentSection } from './sections/AttachmentSection';
@@ -40,14 +42,23 @@ export default function App() {
   const [current, setCurrent] = useState(initialSection);
   const section = SECTIONS.find((s) => s.id === current) ?? SECTIONS[0]!;
   const Section = section.component;
+  // 미동의(최초 실행)면 동의 모달, 조회 전(undefined)은 표시 안 함
+  const [consented, setConsented] = useState<boolean>();
+
+  useEffect(() => {
+    consentItem.getValue().then(
+      (c) => setConsented(c?.version === CONSENT_VERSION),
+      () => setConsented(false),
+    );
+  }, []);
 
   return (
     <>
-      <header className="top">
+      <header className="top" inert={consented === false}>
         <b>이력서 자동 입력 · 이력서 편집</b>
         <small className={status === 'error' ? 'error' : undefined}>{statusText(status, resume?.meta.updatedAt)}</small>
       </header>
-      <div className="wrap">
+      <div className="wrap" inert={consented === false}>
         <nav>
           {SECTIONS.map((s) => (
             <button
@@ -65,6 +76,7 @@ export default function App() {
           {resume ? <Section resume={resume} update={update} /> : <p className="desc">{statusText(status)}</p>}
         </main>
       </div>
+      {consented === false && <ConsentModal onAccept={() => setConsented(true)} />}
     </>
   );
 }

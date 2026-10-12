@@ -312,6 +312,8 @@ async function withErrors<T>(run: () => Promise<T>): Promise<T | ErrorResponse> 
 export default defineBackground(() => {
   browser.runtime.onInstalled.addListener(({ reason }) => {
     console.log('[resume-integration] installed:', reason);
+    // 최초 설치: 옵션 화면 동의 모달 표시 (E2E는 페이지 열림 대기와 겹치지 않도록 제외)
+    if (reason === 'install' && import.meta.env.MODE !== 'e2e') void browser.runtime.openOptionsPage();
   });
 
   onMessage('startFill', ({ data }) => withErrors(() => startFill(data.tabId, data.partial)));

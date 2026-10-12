@@ -3,7 +3,7 @@
 최종 갱신: 2026-10-12
 
 ## 현재 단계
-**MVP 기능 구현 완료 · 실제 채용 사이트 검증 전**
+**MVP 기능 구현 완료(최초 실행 동의 포함) · 실제 채용 사이트 검증 전**
 
 ## 완료
 세부 동작은 설계 문서 참고: [architecture](design/architecture.md) · [screens](design/screens.md) · [dictionary_v1](design/dictionary_v1.md) · [resume_schema_v1](design/resume_schema_v1.md)
@@ -18,6 +18,10 @@
 ### 기반
 - WXT 0.21 + TypeScript + React 19, 엔트리포인트 5개(background·filler·popup·options·sidepanel), `@webext-core/messaging`
 - 테스트: Vitest 단위 테스트, Playwright E2E(`npm run test:e2e`, e2e 빌드 전용 호스트 권한 + fixture route 응답)
+
+### 최초 실행 동의
+- 설치 직후 옵션 화면 자동 열림 → 동의 모달(데이터 처리 안내 + 확인 체크), 동의 전 팝업은 '확인하러 가기'만 표시
+- `local:consent` 버전 비교로 문구 변경 시 재동의, 개인정보처리방침 링크는 방침 작성 후 추가
 
 ### 옵션 화면
 - 이력서 입력·저장: 섹션 8개(기본 정보~희망 조건), 반복 항목 추가·삭제·순서 변경, 500ms 디바운스 자동 저장
@@ -50,7 +54,7 @@
 ### 검증
 - 전체 코드 재검증(프레임 오류 처리·백업 가져오기 보완 등 수정)
 - 실사용 검증(Claude in Chrome, 프로덕션 빌드 + 로컬 fixture·httpbin 교차 출처 폼): 팝업·옵션·사이드 패널·학습 흐름, 위젯 fixture 14종
-- 단위 테스트 99개 · E2E 28개(fixture 18종) · 타입 검사·빌드 통과
+- 단위 테스트 99개 · E2E 29개(fixture 18종) · 타입 검사·빌드 통과
 
 ## 결정 사항
 | 항목 | 결정 | 근거 |
@@ -71,7 +75,7 @@
 ## 다음 작업
 - 사람인·잡코리아 DOM 현장 조사 (사용자 로그인 필요) → ARIA 미준수 커스텀 위젯·달력 탐색 클릭 필요 여부와 범위 판단
 - BYOK 지원 LLM 제공자 범위 결정 → 설정 BYOK·LLM 매핑 보조
-- 배포 준비: 개인정보처리방침 작성, Chrome 웹 스토어 등록
+- 배포 준비: 개인정보처리방침 작성(동의 모달 링크 추가), Chrome 웹 스토어 등록
 
 ## 이슈·리스크
 - 국내 사이트의 WAI-ARIA 준수율 미확인 → 범용 전략 효과 불확실

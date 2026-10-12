@@ -26,6 +26,14 @@ export const settingsItem = storage.defineItem<Settings>('local:settings', {
   fallback: { excludedSites: [] },
 });
 
+// 최초 실행 동의 (docs/design/screens.md 5장 ①). 문구가 바뀌면 CONSENT_VERSION을 올려 다시 동의 받음
+// settings와 분리: 백업 '전체 삭제'가 settings를 지워도 동의는 유지
+export const CONSENT_VERSION = 1;
+
+export const consentItem = storage.defineItem<{ version: number; acceptedAt: string } | null>('local:consent', {
+  fallback: null,
+});
+
 // 사이드 패널 직접 입력으로 학습한 규칙 (매핑 1순위)
 export const learnedRulesItem = storage.defineItem<LearnedRule[]>('local:learnedRules', {
   fallback: [],

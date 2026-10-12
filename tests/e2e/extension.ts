@@ -8,6 +8,9 @@ import type { Resume } from '@/core/schema/resume';
 
 export { expect } from '@playwright/test';
 
+// worker.evaluate 콜백은 service worker에서 실행 → WXT browser 타입으로 chrome 전역 선언
+declare const chrome: typeof browser;
+
 const EXTENSION_PATH = path.resolve('.output/chrome-mv3-e2e');
 const FIXTURE_DIR = path.resolve('tests/e2e/fixtures');
 export const FIXTURE_ORIGIN = 'http://localhost';
@@ -47,8 +50,11 @@ export const test = base.extend<{ context: BrowserContext; worker: Worker; exten
     await use(context);
     await context.close();
   },
+  // 기본은 최초 실행 동의 완료 상태 (동의 모달 E2E는 consent를 지우고 시작)
   worker: async ({ context }, use) => {
-    await use(context.serviceWorkers()[0] ?? (await context.waitForEvent('serviceworker')));
+    const worker = context.serviceWorkers()[0] ?? (await context.waitForEvent('serviceworker'));
+    await worker.evaluate(() => chrome.storage.local.set({ consent: { version: 1, acceptedAt: '2026-10-09T00:00:00.000Z' } }));
+    await use(worker);
   },
   extensionId: async ({ worker }, use) => {
     await use(new URL(worker.url()).host);

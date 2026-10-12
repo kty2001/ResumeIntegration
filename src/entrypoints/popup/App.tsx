@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react';
 import type { Resume } from '@/core/schema/resume';
 import { isExcluded } from '@/core/site-policy';
 import { describeStartFill as describe, sendMessage } from '@/messaging/protocol';
-import { copyOnlyItem, resumeItem, settingsItem } from '@/storage/items';
+import { CONSENT_VERSION, consentItem, copyOnlyItem, resumeItem, settingsItem } from '@/storage/items';
 
-// 화면 설계: docs/design/screens.md 2장 (현재: 작성 가능·이력서 미입력(JSON 가져오기 포함)·제외 사이트·권한 필요 상태)
+// 화면 설계: docs/design/screens.md 2장 (현재: 동의 전·작성 가능·이력서 미입력(JSON 가져오기 포함)·제외 사이트·권한 필요 상태)
 
 export default function App() {
   const [resume, setResume] = useState<Resume | null | undefined>(undefined);
+  const [consented, setConsented] = useState<boolean>();
   const [running, setRunning] = useState(false);
   const [message, setMessage] = useState<string>();
   const [tabId, setTabId] = useState<number>();
@@ -17,6 +18,11 @@ export default function App() {
 
   useEffect(() => {
     resumeItem.getValue().then(setResume, () => setResume(null));
+    // 최초 실행 동의 전에는 옵션 화면 동의 모달로 안내 (screens.md 5장 ①)
+    consentItem.getValue().then(
+      (c) => setConsented(c?.version === CONSENT_VERSION),
+      () => setConsented(false),
+    );
     // 사이드 패널 열기는 사용자 제스처 안에서 호출해야 하므로 탭 ID를 미리 조회
     // 제외 사이트는 '작성' 전에 판정 (URL을 못 읽으면 일반 상태, 제외 검사는 background startFill에도 있음)
     Promise.all([browser.tabs.query({ active: true, currentWindow: true }), settingsItem.getValue()]).then(([[tab], settings]) => {
@@ -78,7 +84,14 @@ export default function App() {
         <h1>이력서 자동 입력</h1>
       </header>
       <div className="popup-body">
-        {resume === undefined ? null : resume ? (
+        {resume === undefined || consented === undefined ? null : !consented ? (
+          <>
+            <p className="empty">시작하기 전에 데이터 처리 방식을 확인해 주세요.</p>
+            <button className="btn primary lg" onClick={openOptions}>
+              확인하러 가기
+            </button>
+          </>
+        ) : resume ? (
           <>
             <div className="card compact profile">
               <b>{resume.basics.name.ko || '이름 없음'}</b>
