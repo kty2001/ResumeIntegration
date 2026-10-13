@@ -16,7 +16,7 @@ async function runFill(
   worker: Worker,
   extensionId: string,
   fixture = 'basics.html',
-  summary = BASICS_SUMMARY,
+  summary: string | RegExp = BASICS_SUMMARY,
   data = resume,
 ) {
   await worker.evaluate((value) => chrome.storage.local.set({ resume: value, resume$: { v: 1 } }), data);
@@ -86,6 +86,22 @@ test('연동 사이트: 팝업 모두 열기 버튼 + 작성 성공 시 마지�
     .toBeTruthy();
   // 작성 후 갱신 필요 개수 사라짐
   await expect(popup.getByRole('button', { name: '연동 사이트 모두 열기', exact: true })).toBeVisible();
+  const options = await context.newPage();
+  await options.goto(`chrome-extension://${extensionId}/options.html#sites`);
+  const row = options.getByRole('row').filter({ hasText: '기본' });
+  await expect(row).toContainText('최신');
+
+  // 이력서 수정 → 갱신 필요 (옵션 표시·팝업 개수)
+  await options.getByRole('button', { name: '기본 정보' }).click();
+  await options.getByLabel('이름(한자)').fill('洪吉童');
+  await options.getByRole('button', { name: '연동 사이트' }).click();
+  await expect(row).toContainText('갱신 필요');
+  // 자동 저장(디바운스) 후 팝업 다시 열기
+  await expect
+    .poll(() => worker.evaluate(async () => ((await chrome.storage.local.get('resume')).resume as Resume).basics.name.hanja))
+    .toBe('洪吉童');
+  await popup.reload();
+  await expect(popup.getByRole('button', { name: '연동 사이트 모두 열기 (갱신 필요 1)' })).toBeVisible();
 });
 
 test('사이드 패널 직접 입력·입력란 이동·위치 표시·되돌리기', async ({ context, worker, extensionId }) => {
@@ -274,22 +290,24 @@ test('입력 마스크: 서식 변경 허용 + 키 입력 마스크는 문자 �
   await expect(page.locator('#birth')).toHaveValue('1995.03.15');
 });
 
+/** sections.html용 이력서 (섹션 입력·왕복 가져오기 공용) */
+const sectionsResume: Resume = {
+  ...resume,
+  basics: { ...resume.basics, gender: 'male' },
+  education: [
+    { id: 'e1', level: 'university', school: { ko: '한국대학교' }, status: 'graduated', major: { ko: '컴퓨터공학' }, startDate: '2014-03', endDate: '2020-02', gpa: { value: 3.8, max: 4.5 } },
+    { id: 'e2', level: 'master', school: { ko: '한국대학원' }, status: 'graduated', major: { ko: '인공지능' }, startDate: '2020-03', endDate: '2022-02', gpa: { value: 4.1, max: 4.5 } },
+  ],
+  work: [
+    { id: 'w1', company: { ko: '가나다전자' }, department: '플랫폼팀', startDate: '2022-03', endDate: '2025-12', current: false, description: 'API 서버 개발', employmentType: 'full_time' },
+  ],
+  certificates: [{ id: 'c1', name: '정보처리기사', issuer: '한국산업인력공단', date: '2021-06-18' }],
+  languageTests: [{ id: 'l1', language: 'en', exam: 'TOEIC', score: '900', date: '2023-05-20' }],
+  military: { status: 'served', branch: 'army', endDate: '2016-01' },
+};
+
 test('섹션 문맥으로 학력·경력·자격증·어학·병역 항목 입력 + 날짜 변환 + select 선택', async ({ context, worker, extensionId }) => {
-  const data: Resume = {
-    ...resume,
-    basics: { ...resume.basics, gender: 'male' },
-    education: [
-      { id: 'e1', level: 'university', school: { ko: '한국대학교' }, status: 'graduated', major: { ko: '컴퓨터공학' }, startDate: '2014-03', endDate: '2020-02', gpa: { value: 3.8, max: 4.5 } },
-      { id: 'e2', level: 'master', school: { ko: '한국대학원' }, status: 'graduated', major: { ko: '인공지능' }, startDate: '2020-03', endDate: '2022-02', gpa: { value: 4.1, max: 4.5 } },
-    ],
-    work: [
-      { id: 'w1', company: { ko: '가나다전자' }, department: '플랫폼팀', startDate: '2022-03', endDate: '2025-12', current: false, description: 'API 서버 개발', employmentType: 'full_time' },
-    ],
-    certificates: [{ id: 'c1', name: '정보처리기사', issuer: '한국산업인력공단', date: '2021-06-18' }],
-    languageTests: [{ id: 'l1', language: 'en', exam: 'TOEIC', score: '900', date: '2023-05-20' }],
-    military: { status: 'served', branch: 'army', endDate: '2016-01' },
-  };
-  const { page } = await runFill(context, worker, extensionId, 'sections.html', '입력 완료 31개 · 입력 실패 0개 · 해당 없음 1개', data);
+  const { page } = await runFill(context, worker, extensionId, 'sections.html', '입력 완료 31개 · 입력 실패 0개 · 해당 없음 1개', sectionsResume);
 
   await expect(page.locator('#nm')).toHaveValue('홍길동');
   await expect(page.locator('#school-0')).toHaveValue('한국대학교');
@@ -325,6 +343,20 @@ test('섹션 문맥으로 학력·경력·자격증·어학·병역 항목 입�
   await expect(panel.getByText('학교명 → 학력 2 학교명')).toBeVisible();
   await expect(panel.getByText('입사년월 → 경력 1 입사 연월')).toBeVisible();
 });
+
+for (const [fixture, data] of [
+  ['formats.html', resume],
+  ['masks.html', resume],
+  ['sections.html', sectionsResume],
+] as const) {
+  test(`왕복: ${fixture} 작성 → 가져오기 → 현재 이력서와 다른 항목 없음`, async ({ context, worker, extensionId }) => {
+    const { popup } = await runFill(context, worker, extensionId, fixture, /입력 완료 \d+개/, data);
+    const opened = context.waitForEvent('page');
+    await popup.getByRole('button', { name: '이 페이지에서 가져오기' }).click();
+    const options = await opened;
+    await expect(options.getByText('현재 이력서와 다른 항목이 없습니다.')).toBeVisible();
+  });
+}
 
 test('반복 항목: 이력서 항목 수만큼 추가 버튼 클릭 후 입력, 폼 미제출·다른 추가 버튼 미클릭, 다시 작성 시 추가 없음', async ({ context, worker, extensionId }) => {
   const data: Resume = {

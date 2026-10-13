@@ -219,6 +219,9 @@ function row(id: string, path: string, label: string, schemaKey: string, item: I
   const imported = item.value === undefined ? item.raw : (displayValue(schemaKey, item.value) ?? item.raw);
   const currentText = displayValue(schemaKey, current);
   if (item.value !== undefined && currentText !== undefined && normalizeOption(currentText) === normalizeOption(imported)) return null;
+  // 연월만 받는 입력란에서 읽은 값이 현재 연월일과 같은 달이면 같은 값 (왕복 시 정밀도 손실)
+  if (typeof item.value === 'string' && /^\d{4}-\d{2}$/.test(item.value) && typeof current === 'string' && current.startsWith(`${item.value}-`))
+    return null;
   return {
     id,
     path,

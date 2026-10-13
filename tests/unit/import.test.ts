@@ -137,6 +137,14 @@ describe('diffImport·applyImport', () => {
     expect(resume.education).toHaveLength(1);
   });
 
+  it('연월만 읽은 값은 현재 연월일과 같은 달이면 같은 값 (다른 달은 표시)', () => {
+    const base = createEmptyResume();
+    base.basics.birthDate = '1995-03-15';
+    const rows = (value: string) => diffImport(base, [{ schemaKey: 'basics.birthDate', value, raw: value }]).flatMap((g) => g.rows);
+    expect(rows('1995-03')).toEqual([]);
+    expect(rows('1995-04').map((r) => r.imported)).toEqual(['1995-04']);
+  });
+
   it('이력서 없음: 빈 이력서 기준', () => {
     const groups = diffImport(null, items);
     const next = applyImport(null, groups, new Set(['basics.name.ko']));

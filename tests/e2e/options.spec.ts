@@ -6,16 +6,21 @@ import { expect, resume, test } from './extension';
 declare const chrome: typeof browser;
 
 const rule = { origin: 'http://localhost', fingerprint: '["text","","company","회사 이름"]', schemaKey: 'basics.email', updatedAt: '2026-10-10T00:00:00.000Z' };
+const site = { id: 's1', name: '기본', url: 'http://localhost/basics.html', lastFilledAt: '2026-10-10T00:00:00.000Z' };
 
 test('백업 내보내기 → 전체 삭제 → 가져오기', async ({ context, worker, extensionId }) => {
   await worker.evaluate(
-    ({ value, rules }) => chrome.storage.local.set({ resume: value, resume$: { v: 1 }, learnedRules: rules }),
-    { value: resume, rules: [rule] },
+    ({ value, rules, sites }) => chrome.storage.local.set({ resume: value, resume$: { v: 1 }, learnedRules: rules, linkedSites: sites }),
+    { value: resume, rules: [rule], sites: [site] },
   );
   const stored = () =>
     worker.evaluate(async () => {
-      const { resume: r, learnedRules } = await chrome.storage.local.get(['resume', 'learnedRules']);
-      return { name: (r as typeof resume | undefined)?.basics.name.ko, rules: (learnedRules as unknown[] | undefined)?.length ?? 0 };
+      const { resume: r, learnedRules, linkedSites } = await chrome.storage.local.get(['resume', 'learnedRules', 'linkedSites']);
+      return {
+        name: (r as typeof resume | undefined)?.basics.name.ko,
+        rules: (learnedRules as unknown[] | undefined)?.length ?? 0,
+        sites: (linkedSites as unknown[] | undefined)?.length ?? 0,
+      };
     });
 
   const options = await context.newPage();
@@ -31,23 +36,23 @@ test('백업 내보내기 → 전체 삭제 → 가져오기', async ({ context,
   expect(download.suggestedFilename()).toMatch(/^resume-backup-\d{8}\.json$/);
   const file = await download.path();
   const backup = JSON.parse(await readFile(file, 'utf-8'));
-  expect(backup).toMatchObject({ app: 'resume-integration', backupVersion: 1, resume: { basics: { name: { ko: '홍길동' } } }, learnedRules: [rule] });
+  expect(backup).toMatchObject({ app: 'resume-integration', backupVersion: 1, resume: { basics: { name: { ko: '홍길동' } } }, learnedRules: [rule], linkedSites: [site] });
 
   // 전체 삭제: 확인 단계 후 저장소·편집 화면 비움
   await options.getByRole('button', { name: '전체 삭제' }).click();
   await options.getByRole('button', { name: '정말 삭제' }).click();
   await expect(options.getByRole('status')).toHaveText('모든 데이터를 삭제했습니다.');
-  expect(await stored()).toEqual({ name: undefined, rules: 0 });
+  expect(await stored()).toEqual({ name: undefined, rules: 0, sites: 0 });
   await options.getByRole('button', { name: '기본 정보' }).click();
   await expect(nameField).toHaveValue('');
 
   // 가져오기: 미리 보기 → 덮어쓰기 → 저장소·편집 화면 복원
   await options.getByRole('button', { name: '백업' }).click();
   await options.getByLabel('백업 파일 선택').setInputFiles(file);
-  await expect(options.getByText(/이름 홍길동 · .*학습 규칙 1/)).toBeVisible();
+  await expect(options.getByText(/이름 홍길동 · .*학습 규칙 1 · 연동 사이트 1/)).toBeVisible();
   await options.getByRole('button', { name: '덮어쓰기' }).click();
   await expect(options.getByRole('status')).toHaveText('백업 파일을 가져왔습니다.');
-  expect(await stored()).toEqual({ name: '홍길동', rules: 1 });
+  expect(await stored()).toEqual({ name: '홍길동', rules: 1, sites: 1 });
   await options.getByRole('button', { name: '기본 정보' }).click();
   await expect(nameField).toHaveValue('홍길동');
 });
@@ -238,6 +243,46 @@ test('이력서 가져오기: 팝업 → 미리 보기(갱신·추가) → 선�
   expect(await worker.evaluate(async () => (await chrome.storage.session.get('importDraft')).importDraft ?? null)).toBeNull();
 });
 
+test('이력서 가져오기: 이력서 없음 → 취소 시 draft 삭제 → 다시 가져오기 → 전 항목 기본 선택·반영', async ({ context, worker, extensionId }) => {
+  const page = await context.newPage();
+  await page.goto('http://localhost/import.html');
+  await page.bringToFront();
+  const popupOpened = context.waitForEvent('page');
+  await worker.evaluate((url) => chrome.tabs.create({ url, active: false }), `chrome-extension://${extensionId}/popup.html`);
+  const popup = await popupOpened;
+  await expect(popup.getByText('저장된 이력서가 없습니다.', { exact: false })).toBeVisible();
+  const draft = () => worker.evaluate(async () => (await chrome.storage.session.get('importDraft')).importDraft ?? null);
+  const importPage = async () => {
+    const opened = context.waitForEvent('page');
+    await popup.getByRole('button', { name: '이 페이지에서 가져오기' }).click();
+    const options = await opened;
+    await expect(options.getByText('학력 · 예시대학교 (추가)')).toBeVisible();
+    return options;
+  };
+
+  const first = await importPage();
+  await first.getByRole('button', { name: '취소' }).click();
+  await expect(first.getByRole('status')).toHaveText('가져온 내용을 버렸습니다.');
+  expect(await draft()).toBeNull();
+
+  // 빈 이력서: 변환된 항목 전부 기본 선택, 학력 2개 추가
+  const options = await importPage();
+  await expect(options.getByText('학력 · 예시고등학교 (추가)')).toBeVisible();
+  const boxes = options.locator('table input[type=checkbox]:not([disabled])');
+  await expect(boxes).toHaveCount(11);
+  for (const box of await boxes.all()) await expect(box).toBeChecked();
+  await options.getByRole('button', { name: '선택 항목 반영 (12)' }).click();
+  await expect(options.getByRole('status')).toHaveText('선택한 항목을 이력서에 반영했습니다.');
+  await expect
+    .poll(() =>
+      worker.evaluate(async () => {
+        const r = (await chrome.storage.local.get('resume')).resume as typeof resume | undefined;
+        return r && { name: r.basics.name.ko, mobile: r.basics.phone?.mobile, education: r.education.map((e) => [e.school.ko, e.status]) };
+      }),
+    )
+    .toEqual({ name: '홍길동', mobile: '01098765432', education: [['예시대학교', 'graduated'], ['예시고등학교', 'graduated']] });
+});
+
 test('첨부 파일: 구분 선택 후 추가·증명사진 연결·삭제', async ({ context, worker, extensionId }, testInfo) => {
   const stored = () =>
     worker.evaluate(async () => {
@@ -295,4 +340,12 @@ test('최초 실행 동의 전 팝업 안내 → 옵션 화면 동의 모달 →
 
   await popup.reload();
   await expect(popup.getByRole('button', { name: 'JSON 가져오기' })).toBeVisible();
+});
+
+test('이전 버전 동의(v1) → 가져오기 안내가 추가된 동의 모달 다시 표시', async ({ context, worker, extensionId }) => {
+  await worker.evaluate(() => chrome.storage.local.set({ consent: { version: 1, acceptedAt: '2026-10-01T00:00:00.000Z' } }));
+  const options = await context.newPage();
+  await options.goto(`chrome-extension://${extensionId}/options.html`);
+  const dialog = options.getByRole('dialog', { name: '시작하기 전에 확인해 주세요' });
+  await expect(dialog).toContainText("'이 페이지에서 가져오기'는 그 페이지에 작성된 이력서 값을 읽어");
 });
