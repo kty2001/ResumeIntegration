@@ -23,6 +23,13 @@ describe('fieldFingerprint', () => {
     expect(fieldFingerprint({ widget: 'textarea', placeholder: 'p' })).toBe('["textarea","","","p"]');
   });
 
+  it('id의 6자리 이상 숫자열은 정규화 (방문마다 바뀌는 접미사), 짧은 숫자는 유지', () => {
+    const a = fieldFingerprint({ widget: 'text', name: 'user_nm', id: 'userNm_1791876115276', label: '이름' });
+    expect(fieldFingerprint({ widget: 'text', name: 'user_nm', id: 'userNm_1791999999999', label: '이름' })).toBe(a);
+    expect(a).toBe('["text","user_nm","userNm_#","이름"]');
+    expect(fieldFingerprint({ widget: 'text', id: 'edu-0' })).toBe('["text","","edu-0",""]');
+  });
+
   it('식별 정보 없으면 undefined', () => {
     expect(fieldFingerprint({ widget: 'text' })).toBeUndefined();
   });

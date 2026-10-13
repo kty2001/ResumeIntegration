@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { needsUpdate, normalizeSiteUrl, type LinkedSite } from '@/core/linked-sites';
+import { needsUpdate, normalizeSiteUrl, RECOMMENDED_SITES, type LinkedSite } from '@/core/linked-sites';
 import { isExcluded } from '@/core/site-policy';
 import { linkedSitesItem, settingsItem } from '@/storage/items';
 import type { SectionProps } from '../fields';
@@ -52,6 +52,7 @@ export function LinkedSitesSection({ resume }: SectionProps) {
   };
 
   const outdated = sites.filter((s) => needsUpdate(s, resume.meta.updatedAt)).length;
+  const recommended = RECOMMENDED_SITES.filter((r) => !sites.some((s) => s.url === r.url));
 
   return (
     <>
@@ -126,6 +127,21 @@ export function LinkedSitesSection({ resume }: SectionProps) {
             추가
           </button>
         </form>
+        {recommended.length > 0 && (
+          <div className="toolbar" style={{ marginTop: 8 }}>
+            <small>추천</small>
+            {recommended.map((r) => (
+              <button
+                key={r.url}
+                type="button"
+                className="btn sm"
+                onClick={() => void save([...sites, { id: crypto.randomUUID(), ...r }])}
+              >
+                {r.name} 추가
+              </button>
+            ))}
+          </div>
+        )}
         {message && (
           <p className="desc" role="status">
             {message}

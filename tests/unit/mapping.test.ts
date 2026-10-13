@@ -35,6 +35,18 @@ describe('matchField', () => {
     expect(keyOf({ label: '자택 전화번호' })).toBe('basics.phone.home');
   });
 
+  it('사람인·잡코리아 실제 라벨 (docs/reports/07_site_dom_survey.md)', () => {
+    expect(keyOf({ label: '대학구분', section: '학력' })).toBe('education.*.level');
+    expect(keyOf({ label: '학교구분', section: '학력' })).toBe('education.*.level');
+    expect(keyOf({ label: '졸업여부 *', section: '학력' })).toBe('education.*.status');
+    expect(keyOf({ label: '입학년월', section: '학력' })).toBe('education.*.startDate');
+    expect(keyOf({ label: '입사년월 *', section: '경력' })).toBe('work.*.startDate');
+    expect(keyOf({ label: '퇴사년월 *', section: '경력' })).toBe('work.*.endDate');
+    expect(keyOf({ label: '근무부서', section: '경력' })).toBe('work.*.department');
+    expect(keyOf({ label: '부서명', section: '경력' })).toBe('work.*.department');
+    expect(keyOf({ label: '휴대폰번호 *' })).toBe('basics.phone.mobile');
+  });
+
   it('이름이 아닌 명칭 입력란은 이름으로 매칭하지 않음', () => {
     expect(keyOf({ label: '회사 이름' })).toBe('work.*.company.ko');
     expect(keyOf({ label: 'Company name' })).toBe('work.*.company.ko');
@@ -194,6 +206,21 @@ describe('mapFields', () => {
     expect(plan.items).toEqual([{ fieldId: '0', schemaKey: 'basics.email', value: 'hong@example.com', source: 'learned' }]);
     expect(plan.unmatched).toEqual(['1']);
     expect(mapFields([company, name], resume).items.map((i) => i.source)).toEqual(['autocomplete']);
+  });
+
+  it("'전화번호'와 '휴대폰'이 함께 있으면 '전화번호'는 자택 전화, 단독·'연락처'는 휴대폰", () => {
+    const r = createEmptyResume();
+    r.basics.phone = { mobile: '010-1234-5678', home: '02-123-4567' };
+    const values = (labels: string[]) => mapFields(labels.map((label, i) => field({ fieldId: String(i), label })), r).items.map((i) => [i.schemaKey, i.value]);
+    expect(values(['전화번호', '휴대폰번호 *'])).toEqual([
+      ['basics.phone.home', '02-123-4567'],
+      ['basics.phone.mobile', '010-1234-5678'],
+    ]);
+    expect(values(['전화번호'])).toEqual([['basics.phone.mobile', '010-1234-5678']]);
+    expect(values(['연락처', '휴대폰'])).toEqual([
+      ['basics.phone.mobile', '010-1234-5678'],
+      ['basics.phone.mobile', '010-1234-5678'],
+    ]);
   });
 
   it('입력란 형식에 맞게 값 변환', () => {

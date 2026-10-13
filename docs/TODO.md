@@ -31,8 +31,8 @@
 - [x] 위젯: text·textarea·date·select·radio·checkbox(단일·그룹)·ARIA 콤보박스(선택 전용·검색형)·파일·달력 팝업형(readonly 값 직접 설정)
 - [x] 위젯 후속: ARIA 미준수 커스텀 드롭다운(버튼 + 숨은 목록 + 숨은 input, 잡코리아형 fixture `custom-dropdown.html`) — 달력 탐색 클릭은 불필요로 결정 ([07](reports/07_site_dom_survey.md) 4장)
 - [x] 잡코리아 실제 확인: 성별 드롭다운 작성·가져오기 동작, 스크립트 이벤트 허용 ([07](reports/07_site_dom_survey.md) 3.3)
-- [ ] 커스텀 드롭다운 후속: 숨은 input 없는 선택 UI(잡코리아 학교구분 → 학교 입력 폼 전환), 목록 안 checkbox 다중 선택형(고용형태) 대응 여부 결정
-- [ ] 조사 후속 보완: 학습 규칙 fingerprint id 숫자 접미사 정규화(사람인), 빈 라벨 보완(select 첫 선택지·빈 `label for`), 사이드 패널 안내(섹션별 저장·자동 임시저장), 사전 라벨 보완
+- [x] 커스텀 드롭다운 후속 결정: 숨은 input 없는 선택 UI(잡코리아 학교구분), 목록 안 checkbox 다중 선택형(고용형태) → 보류
+- [x] 조사 후속 보완: fingerprint id 숫자 접미사 정규화, select 안내 선택지 라벨, '전화번호'·'휴대폰' 구분, 사전 '대학구분', 사이드 패널 저장 안내 (빈 `label for` textarea는 실제 확인 후)
 - [x] 사이드 패널: 결과 목록, 직접 입력·선택·복사, 이동, 위치 보기, 되돌리기, 건너뛰기, 다시 작성
 - [x] 사용자 수정 결과 학습: 직접 입력·선택지 선택·페이지에서 직접 고친 값
 - [x] 사이드 패널 복사 전용 모드 (제외 사이트용, [screens](design/screens.md) 3장 ②)
@@ -62,7 +62,7 @@
 - [x] 옵션 '연동 사이트' 메뉴: 추가·삭제·순서 변경, 제외 사이트 안내
 - [x] '모두 열기'(팝업·옵션, `windows.create`)
 - [x] `startFill` 성공 시 `lastFilledAt` 기록, '갱신 필요' 표시
-- [ ] 기본 추천 URL: 사람인·잡코리아 이력서 관리 페이지 ([07](reports/07_site_dom_survey.md) 4장)
+- [x] 기본 추천 URL: 사람인·잡코리아 이력서 관리 페이지, 옵션 '연동 사이트'에 미등록 추천만 '추가' 버튼 ([07](reports/07_site_dom_survey.md) 4장)
 
 ### 테스트
 - [x] 단위: 역변환·같은 항목 판별·갱신 필요 판정
@@ -70,7 +70,7 @@
 - [x] 실사용 검증: Playwright(동의 모달·가져오기·왕복·연동 사이트·백업·라이트/다크 화면, 화면 외 시나리오는 E2E에 추가) + 실제 Chrome(툴바 가져오기 → 미리 보기 탭, 제외 사이트 안내, 모두 열기·작성 후 '최신'·팝업 개수) → 왕복 날짜 정밀도 차이 수정
 
 ## 테스트
-- [x] 위젯 종류별 로컬 HTML fixture (`tests/e2e/fixtures/`, 21종)
+- [x] 위젯 종류별 로컬 HTML fixture (`tests/e2e/fixtures/`, 22종)
 - [x] Playwright E2E 테스트 환경 (`npm run test:e2e`)
 - [ ] 실제 채용 사이트 검증 (사람인·잡코리아)
 

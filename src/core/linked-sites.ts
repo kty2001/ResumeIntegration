@@ -8,6 +8,12 @@ export interface LinkedSite {
   lastFilledAt?: string;    // 마지막 '작성' 성공 시각 (ISO)
 }
 
+/** 기본 추천: 이력서 번호가 들어가는 수정 페이지 대신 이력서 관리 페이지 (docs/reports/07_site_dom_survey.md 1장) */
+export const RECOMMENDED_SITES: Pick<LinkedSite, 'name' | 'url'>[] = [
+  { name: '사람인', url: 'https://www.saramin.co.kr/zf_user/resume/resume-manage' },
+  { name: '잡코리아', url: 'https://www.jobkorea.co.kr/User/ResumeMng' },
+];
+
 /** 사용자 입력 → 연동 사이트 URL. 스킴 없으면 https, http(s)만 허용, 형식이 아니면 undefined */
 export function normalizeSiteUrl(input: string): string | undefined {
   let text = input.trim();

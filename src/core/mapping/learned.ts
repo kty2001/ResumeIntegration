@@ -14,13 +14,16 @@ export interface LearnedRule {
 /** 매핑에 쓰는 학습 정보 */
 export type LearnedMatch = Pick<LearnedRule, 'schemaKey' | 'option'>;
 
-/** 입력란 안정 식별자 (widget·name·id·표시 텍스트). 식별 정보가 없으면 undefined → 학습 안 함 */
+/**
+ * 입력란 안정 식별자 (widget·name·id·표시 텍스트). 식별 정보가 없으면 undefined → 학습 안 함
+ * id의 6자리 이상 숫자열(방문마다 바뀌는 시각값 접미사 등, docs/reports/07_site_dom_survey.md 2.2)은 '#'로 정규화
+ */
 export function fieldFingerprint(
   field: Pick<FieldDescriptor, 'widget' | 'name' | 'id' | 'label' | 'ariaLabel' | 'placeholder'>,
 ): string | undefined {
   const text = field.label ?? field.ariaLabel ?? field.placeholder;
   if (!field.name && !field.id && !text) return undefined;
-  return JSON.stringify([field.widget, field.name ?? '', field.id ?? '', text ?? '']);
+  return JSON.stringify([field.widget, field.name ?? '', field.id?.replace(/\d{6,}/g, '#') ?? '', text ?? '']);
 }
 
 /** fingerprint 표시명: 표시 텍스트 → name → id (옵션 화면 학습 규칙 목록) */

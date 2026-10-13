@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>라벨 보완 fixture</title>
+</head>
+<body>
+  <!-- 사람인·잡코리아 실측 (docs/reports/07_site_dom_survey.md): '전화번호'·'휴대폰번호' 공존, 라벨 텍스트 없는 select + 안내 선택지 -->
+  <form onsubmit="return false">
+    <p><label for="tel">전화번호</label> <input id="tel" name="user_tel"></p>
+    <p><label for="hp">휴대폰번호 *</label> <input id="hp" name="user_hp"></p>
+
+    <h2>학력</h2>
+    <p><label for="school">학교명 *</label> <input id="school" name="school_nm"></p>
+    <p>
+      <label for="gb"></label>
+      <select id="gb" name="school_gb">
+        <option value="">대학구분 *</option>
+        <option value="1">대학(2,3년)</option>
+        <option value="2">대학교(4년)</option>
+        <option value="3">대학원(석사)</option>
+      </select>
+    </p>
+  </form>
+</body>
+</html>

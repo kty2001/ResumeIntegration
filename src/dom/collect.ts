@@ -202,11 +202,17 @@ function describeCombobox(el: HTMLElement, heading: string | undefined): Omit<Fi
   };
 }
 
+/** select 안내 선택지(값이 빈 첫 선택지, 예: '졸업여부 *') 텍스트 — 라벨 텍스트가 없는 select의 라벨 대신 */
+function placeholderOption(el: HTMLSelectElement): string | undefined {
+  const first = el.options[0];
+  return first && first.value === '' ? cleanText(first.text) : undefined;
+}
+
 function describe(el: FormControl, heading: string | undefined): Omit<FieldDescriptor, 'fieldId'> {
   const select = el instanceof HTMLSelectElement;
   return {
     widget: widgetOf(el),
-    label: resolveLabel(el),
+    label: resolveLabel(el) ?? (select ? placeholderOption(el) : undefined),
     name: el.name || undefined,
     id: el.id || undefined,
     placeholder: select ? undefined : cleanText(el.placeholder),

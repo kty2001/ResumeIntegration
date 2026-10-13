@@ -197,16 +197,36 @@ export interface KeyAssignment {
 
 const runMatch = (matches: FieldMatch[], run: number[]) => run.map((j) => matches[j]).find((m) => m)!;
 
+const EXPLICIT_MOBILE = /휴대|핸드폰|mobile|cell/i;
+
+/**
+ * '전화번호'와 '휴대폰'이 함께 있는 페이지: 사전 규칙으로 휴대폰에 매칭된 '전화' 입력란은 자택 전화로
+ * ('전화번호' 단독·'연락처'는 휴대폰 유지, 학습·autocomplete 매칭은 그대로)
+ */
+function preferHomePhone(fields: FieldDescriptor[], matches: FieldMatch[]): FieldMatch[] {
+  const text = (f: FieldDescriptor) => f.label ?? f.ariaLabel ?? f.placeholder ?? '';
+  const mobile = (m: FieldMatch) => m?.schemaKey === 'basics.phone.mobile';
+  if (!fields.some((f, i) => mobile(matches[i]!) && EXPLICIT_MOBILE.test(text(f)))) return matches;
+  return matches.map((m, i) =>
+    m && mobile(m) && m.source === 'rule' && /전화/.test(text(fields[i]!)) && !EXPLICIT_MOBILE.test(text(fields[i]!))
+      ? { ...m, schemaKey: 'basics.phone.home' }
+      : m,
+  );
+}
+
 /**
  * 이력서 값과 무관하게 입력란별 스키마 키 결정 (자동 입력 mapFields·가져오기 core/import.ts 공용)
  * sensitive: 설정 '민감정보 자동 입력 사용' (matchField 참고)
  */
 export function assignKeys(fields: FieldDescriptor[], learned?: Map<string, LearnedMatch>, sensitive = false): KeyAssignment {
   // 달력 팝업형 readonly 입력란은 날짜 키만 입력
-  const matches = fields.map((field) => {
-    const match = matchField(field, learned, sensitive);
-    return match && field.readOnly && !isDateKey(match.schemaKey) ? null : match;
-  });
+  const matches = preferHomePhone(
+    fields,
+    fields.map((field) => {
+      const match = matchField(field, learned, sensitive);
+      return match && field.readOnly && !isDateKey(match.schemaKey) ? null : match;
+    }),
+  );
   const runOf = splitRuns(fields, matches);
   // 반복 항목 키('education.*.school.ko')는 페이지 등장 순서대로 인덱스 부여 (분리 입력 묶음은 하나로)
   const counts = new Map<string, number>();

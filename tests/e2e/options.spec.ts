@@ -118,10 +118,10 @@ test('설정: 자동 입력 제외 사이트 추가·중복·형식 오류·삭�
   await expect.poll(sites).toEqual(['example.com']);
 
   await input.fill('example.com');
-  await options.getByRole('button', { name: '추가' }).click();
+  await options.getByRole('button', { name: '추가', exact: true }).click();
   await expect(options.getByRole('status')).toHaveText('example.com은(는) 이미 제외 목록에 있습니다.');
   await input.fill('example');
-  await options.getByRole('button', { name: '추가' }).click();
+  await options.getByRole('button', { name: '추가', exact: true }).click();
   await expect(options.getByRole('status')).toHaveText('도메인 형식이 아닙니다. 예: example.com');
 
   await options.getByRole('row').filter({ hasText: 'example.com' }).getByRole('button', { name: '삭제' }).click();
@@ -149,7 +149,7 @@ test('연동 사이트: 추가·형식 오류·중복·제외 사이트 안내·
   const add = async (n: string, u: string) => {
     await name.fill(n);
     await url.fill(u);
-    await options.getByRole('button', { name: '추가' }).click();
+    await options.getByRole('button', { name: '추가', exact: true }).click();
   };
   await add('기본', 'http://localhost/basics.html');
   await add('섹션', 'http://localhost/sections.html');
@@ -175,6 +175,12 @@ test('연동 사이트: 추가·형식 오류·중복·제외 사이트 안내·
     'http://localhost/basics.html',
     'http://localhost/sections.html',
   ]);
+
+  // 기본 추천: 등록하지 않은 추천 사이트만 버튼 표시
+  await options.getByRole('button', { name: '사람인 추가' }).click();
+  await expect.poll(stored).toEqual(['섹션', '기본', '사람인']);
+  await expect(options.getByRole('button', { name: '사람인 추가' })).toHaveCount(0);
+  await expect(options.getByRole('button', { name: '잡코리아 추가' })).toBeVisible();
 });
 
 test('이력서 가져오기: 팝업 → 미리 보기(갱신·추가) → 선택 반영 → 자기소개서 추가', async ({ context, worker, extensionId }) => {

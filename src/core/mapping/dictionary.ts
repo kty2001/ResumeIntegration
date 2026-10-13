@@ -77,7 +77,7 @@ export const SECTION_FIELD_RULES: FieldRule[] = [
   {
     section: 'education',
     schemaKey: 'education.*.level',
-    pattern: /학력|학교\s*(구분|종류|유형)|학위|degree|level/i,
+    pattern: /학력|(학교|대학)\s*(구분|종류|유형)|학위|degree|level/i,
   },
   {
     section: 'education',

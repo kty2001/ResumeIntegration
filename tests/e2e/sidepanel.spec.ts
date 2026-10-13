@@ -576,6 +576,23 @@ test('ARIA 미준수 커스텀 드롭다운: 숨은 목록 선택지 수집·선
   await expect(page.locator('[name="Edu.Level"]')).toHaveValue('U');
 });
 
+test('라벨 보완: 전화번호·휴대폰 공존 시 자택 전화, 라벨 없는 select는 안내 선택지로 매칭 + 저장 안내', async ({ context, worker, extensionId }) => {
+  const data: Resume = {
+    ...resume,
+    basics: { ...resume.basics, phone: { mobile: '010-1234-5678', home: '02-123-4567' } },
+    education: [{ id: 'e1', level: 'university', school: { ko: '한국대학교' }, status: 'graduated' }],
+  };
+  const { page } = await runFill(context, worker, extensionId, 'labels.html', '입력 완료 4개 · 입력 실패 0개 · 해당 없음 0개', data);
+  await expect(page.locator('#tel')).toHaveValue('02-123-4567');
+  await expect(page.locator('#hp')).toHaveValue('010-1234-5678');
+  await expect(page.locator('#gb')).toHaveValue('2');
+
+  const panel = await context.newPage();
+  await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+  await expect(panel.getByText('대학구분 * → 학력 1 학력 구분')).toBeVisible();
+  await expect(panel.getByText(/사이트의 저장 버튼\(섹션별 저장 포함\)을 눌러야 반영/)).toBeVisible();
+});
+
 test('검색형 콤보박스: 입력 후 일치 후보(정확히 같음 → 포함 후보 하나) 확정', async ({ context, worker, extensionId }) => {
   const data: Resume = {
     ...resume,
