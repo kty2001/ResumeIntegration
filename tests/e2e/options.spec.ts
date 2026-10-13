@@ -283,6 +283,26 @@ test('이력서 가져오기: 이력서 없음 → 취소 시 draft 삭제 → �
     .toEqual({ name: '홍길동', mobile: '01098765432', education: [['예시대학교', 'graduated'], ['예시고등학교', 'graduated']] });
 });
 
+test('이력서 가져오기: ARIA 미준수 커스텀 드롭다운 선택값 읽기, 미선택(숨은 input 빈 값)은 제외', async ({ context, worker, extensionId }) => {
+  await worker.evaluate((value) => chrome.storage.local.set({ resume: value, resume$: { v: 1 } }), resume);
+  const page = await context.newPage();
+  await page.goto('http://localhost/custom-dropdown.html');
+  await page.locator('#gender button.choose').click();
+  await page.locator('#gender [data-value=F]').click();
+  await page.bringToFront();
+  const popupOpened = context.waitForEvent('page');
+  await worker.evaluate((url) => chrome.tabs.create({ url, active: false }), `chrome-extension://${extensionId}/popup.html`);
+  const popup = await popupOpened;
+  const optionsOpened = context.waitForEvent('page');
+  await popup.getByRole('button', { name: '이 페이지에서 가져오기' }).click();
+  const options = await optionsOpened;
+
+  await expect(options.getByLabel('기본 정보 성별 반영')).toBeChecked();
+  await expect(options.locator('.card').filter({ hasText: '기본 정보' }).getByRole('row').filter({ hasText: '성별' })).toContainText('여');
+  await expect(options.getByText(/^학력 ·/)).toHaveCount(0);
+  await expect(options.getByText('선택', { exact: true })).toHaveCount(0);
+});
+
 test('첨부 파일: 구분 선택 후 추가·증명사진 연결·삭제', async ({ context, worker, extensionId }, testInfo) => {
   const stored = () =>
     worker.evaluate(async () => {

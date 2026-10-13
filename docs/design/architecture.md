@@ -89,7 +89,7 @@ tests/
 |---|---|---|
 | `PageDetails` | filler → background | `url`(origin + pathname) + `fields: FieldDescriptor[]` + `addButtons: AddButton[]`. 값 미포함 |
 | `AddButton` | | `buttonId`(filler 메모리 인덱스, fieldId와 별개), `label`(표시 텍스트)·`ariaLabel`·`section`. 반복 항목 '추가' 버튼 후보 (7.1) |
-| `FieldDescriptor` | | `fieldId`(filler 메모리 인덱스, DOM 속성 추가 안 함), `widget`(text·textarea·date·select·radio·checkbox·checkboxes·combobox·file), 라벨류(label·ariaLabel·placeholder·name·id), `autocomplete`, `maxLength`, `section`(fieldset legend → 직전 제목), `options`(선택지 value·text), `cluster`(분리 입력 묶음), `accept`, `readOnly`(달력 팝업형) |
+| `FieldDescriptor` | | `fieldId`(filler 메모리 인덱스, DOM 속성 추가 안 함), `widget`(text·textarea·date·select·radio·checkbox·checkboxes·combobox(ARIA 콤보박스·ARIA 미준수 커스텀 드롭다운)·file), 라벨류(label·ariaLabel·placeholder·name·id), `autocomplete`, `maxLength`, `section`(fieldset legend → 직전 제목), `options`(선택지 value·text), `cluster`(분리 입력 묶음), `accept`, `readOnly`(달력 팝업형) |
 | `FillPlan` | background → filler | `items`(fieldId·schemaKey·value·source), `unmatched`, `skipped`(선택지 불일치 `no-option`·첨부 없음 `no-file`) |
 | `FillResult` | filler → background | `filled`(전략), `failed`(사유) |
 | `FillReport` | background → `session:fillReport` | `tabId`·`frameIds`·`url`·`at` + 입력란별 `ReportField`(label·status·schemaKey·reason·`hint`(형식 변환 정보)·fingerprint·source) |

@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>ARIA 미준수 커스텀 드롭다운 fixture</title>
+  <style>
+    .hidden { display: none; }
+    .list ul { list-style: none; margin: 0; padding: 4px; border: 1px solid #999; }
+  </style>
+</head>
+<body>
+  <!-- 잡코리아형 (docs/reports/07_site_dom_survey.md 3.2): 라벨 div + 트리거 버튼 + 숨은 목록 + 숨은 input, ARIA role 없음 -->
+  <form onsubmit="return false">
+    <p><label for="nm">이름</label> <input id="nm" name="nm"></p>
+
+    <!-- aria-haspopup=true (listbox 아님) -->
+    <div class="dropdown" id="gender">
+      <div class="label" aria-hidden="true">성별 <span>*</span></div>
+      <button type="button" class="choose" aria-haspopup="true"><span>선택</span></button>
+      <div class="list hidden" aria-hidden="true">
+        <ul>
+          <li><button type="button" data-value="M"><span>남자</span></button></li>
+          <li><button type="button" data-value="F"><span>여자</span></button></li>
+        </ul>
+      </div>
+      <div class="validation hidden">성별을 입력해주세요</div>
+      <input type="hidden" name="UserInfo.M_Gender" value="">
+    </div>
+
+    <h2>학력사항</h2>
+    <p><label for="school">학교명</label> <input id="school" name="school"></p>
+    <!-- ARIA 속성 없음 -->
+    <div class="dropdown" id="grad">
+      <div class="label">졸업 구분</div>
+      <button type="button" class="choose"><span>선택</span></button>
+      <div class="list hidden"><ul>
+        <li><button type="button" data-value="1"><span>졸업</span></button></li>
+        <li><button type="button" data-value="2"><span>졸업예정</span></button></li>
+        <li><button type="button" data-value="3"><span>재학</span></button></li>
+      </ul></div>
+      <input type="hidden" name="Edu.Grad_Stat" value="">
+    </div>
+    <!-- 선택지 불일치: 이력서 값(대학교(4년))에 해당하는 선택지가 동의어 사전에 없음 -->
+    <div class="dropdown" id="level">
+      <div class="label">학력 구분</div>
+      <button type="button" class="choose"><span>선택</span></button>
+      <div class="list hidden"><ul>
+        <li><button type="button" data-value="H"><span>고등학교</span></button></li>
+        <li><button type="button" data-value="C"><span>전문대학</span></button></li>
+        <li><button type="button" data-value="U"><span>일반대학</span></button></li>
+        <li><button type="button" data-value="G"><span>대학원</span></button></li>
+      </ul></div>
+      <input type="hidden" name="Edu.Level" value="">
+    </div>
+
+    <!-- 오탐 방지: 숨은 목록은 있지만 값 보관 input이 없는 메뉴 버튼 -->
+    <div class="menu">
+      <button type="button" id="more">더보기</button>
+      <ul class="hidden"><li><a href="#help">도움말</a></li></ul>
+    </div>
+  </form>
+  <script>
+    // 트리거 클릭: 목록 열기·닫기, 선택지 클릭: 숨은 input·표시 텍스트 갱신 후 닫기 (Esc 미지원)
+    document.querySelectorAll('.dropdown').forEach((box) => {
+      const trigger = box.querySelector('.choose');
+      const list = box.querySelector('.list');
+      const input = box.querySelector('input[type=hidden]');
+      trigger.addEventListener('click', () => list.classList.toggle('hidden'));
+      list.querySelectorAll('button').forEach((option) =>
+        option.addEventListener('click', () => {
+          input.value = option.dataset.value;
+          trigger.querySelector('span').textContent = option.textContent.trim();
+          list.classList.add('hidden');
+        }),
+      );
+    });
+  </script>
+</body>
+</html>

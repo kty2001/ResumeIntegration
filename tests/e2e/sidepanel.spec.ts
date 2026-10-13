@@ -550,6 +550,32 @@ test('ARIA 콤보박스: 열어서 선택지 수집·선택 + 선택지 불일�
   expect(rules).toMatchObject([{ schemaKey: 'education.0.level', option: { value: 'university', text: '일반대학' } }]);
 });
 
+test('ARIA 미준수 커스텀 드롭다운: 숨은 목록 선택지 수집·선택(숨은 input 값) + 선택지 불일치 직접 선택, 메뉴 버튼 미수집', async ({ context, worker, extensionId }) => {
+  const data: Resume = {
+    ...resume,
+    basics: { ...resume.basics, gender: 'male' },
+    education: [{ id: 'e1', level: 'university', school: { ko: '한국대학교' }, status: 'graduated' }],
+  };
+  const { page } = await runFill(context, worker, extensionId, 'custom-dropdown.html', '입력 완료 4개 · 입력 실패 1개 · 해당 없음 0개', data);
+
+  await expect(page.locator('#gender button.choose')).toHaveText('남자');
+  await expect(page.locator('[name="UserInfo.M_Gender"]')).toHaveValue('M');
+  await expect(page.locator('[name="Edu.Grad_Stat"]')).toHaveValue('1');
+  await expect(page.locator('[name="Edu.Level"]')).toHaveValue('');
+  await expect(page.locator('.dropdown .list:not(.hidden)')).toHaveCount(0);
+
+  const panel = await context.newPage();
+  await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+  await expect(panel.getByText('성별 * → 성별')).toBeVisible();
+  await expect(panel.getByText('더보기')).toHaveCount(0);
+  const row = panel.getByRole('listitem').filter({ hasText: '맞는 선택지 없음' });
+  await expect(row).toContainText('학력 구분 → 학력 1 학력 구분');
+  await panel.getByLabel('학력 구분 선택지').selectOption({ label: '일반대학' });
+  await row.getByRole('button', { name: '선택' }).click();
+  await expect(panel.getByLabel('입력 완료 5 · 확인 필요 0 · 해당 없음 0')).toBeVisible();
+  await expect(page.locator('[name="Edu.Level"]')).toHaveValue('U');
+});
+
 test('검색형 콤보박스: 입력 후 일치 후보(정확히 같음 → 포함 후보 하나) 확정', async ({ context, worker, extensionId }) => {
   const data: Resume = {
     ...resume,

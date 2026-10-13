@@ -1,10 +1,11 @@
 import type { AddButton, FieldDescriptor, PageDetails } from '@/messaging/protocol';
-import { comboboxOptions } from './widgets/combobox';
+import { comboboxOptions, customListOf } from './widgets/combobox';
 
 // 필드 수집 (Page Details): docs/design/architecture.md 5장
 // 현재 범위: 최상위 문서의 text·textarea·date 입력란, 기본 select, radio 그룹(같은 form·name → 입력란 1개),
 // 단일 checkbox(값 'true'/'false'), 다중 선택 checkbox 그룹(같은 form·name 2개 이상, 값 = 체크된 value JSON 배열),
-// ARIA 콤보박스(선택 전용 커스텀 드롭다운, 선택지는 열어서 읽음), 파일 입력란(accept 포함), 반복 항목 '추가' 버튼
+// ARIA 콤보박스(선택 전용 커스텀 드롭다운, 선택지는 열어서 읽음), ARIA 미준수 커스텀 드롭다운(버튼 + 숨은 목록 + 숨은 input),
+// 파일 입력란(accept 포함), 반복 항목 '추가' 버튼
 
 export type TextElement = HTMLInputElement | HTMLTextAreaElement;
 /** 폼 입력 요소. radio·checkbox 그룹은 그룹의 첫 입력란으로 보관 */
@@ -108,6 +109,12 @@ function isDatePicker(el: TextElement): boolean {
   return [el.placeholder, el.name, el.id, el.className, resolveLabel(el)].some((t) => t && DATE_LIKE.test(t));
 }
 
+/** ARIA 미준수 커스텀 드롭다운 트리거: 형제 목록이 수집 시점(닫힌 상태)에 숨어 있음 */
+function isCustomDropdown(el: HTMLElement): boolean {
+  const list = customListOf(el);
+  return !!list && !isVisible(list);
+}
+
 function isComboboxFillable(el: HTMLElement): boolean {
   if (el.getAttribute('aria-disabled') === 'true' || (el instanceof HTMLButtonElement && el.disabled)) return false;
   // 다른 콤보박스 안의 버튼 등 중첩 요소는 바깥 콤보박스만 수집
@@ -186,7 +193,8 @@ function selectOptions(el: HTMLSelectElement): FieldDescriptor['options'] {
 function describeCombobox(el: HTMLElement, heading: string | undefined): Omit<FieldDescriptor, 'fieldId'> {
   return {
     widget: 'combobox',
-    label: resolveLabel(el),
+    // 커스텀 드롭다운은 <label> 대신 트리거 직전 형제 요소에 표시 텍스트
+    label: resolveLabel(el) ?? (customListOf(el) ? cleanText(el.previousElementSibling?.textContent) : undefined),
     name: el.getAttribute('name') || undefined,
     id: el.id || undefined,
     ariaLabel: cleanText(el.getAttribute('aria-label')),
@@ -259,7 +267,8 @@ export async function collectPageDetails(): Promise<PageDetails> {
       heading = cleanText(node.textContent);
       return;
     }
-    if (!node.matches(COMBOBOX) && node.matches(BUTTON)) {
+    const combobox = node.matches(COMBOBOX) || isCustomDropdown(node);
+    if (!combobox && node.matches(BUTTON)) {
       const button = describeAddButton(node, heading);
       if (!button) return;
       const buttonId = String(addButtons.size);

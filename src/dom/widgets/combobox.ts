@@ -4,6 +4,7 @@ import { isVisible } from '../collect';
 // 열기(실제 클릭과 같은 포인터·마우스 이벤트) → role=option 출현 대기 → 선택지 텍스트가 같은 항목 클릭 → 표시 텍스트로 검증
 // 선택지 value는 표시 텍스트 (ARIA option에는 value가 없음)
 // 검색형 콤보박스(자동완성 입력란, 2.3)는 텍스트 입력 후 후보 목록에서 일치 항목 클릭 (pickSuggestion)
+// ARIA 미준수 커스텀 드롭다운(2.4, docs/reports/07_site_dom_survey.md 3.2)도 같은 흐름: 목록은 형제 ul·ol, 값은 형제 숨은 input
 
 const OPEN_TIMEOUT_MS = 1000;
 const SELECT_TIMEOUT_MS = 500;
@@ -39,6 +40,37 @@ function optionsIn(listbox: Element | undefined): HTMLElement[] {
   return [...listbox.querySelectorAll<HTMLElement>('[role=option]')].filter((o) => o.getAttribute('aria-disabled') !== 'true');
 }
 
+/** 커스텀 드롭다운의 값 보관 input: 트리거의 형제 input[type=hidden][name] */
+function hiddenInputOf(el: HTMLElement): HTMLInputElement | undefined {
+  return [...(el.parentElement?.children ?? [])].find((c): c is HTMLInputElement => c !== el && c.matches('input[type=hidden][name]'));
+}
+
+/**
+ * ARIA 미준수 커스텀 드롭다운이면 선택지 목록: 트리거 버튼의 형제(또는 그 안)에 li가 있는 ul·ol이 있고 형제 숨은 input이 값을 보관
+ * (목록이 수집 시점에 숨어 있는지는 collect에서 판별)
+ */
+export function customListOf(el: HTMLElement): HTMLElement | undefined {
+  if (!el.matches('button, [role=button]') || !hiddenInputOf(el)) return undefined;
+  for (const sibling of el.parentElement!.children) {
+    if (sibling === el) continue;
+    const list = sibling.matches('ul, ol') ? sibling : sibling.querySelector('ul, ol');
+    if (list?.querySelector(':scope > li')) return list as HTMLElement;
+  }
+  return undefined;
+}
+
+/** 선택지: 커스텀 목록의 li(안의 버튼·링크) → ARIA listbox의 option */
+function optionsOf(el: HTMLElement, portal: boolean): HTMLElement[] {
+  const custom = customListOf(el);
+  if (custom) return [...custom.querySelectorAll<HTMLElement>(':scope > li')].map((li) => li.querySelector<HTMLElement>('button, a') ?? li);
+  return optionsIn(listboxOf(el, portal));
+}
+
+function isOpen(el: HTMLElement): boolean {
+  const custom = customListOf(el);
+  return custom ? isVisible(custom) : el.getAttribute('aria-expanded') === 'true';
+}
+
 async function waitFor<T>(get: () => T | undefined, timeout: number): Promise<T | undefined> {
   const end = Date.now() + timeout;
   for (;;) {
@@ -52,10 +84,10 @@ async function waitFor<T>(get: () => T | undefined, timeout: number): Promise<T 
 /** 열어서 보이는 선택지 (열리지 않으면 빈 배열) */
 async function open(el: HTMLElement): Promise<HTMLElement[]> {
   const visible = () => {
-    const options = optionsIn(listboxOf(el, true)).filter(isVisible);
+    const options = optionsOf(el, true).filter(isVisible);
     return options.length ? options : undefined;
   };
-  if (el.getAttribute('aria-expanded') !== 'true') press(el);
+  if (!isOpen(el)) press(el);
   return (await waitFor(visible, OPEN_TIMEOUT_MS)) ?? [];
 }
 
@@ -63,12 +95,12 @@ async function open(el: HTMLElement): Promise<HTMLElement[]> {
 function close(el: HTMLElement): void {
   const init = { key: 'Escape', code: 'Escape', bubbles: true, cancelable: true };
   (document.activeElement ?? el).dispatchEvent(new KeyboardEvent('keydown', init));
-  if (el.getAttribute('aria-expanded') === 'true') press(el);
+  if (isOpen(el)) press(el);
 }
 
-/** 수집용 선택지: 연결된 listbox에 선택지가 이미 있으면 그대로, 없으면 열어서 읽고 닫음 */
+/** 수집용 선택지: 연결된 listbox·커스텀 목록에 선택지가 이미 있으면 그대로(숨어 있어도 텍스트는 읽힘), 없으면 열어서 읽고 닫음 */
 export async function comboboxOptions(el: HTMLElement): Promise<{ value: string; text: string }[]> {
-  let options = optionsIn(listboxOf(el, false));
+  let options = optionsOf(el, false);
   const opened = options.length === 0;
   if (opened) options = await open(el);
   const texts = [...new Set(options.map(textOf).filter(Boolean))];
@@ -76,9 +108,11 @@ export async function comboboxOptions(el: HTMLElement): Promise<{ value: string;
   return texts.map((text) => ({ value: text, text }));
 }
 
-/** 현재 표시 값 */
+/** 현재 표시 값 (커스텀 드롭다운은 숨은 input이 비어 있으면 미선택 → '선택' 같은 안내 문구 대신 '') */
 export function readCombobox(el: HTMLElement): string {
-  return el instanceof HTMLInputElement ? el.value : textOf(el);
+  if (el instanceof HTMLInputElement) return el.value;
+  const hidden = customListOf(el) && hiddenInputOf(el);
+  return hidden && !hidden.value ? '' : textOf(el);
 }
 
 /** 검색형 콤보박스: input[role=combobox] 또는 aria-autocomplete=list|both */
@@ -112,9 +146,15 @@ export async function fillCombobox(el: HTMLElement, value: string): Promise<bool
     close(el);
     return false;
   }
+  const hidden = customListOf(el) && hiddenInputOf(el);
+  const before = hidden?.value;
   press(target);
-  const selected = () => (readCombobox(el).includes(value) || target.getAttribute('aria-selected') === 'true' ? true : undefined);
+  // 표시 텍스트·aria-selected, 커스텀은 숨은 input 값 변경으로 검증
+  const selected = () =>
+    readCombobox(el).includes(value) || target.getAttribute('aria-selected') === 'true' || (hidden && hidden.value !== before)
+      ? true
+      : undefined;
   const ok = !!(await waitFor(selected, SELECT_TIMEOUT_MS));
-  if (el.getAttribute('aria-expanded') === 'true') close(el);
+  if (isOpen(el)) close(el);
   return ok;
 }
