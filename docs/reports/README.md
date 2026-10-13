@@ -12,6 +12,7 @@
 | [04_target_sites_and_data_model.md](04_target_sites_and_data_model.md) | 국내 플랫폼·ATS 분류, JSON Resume, 국내 특화 필드 |
 | [05_privacy_and_policy.md](05_privacy_and_policy.md) | Chrome Web Store 정책, 개인정보보호법, 로컬 암호화, BYOK 키·전송 관리, 약관 이슈 |
 | [06_generic_widget_strategy.md](06_generic_widget_strategy.md) | 범용 입력 전략: 판별→시도→검증→대체, 드롭다운·날짜 선택기 처리, `isTrusted` 한계 |
+| [07_site_dom_survey.md](07_site_dom_survey.md) | 사람인·잡코리아 이력서 작성 페이지 DOM 현장 조사 (2026-10-13): 폼 구조, ARIA 미준수 커스텀 드롭다운, 날짜 형식, 자동 임시저장, 후속 제안 |
 
 ## 결정 사항
 

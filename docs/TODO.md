@@ -4,7 +4,8 @@
 - [x] 확장 프로그램 구조·유사 앱 레퍼런스 조사 → [reports](reports/README.md)
 - [x] 범용 드롭다운·날짜 선택기 처리 전략 정리 → [06](reports/06_generic_widget_strategy.md)
 - [x] 검증용 사이트 선정: 사람인, 잡코리아, 링크드인 (링크드인은 약관 문제로 재결정 필요)
-- [ ] 선정 사이트 이력서 작성 페이지 DOM 현장 조사 (React 여부, 위젯 종류, ARIA 준수 여부, iframe 여부, 반복 항목 '추가' 버튼 인식·블록 생성 방식) — 사용자 로그인 필요
+- [x] 선정 사이트 이력서 작성 페이지 DOM 현장 조사 → [07](reports/07_site_dom_survey.md) (사람인 기본 select·`label[for]`, 잡코리아 ARIA 미준수 커스텀 드롭다운, 달력 탐색 불필요)
+- [ ] 미확인 항목 재조사: 작성형 이력서 수정·열람 페이지, 사람인 섹션 저장 후 '추가', `isTrusted` 거부 여부 ([07](reports/07_site_dom_survey.md) 5장)
 - [x] 링크드인 이용약관 확인 → [05](reports/05_privacy_and_policy.md) 4.1 (확장 프로그램 명시적 금지)
 - [x] 사람인·잡코리아 이용약관의 자동화 도구 제한 여부 확인 → [05](reports/05_privacy_and_policy.md) 4.2 (명시 금지 없음, 자동 입력 대상 유지)
 
@@ -28,7 +29,8 @@
 - [x] 규칙/사전 기반 매핑: autocomplete + 키워드 사전 + 섹션 문맥 + enum 동의어 + boolean(checkbox)
 - [x] 형식 변환: 날짜·전화번호, 분리 입력, 입력 마스크
 - [x] 위젯: text·textarea·date·select·radio·checkbox(단일·그룹)·ARIA 콤보박스(선택 전용·검색형)·파일·달력 팝업형(readonly 값 직접 설정)
-- [ ] 위젯 후속: ARIA 미준수 커스텀 위젯, 달력 탐색 클릭 (DOM 조사 후 범위 결정)
+- [ ] 위젯 후속: ARIA 미준수 커스텀 드롭다운(버튼 + 목록 + 숨은 input, 잡코리아) — 달력 탐색 클릭은 불필요로 결정 ([07](reports/07_site_dom_survey.md) 4장)
+- [ ] 조사 후속 보완: 학습 규칙 fingerprint id 숫자 접미사 정규화(사람인), 빈 라벨 보완(select 첫 선택지·빈 `label for`), 사이드 패널 안내(섹션별 저장·자동 임시저장), 사전 라벨 보완
 - [x] 사이드 패널: 결과 목록, 직접 입력·선택·복사, 이동, 위치 보기, 되돌리기, 건너뛰기, 다시 작성
 - [x] 사용자 수정 결과 학습: 직접 입력·선택지 선택·페이지에서 직접 고친 값
 - [x] 사이드 패널 복사 전용 모드 (제외 사이트용, [screens](design/screens.md) 3장 ②)
@@ -51,14 +53,14 @@
 - [x] `session:importDraft` + 옵션 '가져오기' 미리 보기(항목별 선택·반영·취소)
 - [x] 팝업 '이 페이지에서 가져오기' (이력서 미입력 상태 포함)
 - [x] 최초 실행 동의 문구에 가져오기 안내 추가 + `CONSENT_VERSION` 2 ([screens](design/screens.md) 5장 ①)
-- [ ] 열람 페이지 가져오기: 범용 라벨-값 추출(`readPairs`) → 범용 처리 불가 사이트만 사이트별 어댑터 (DOM 조사 후 범위 결정)
+- [ ] 열람 페이지 가져오기: 범용 라벨-값 추출(`readPairs`) → 범용 처리 불가 사이트만 사이트별 어댑터 (작성형 이력서 열람 페이지 재조사 후 결정, 사람인 파일 이력서는 대상 아님)
 
 ### 연동 사이트 일괄 열기 ([architecture](design/architecture.md) 7.5)
 - [x] `local:linkedSites` 저장 + 백업 내보내기·가져오기·전체 삭제 포함
 - [x] 옵션 '연동 사이트' 메뉴: 추가·삭제·순서 변경, 제외 사이트 안내
 - [x] '모두 열기'(팝업·옵션, `windows.create`)
 - [x] `startFill` 성공 시 `lastFilledAt` 기록, '갱신 필요' 표시
-- [ ] 기본 추천 URL (DOM 현장 조사 후)
+- [ ] 기본 추천 URL: 사람인·잡코리아 이력서 관리 페이지 ([07](reports/07_site_dom_survey.md) 4장)
 
 ### 테스트
 - [x] 단위: 역변환·같은 항목 판별·갱신 필요 판정
