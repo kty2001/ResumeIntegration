@@ -1,6 +1,6 @@
 # 구조·메시지 흐름 설계 v1
 
-최종 갱신: 2026-10-12 · 기술 스택: WXT + TypeScript ([tech_stack.md](tech_stack.md))
+최종 갱신: 2026-10-14 · 기술 스택: WXT + TypeScript ([tech_stack.md](tech_stack.md))
 
 - (미구현) 표시 항목은 설계만 있고 코드 없음 (BYOK LLM, 열람 페이지 가져오기)
 
@@ -110,7 +110,7 @@ tests/
 | `addBlocks` | background → filler | `{ buttonId, count }` | `{ added }` (버튼을 count번 클릭, 클릭마다 새 입력란 생길 때까지 최대 2초 대기, 안 생기면 중단) |
 | `fill` | background → filler | `FillPlan` | `FillResult` |
 | `fillOne` | sidepanel → background → filler | `{ fieldId, schemaKey, optionValue? }` (값은 background가 이력서에서 조회, `optionValue`는 선택지 직접 선택. filler에는 `fill`로 전달) | `{ status: 'ok' \| 'error' }` (성공 시 학습, `session:fillReport` 갱신) |
-| `fillAnswer` | sidepanel → background → filler | `{ fieldId, coverLetterId }` (filler에는 `fill`로 전달, 학습 없음) | `{ status: 'ok' \| 'error' }` (글자수 초과 시 오류 안내) |
+| `fillAnswer` | sidepanel → background → filler | `{ fieldId, coverLetterId }` (filler에는 `fill`로 전달, 학습 없음. 자유형이면 제목 입력란에 문항도 입력) | `{ status: 'ok' \| 'error' }` (글자수 초과 시 오류 안내) |
 | `focusField` | sidepanel → background → filler | `{ fieldId }` | `{ status: 'ok' \| 'error' }` (스크롤·포커스) |
 | `highlight` | sidepanel → background → filler | `{ fields: { fieldId, status }[] }` (빈 배열이면 해제) | `{ status: 'ok' \| 'error' }` |
 | `undo` | sidepanel → background → filler | — | `{ status: 'ok', restored }` (모든 프레임 합계, 성공 시 `session:fillReport` 초기화) |
@@ -147,9 +147,13 @@ Popup '작성' 클릭 (activeTab 부여) → sidePanel.open (클릭 제스처 �
       2. autocomplete 속성
       3. 파일 입력란은 파일 규칙만 / 그 외: 민감정보 규칙(설정 켰을 때) → 섹션 문맥 규칙 또는 basics 규칙
       4. (미구현) BYOK 설정 시 미매핑 필드만 llmMap
+      반복 인덱스: 등장 순서대로, 바로 앞과 같은 반복 키인 선택형 입력란은 같은 블록 (학력구분 + 대학구분)
  → 형식 변환 (core/format) → 첨부 파일 본문 base64 추가 → FillPlan
  → 프레임별 fill → filler: 입력 전 값 snapshot → 위젯별 입력 → 검증 → FillResult
- → session:fillReport 저장 → 사이드 패널 표시
+      이미 같은 값인 select·콤보박스는 이벤트 생략 (같은 값 change에도 폼을 다시 그리는 사이트)
+      학교명·전공·회사명 텍스트는 ARIA 없는 자동완성 목록이 뜨면 후보 클릭, 맞는 후보 없으면 확인 필요
+ → 입력 중 입력란이 사라지거나(not-found) 새로 생기면(formChanged, MutationObserver) 한 번만 다시 collect·매핑·fill
+ → session:fillReport 저장 → 사이드 패널 표시 (자유형 자기소개서 textarea는 제목 입력란 titleFieldId 포함)
 ```
 
 ### 7.2 미입력 항목 처리·학습
