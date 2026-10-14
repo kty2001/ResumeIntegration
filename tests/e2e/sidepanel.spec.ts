@@ -591,6 +591,7 @@ test('라벨 보완: 전화번호·휴대폰 공존 시 자택 전화, 라벨 �
   await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
   await expect(panel.getByText('대학구분 * → 학력 1 학력 구분')).toBeVisible();
   await expect(panel.getByText(/사이트의 저장 버튼\(섹션별 저장 포함\)을 눌러야 반영/)).toBeVisible();
+  await expect(panel.getByText(/섹션을 저장한 뒤 다시 작성하세요/)).toBeVisible();
 });
 
 test('폼 다시 그리기: 학력구분 선택으로 입력란이 새로 생기거나 사라지면 다시 수집해 입력, 같은 값은 다시 고르지 않음', async ({ context, worker, extensionId }) => {

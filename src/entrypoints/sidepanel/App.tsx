@@ -309,10 +309,10 @@ export default function App() {
               )}
             </div>
             {highlightOn && <small>테두리: 초록 입력 완료 · 주황 확인 필요 · 회색 해당 없음</small>}
-            {/* 섹션별 저장(사람인)·자동 임시저장(잡코리아) 사이트 대비 (docs/reports/07_site_dom_survey.md 4장) */}
+            {/* 섹션별 저장(사람인)·자동 임시저장(잡코리아) 사이트 대비 (docs/reports/07_site_dom_survey.md 4장·6.1) */}
             <small>
               입력만 했습니다. 사이트의 저장 버튼(섹션별 저장 포함)을 눌러야 반영되며, 일부 사이트는 작성 중인 내용을 자동으로
-              임시저장합니다.
+              임시저장합니다. 섹션별로 저장하는 사이트에서 같은 항목을 여러 개 입력하려면 섹션을 저장한 뒤 다시 작성하세요.
             </small>
 
             {suggestions.length > 0 && (

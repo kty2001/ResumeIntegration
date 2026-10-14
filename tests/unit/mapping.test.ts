@@ -45,6 +45,8 @@ describe('matchField', () => {
     expect(keyOf({ label: '근무부서', section: '경력' })).toBe('work.*.department');
     expect(keyOf({ label: '부서명', section: '경력' })).toBe('work.*.department');
     expect(keyOf({ label: '휴대폰번호 *' })).toBe('basics.phone.mobile');
+    // 사람인 라벨 없는 상세주소 (기본 주소는 readonly)
+    expect(keyOf({ id: 'newAddressDetails_1791936227709', name: 'new_address_details' })).toBe('basics.address.line2');
   });
 
   it('이름이 아닌 명칭 입력란은 이름으로 매칭하지 않음', () => {

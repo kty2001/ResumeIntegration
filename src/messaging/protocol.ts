@@ -115,7 +115,7 @@ export function describeStartImport(res: StartImportResponse): string {
     case 'user-excluded':
       return '설정에서 제외한 사이트입니다.';
     case 'empty':
-      return '이 페이지에서 가져올 이력서 값을 찾지 못했습니다. 이력서 수정 페이지에서 다시 시도해 주세요.';
+      return '이 페이지에서 가져올 이력서 값을 찾지 못했습니다. 이력서 수정 페이지에서 다시 시도해 주세요. 항목이 보기 상태로 표시되는 사이트는 항목의 수정하기로 입력란을 펼친 뒤 가져오세요.';
     case 'error':
       return `가져오지 못했습니다: ${res.message}`;
   }

@@ -343,7 +343,7 @@ export const FIELD_RULES: FieldRule[] = [
   {
     schemaKey: 'basics.address.line2',
     autocomplete: ['address-line2'],
-    pattern: /상세\s*주소|나머지\s*주소|주소\s*2|address\s*(line\s*)?2|addr(ess)?_?2|detail_?addr/i,
+    pattern: /상세\s*주소|나머지\s*주소|주소\s*2|address\s*(line\s*)?2|addr(ess)?_?2|detail_?addr|addr(ess)?_?details?/i,
   },
   {
     schemaKey: 'basics.address.line1',
