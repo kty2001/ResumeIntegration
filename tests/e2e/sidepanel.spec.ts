@@ -799,6 +799,38 @@ test('자기소개서 추천: 문항 매칭·글자수 표시 → 입력, 제한
   await expect(panel.getByLabel('입력 완료 2 · 확인 필요 1 · 해당 없음 1')).toBeVisible();
 });
 
+test('자유형 자기소개서: 최근 답변 추천 → 제목·내용 함께 입력, 가져오기 문항은 제목 값', async ({ context, worker, extensionId }) => {
+  const entry = (id: string, question: string, answer: string, updatedAt: string) => ({
+    id, question, tags: [], answer, usages: [], createdAt: updatedAt, updatedAt,
+  });
+  const coverLetters = [
+    entry('c1', '성장 과정', '바닷가 마을에서 자랐습니다', '2026-10-01T00:00:00.000Z'),
+    entry('c2', '지원 동기', '데이터로 문제를 푸는 개발자', '2026-10-05T00:00:00.000Z'),
+  ];
+  await worker.evaluate((value) => chrome.storage.local.set({ coverLetters: value, coverLetters$: { v: 1 } }), coverLetters);
+  const { page, popup } = await runFill(context, worker, extensionId, 'coverletter-free.html', '입력 완료 1개 · 입력 실패 0개 · 해당 없음 2개');
+
+  const panel = await context.newPage();
+  await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+  const card = panel.locator('section').filter({ has: panel.getByRole('heading', { name: '자기소개서 추천' }) }).getByRole('listitem').first();
+  await expect(card).toContainText('자유형 문항 · 제목도 함께 입력');
+  // 최근 수정 순
+  await expect(card.getByRole('listitem').first()).toContainText('지원 동기');
+  await card.getByRole('listitem').first().getByRole('button', { name: '입력' }).click();
+  await expect(page.locator('#ResumeProfile_Contents_c1')).toHaveValue('데이터로 문제를 푸는 개발자');
+  await expect(page.locator('#ResumeProfile_Header_c1')).toHaveValue('지원 동기');
+  await expect(panel.getByLabel('입력 완료 3 · 확인 필요 0 · 해당 없음 0')).toBeVisible();
+
+  // 가져오기: 문항 = 제목 입력란 값 (라이브러리에 없는 답변으로 바꿔 후보로 표시)
+  await page.locator('#ResumeProfile_Contents_c1').fill('사용자 경험을 개선하는 개발자');
+  await page.bringToFront();
+  const optionsOpened = context.waitForEvent('page');
+  await popup.getByRole('button', { name: '이 페이지에서 가져오기' }).click();
+  const options = await optionsOpened;
+  await expect(options.getByText('지원 동기 — 사용자 경험을 개선하는 개발자')).toBeVisible();
+  await expect(options.getByText(/해당내용을 입력하세요/)).toHaveCount(0);
+});
+
 test('checkbox boolean 항목 체크·해제 + 직접 입력 선택 목록 + 되돌리기', async ({ context, worker, extensionId }) => {
   const data: Resume = {
     ...resume,

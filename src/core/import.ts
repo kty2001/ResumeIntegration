@@ -1,3 +1,4 @@
+import { freeFormTitleIndex } from '@/core/coverLetter';
 import { dateKind } from '@/core/format';
 import { getByPath, isChoiceWidget, type KeyAssignment } from '@/core/mapping/match';
 import { enumLabel, normalizeOption, optionCode } from '@/core/mapping/options';
@@ -147,8 +148,10 @@ export function parseImport(
     const raw = values.get(field.fieldId)?.trim();
     if (!raw || field.widget === 'file') return;
     if (!schemaKey) {
-      // 이력서 항목이 아닌 서술형 입력란: 라벨 = 문항, 값 = 답변
-      const question = field.label ?? field.ariaLabel ?? field.placeholder;
+      // 이력서 항목이 아닌 서술형 입력란: 라벨 = 문항(자유형은 제목 입력란 값), 값 = 답변
+      const title = freeFormTitleIndex(fields, (j) => !!keys[j], i);
+      const titleValue = title === undefined ? undefined : values.get(fields[title]!.fieldId)?.trim();
+      const question = titleValue || field.label || field.ariaLabel || field.placeholder;
       if (field.widget === 'textarea' && question) coverLetters.push({ question, answer: raw });
       return;
     }

@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { COVER_LETTER_KEY, countLength, detectLimit, recommendAnswers } from '@/core/coverLetter';
+import { COVER_LETTER_KEY, countLength, detectLimit, recentAnswers, recommendAnswers } from '@/core/coverLetter';
 import { isSensitiveKey } from '@/core/mapping/dictionary';
 import { isChoiceWidget, resolveValue } from '@/core/mapping/match';
 import { skipField } from '@/core/mapping/report';
@@ -131,6 +131,7 @@ function AnswerSuggestions({ field, answers, notify }: { field: ReportField; ans
       <div className="item-head">
         <div>
           <div className="item-label">{field.label}</div>
+          {field.titleFieldId && <div className="item-note">자유형 문항 · 제목도 함께 입력</div>}
           {limit && (
             <div className="item-note">
               ({LENGTH_UNIT_LABELS[limit.unit]} {limit.count.toLocaleString()}자 이내)
@@ -236,9 +237,11 @@ export default function App() {
     return copyable;
   };
   // 아직 입력하지 않은 서술형 입력란 중 비슷한 자기소개서 답변이 있는 것
+  // 자유형(문항 제목을 직접 쓰는 입력란)은 문항 텍스트가 없으므로 비슷한 답변이 없으면 최근 수정한 답변
   const suggestions = (report?.fields ?? []).flatMap((f) => {
     if (f.hint.widget !== 'textarea' || f.status === 'filled') return [];
-    const answers = recommendAnswers(coverLetters, questionOf(f));
+    let answers = recommendAnswers(coverLetters, questionOf(f));
+    if (!answers.length && f.titleFieldId) answers = recentAnswers(coverLetters);
     return answers.length ? [{ field: f, answers }] : [];
   });
 

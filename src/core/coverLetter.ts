@@ -1,3 +1,4 @@
+import type { FieldDescriptor } from '@/messaging/protocol';
 import type { CoverLetterEntry, CoverLetterTag, LengthUnit } from './schema/resume';
 
 // 자기소개서 라이브러리: 글자수 계산·검색 (docs/design/screens.md 4장 '자기소개서')
@@ -22,6 +23,22 @@ export function countLength(text: string, unit: LengthUnit): number {
 
 /** 입력 결과(FillReport)에서 자기소개서 답변으로 입력한 입력란의 스키마 키 자리 표시 */
 export const COVER_LETTER_KEY = 'coverLetters';
+
+/**
+ * 자유형 자기소개서(잡코리아: 문항 제목을 직접 쓰는 input + 라벨 없는 내용 textarea, docs/reports/07_site_dom_survey.md 6.2)
+ * 이력서 항목이 아닌 textarea 바로 앞 입력란이 같은 묶음(cluster)의 이력서 항목이 아닌 텍스트 입력란이면 그 인덱스 = 제목
+ * matched: 입력란 인덱스가 이력서 항목에 매핑됐는지
+ */
+export function freeFormTitleIndex(
+  fields: Pick<FieldDescriptor, 'widget' | 'cluster'>[],
+  matched: (index: number) => boolean,
+  index: number,
+): number | undefined {
+  const field = fields[index];
+  const prev = fields[index - 1];
+  if (field?.widget !== 'textarea' || prev?.widget !== 'text' || !field.cluster || prev.cluster !== field.cluster) return undefined;
+  return matched(index) || matched(index - 1) ? undefined : index - 1;
+}
 
 const TAG_PATTERNS: [CoverLetterTag, RegExp][] = [
   ['motivation', /지원\s*(한|하게\s*된|하는)?\s*(동기|이유|배경)|motivation|why/i],
@@ -82,6 +99,14 @@ export function recommendAnswers(entries: CoverLetterEntry[], question: string, 
     .sort((a, b) => b.score - a.score)
     .slice(0, max)
     .map((s) => s.e);
+}
+
+/** 최근 수정한 답변 max개 (자유형 문항처럼 비교할 문항 텍스트가 없을 때) */
+export function recentAnswers(entries: CoverLetterEntry[], max = 3): CoverLetterEntry[] {
+  return entries
+    .filter((e) => e.answer.trim())
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+    .slice(0, max);
 }
 
 /** 문항·답변 검색어(대소문자 무시) + 태그 필터 */

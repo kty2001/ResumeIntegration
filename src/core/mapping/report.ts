@@ -1,3 +1,4 @@
+import { freeFormTitleIndex } from '@/core/coverLetter';
 import { fieldFingerprint } from './learned';
 import type { FieldDescriptor, FillPlan, FillReport, FillResult, PageDetails, ReportField } from '@/messaging/protocol';
 
@@ -22,6 +23,11 @@ export function buildFillReport(
   const fingerprints = details.fields.map(fieldFingerprint);
   const isUnique = (fp?: string) => fingerprints.indexOf(fp) === fingerprints.lastIndexOf(fp);
 
+  const matched = (i: number) => {
+    const fieldId = details.fields[i]!.fieldId;
+    return items.has(fieldId) || skipped.has(fieldId);
+  };
+
   const fields = details.fields.map((field, i): ReportField => {
     const hint = { widget: field.widget, placeholder: field.placeholder, maxLength: field.maxLength, options: field.options, accept: field.accept };
     const fingerprint = isUnique(fingerprints[i]) ? fingerprints[i] : undefined;
@@ -29,7 +35,10 @@ export function buildFillReport(
     const skip = skipped.get(field.fieldId);
     if (skip) return { ...base, status: 'failed', schemaKey: skip.schemaKey, reason: skip.reason };
     const item = items.get(field.fieldId);
-    if (!item) return { ...base, status: 'unmatched' };
+    if (!item) {
+      const title = freeFormTitleIndex(details.fields, matched, i);
+      return { ...base, status: 'unmatched', ...(title !== undefined && { titleFieldId: details.fields[title]!.fieldId }) };
+    }
     const { schemaKey, source } = item;
     if (filled.has(field.fieldId)) return { ...base, status: 'filled', schemaKey, source };
     return { ...base, status: 'failed', schemaKey, reason: failed.get(field.fieldId) ?? 'not-applied' };

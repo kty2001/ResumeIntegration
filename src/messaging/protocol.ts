@@ -65,6 +65,7 @@ export interface ReportField {
   hint: FormatHint;         // fillOne·복사 시 같은 형식 변환 적용
   fingerprint?: string;     // 학습 규칙 식별자 (core/mapping/learned.ts)
   source?: MatchSource;     // 입력 완료 시 매핑 출처
+  titleFieldId?: string;    // 자유형 자기소개서 내용 textarea의 제목 입력란 (core/coverLetter.ts freeFormTitleIndex)
 }
 
 export interface FillReport {

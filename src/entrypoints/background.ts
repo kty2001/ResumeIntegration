@@ -303,9 +303,12 @@ async function fillAnswer(fieldId: string, coverLetterId: string): Promise<Actio
   const report = await requireReport();
   const entry = (await coverLettersItem.getValue()).find((e) => e.id === coverLetterId);
   if (!entry?.answer) return { status: 'error', message: '자기소개서 답변을 찾을 수 없음' };
+  const titleFieldId = report.fields.find((f) => f.fieldId === fieldId)?.titleFieldId;
   const result = await fillManual(report, fieldId, COVER_LETTER_KEY, entry.answer);
   const failed = result.failed[0];
   if (failed?.reason === 'too-long') return { status: 'error', message: '입력란 글자수 제한을 초과합니다' };
+  // 자유형 자기소개서: 제목 입력란에 문항도 입력 (fillManual이 저장한 최신 보고서 기준)
+  if (titleFieldId && entry.question) await fillManual(await requireReport(), titleFieldId, COVER_LETTER_KEY, entry.question);
   return { status: 'ok' };
 }
 

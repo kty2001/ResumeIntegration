@@ -84,6 +84,21 @@ describe('parseImport', () => {
     expect(coverLetters).toEqual([{ question: '지원 동기를 적어 주세요', answer: '저는…' }]);
   });
 
+  it('자유형 자기소개서: 같은 묶음의 제목 입력란 값이 문항, 제목이 비면 라벨·placeholder', () => {
+    const fields = [
+      field({ label: '제목', section: '자기소개서', cluster: 'c' }),
+      field({ placeholder: '해당내용을 입력하세요.', section: '자기소개서', widget: 'textarea', cluster: 'c' }),
+      field({ label: '제목', section: '자기소개서', cluster: 'd' }),
+      field({ placeholder: '해당내용을 입력하세요.', section: '자기소개서', widget: 'textarea', cluster: 'd' }),
+    ];
+    const raw = ['지원 동기', '저는…', '', '두 번째'];
+    const values = new Map(fields.map((f, i) => [f.fieldId, raw[i]!]));
+    expect(parseImport(fields, values, assignKeys(fields)).coverLetters).toEqual([
+      { question: '지원 동기', answer: '저는…' },
+      { question: '해당내용을 입력하세요.', answer: '두 번째' },
+    ]);
+  });
+
   it('같은 키 입력란: 첫 값이 변환되지 않으면 변환되는 값으로 교체 (사람인 학력구분 + 대학구분)', () => {
     const fields = [
       field({ label: '학력구분', section: '학력', widget: 'select', options: [{ value: 'university', text: '대학ㆍ대학원 이상 졸업' }] }),
