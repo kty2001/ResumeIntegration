@@ -83,6 +83,16 @@ describe('parseImport', () => {
     ]);
     expect(coverLetters).toEqual([{ question: '지원 동기를 적어 주세요', answer: '저는…' }]);
   });
+
+  it('같은 키 입력란: 첫 값이 변환되지 않으면 변환되는 값으로 교체 (사람인 학력구분 + 대학구분)', () => {
+    const fields = [
+      field({ label: '학력구분', section: '학력', widget: 'select', options: [{ value: 'university', text: '대학ㆍ대학원 이상 졸업' }] }),
+      field({ label: '대학구분', section: '학력', widget: 'select', options: [{ value: '4', text: '대학교(4년)' }] }),
+    ];
+    const values = new Map([[fields[0]!.fieldId, 'university'], [fields[1]!.fieldId, '4']]);
+    const { items } = parseImport(fields, values, assignKeys(fields));
+    expect(items).toEqual([{ schemaKey: 'education.0.level', value: 'university', raw: '대학교(4년)' }]);
+  });
 });
 
 describe('diffImport·applyImport', () => {

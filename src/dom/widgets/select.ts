@@ -1,7 +1,9 @@
 // 기본 select 입력: docs/reports/06_generic_widget_strategy.md 2.1
 // 프로토타입의 네이티브 value setter 호출 후 이벤트 발생 (fillText와 같은 방식)
+// 이미 같은 값이면 이벤트 생략: 같은 값 change에도 폼을 다시 그리는 사이트(사람인 학력구분) 대비
 
 export function fillSelect(el: HTMLSelectElement, value: string): boolean {
+  if (el.value === value) return true;
   const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')?.set;
   el.focus();
   if (setter) setter.call(el, value);

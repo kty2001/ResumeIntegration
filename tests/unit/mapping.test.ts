@@ -281,6 +281,42 @@ describe('mapFields', () => {
     expect(plan.skipped).toEqual([{ fieldId: '2', schemaKey: 'basics.gender', reason: 'no-option' }]);
   });
 
+  it('바로 앞과 같은 반복 키인 선택형 입력란은 같은 블록 (사람인 학력구분 + 대학구분)', () => {
+    const r = createEmptyResume();
+    r.education = [{ id: 'e1', level: 'university', school: { ko: '한국대학교' }, status: 'graduated' }];
+    const plan = mapFields(
+      [
+        field({
+          fieldId: '0',
+          label: '학력구분',
+          section: '학력',
+          widget: 'select',
+          options: [
+            { value: 'high', text: '고등학교 졸업' },
+            { value: 'university', text: '대학ㆍ대학원 이상 졸업' },
+          ],
+        }),
+        field({
+          fieldId: '1',
+          label: '대학구분',
+          section: '학력',
+          widget: 'select',
+          options: [
+            { value: '2', text: '대학(2,3년)' },
+            { value: '4', text: '대학교(4년)' },
+          ],
+        }),
+        field({ fieldId: '2', label: '학교명 *', section: '학력' }),
+      ],
+      r,
+    );
+    expect(plan.items.map((i) => [i.fieldId, i.schemaKey, i.value])).toEqual([
+      ['0', 'education.0.level', 'university'],
+      ['1', 'education.0.level', '4'],
+      ['2', 'education.0.school.ko', '한국대학교'],
+    ]);
+  });
+
   it('radio 그룹도 select처럼 선택지 value 매칭, 선택지 불일치는 skipped', () => {
     const r = createEmptyResume();
     r.basics.gender = 'female';

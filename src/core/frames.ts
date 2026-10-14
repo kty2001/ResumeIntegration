@@ -47,6 +47,7 @@ export function mergeResults(results: { frameId: number; result: FillResult }[])
   for (const { frameId, result } of results) {
     merged.filled.push(...result.filled.map((f) => ({ ...f, fieldId: globalFieldId(frameId, f.fieldId) })));
     merged.failed.push(...result.failed.map((f) => ({ ...f, fieldId: globalFieldId(frameId, f.fieldId) })));
+    if (result.formChanged) merged.formChanged = true;
   }
   return merged;
 }

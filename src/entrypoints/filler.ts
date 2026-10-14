@@ -26,6 +26,8 @@ declare global {
   }
 }
 
+const FORM_TAGS = 'input, select, textarea';
+
 /** 입력 결과 보고용 전략 이름 */
 function strategyOf(el: FillElement): string {
   if (!isFormControl(el)) return 'combobox';
@@ -90,6 +92,15 @@ export default defineUnlistedScript(() => {
 
   onMessage('fill', ({ data: plan }) => whileFilling(async () => {
     const result: FillResult = { filled: [], failed: [] };
+    // 입력 중 입력란이 새로 생기면(폼 전환·다시 그리기) background가 다시 수집·입력
+    const check = (records: MutationRecord[]) => {
+      const added = records.some((r) =>
+        [...r.addedNodes].some((n) => n instanceof Element && (n.matches(FORM_TAGS) || !!n.querySelector(FORM_TAGS))),
+      );
+      if (added) result.formChanged = true;
+    };
+    const observer = new MutationObserver(check);
+    observer.observe(document.body, { childList: true, subtree: true });
     for (const { fieldId, value } of plan.items) {
       const el = getElement(fieldId);
       if (!el || !el.isConnected) {
@@ -102,6 +113,9 @@ export default defineUnlistedScript(() => {
         else result.failed.push({ fieldId, reason: 'not-applied' });
       }
     }
+    // 아직 전달되지 않은 변경 기록까지 확인 후 해제
+    check(observer.takeRecords());
+    observer.disconnect();
     return result;
   }));
 

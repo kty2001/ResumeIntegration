@@ -52,6 +52,7 @@ export interface FillPlan {
 export interface FillResult {
   filled: { fieldId: string; strategy: string }[];
   failed: { fieldId: string; reason: string }[];
+  formChanged?: boolean; // 입력 중 사이트가 입력란을 새로 그림 (학력구분 선택 시 폼 전환 등) → 다시 수집·입력
 }
 
 /** 사이드 패널 표시용 입력란별 결과 (background → session:fillReport) */

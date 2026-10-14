@@ -181,9 +181,16 @@ async function startFill(tabId: number, partial = false): Promise<StartFillRespo
     frames = await collectFrames(tabId, frameIds);
     details = mergeFrames(frames);
   }
-  const mapped = mapFields(details.fields, resume, learned, sensitive);
-  const plan = await withFilePayloads(mapped, details.fields, resume);
-  const result = await sendFill(tabId, plan);
+  let plan = await withFilePayloads(mapFields(details.fields, resume, learned, sensitive), details.fields, resume);
+  let result = await sendFill(tabId, plan);
+  // 입력 중 사이트가 폼을 다시 그려 입력란이 사라지거나 새로 생겼으면(사람인 학력구분 등) 한 번만 다시 수집·입력
+  // (이미 같은 값인 select·콤보박스는 이벤트를 생략하므로 다시 그리지 않음, 스냅숏은 요소별 최초 값 유지)
+  if (result.formChanged || result.failed.some((f) => f.reason === 'not-found')) {
+    frames = await collectFrames(tabId, frameIds);
+    details = mergeFrames(frames);
+    plan = await withFilePayloads(mapFields(details.fields, resume, learned, sensitive), details.fields, resume);
+    result = await sendFill(tabId, plan);
+  }
   const report = { ...buildFillReport(details, plan, result, tabId), frameIds: frames.map((f) => f.frameId) };
   await fillReportItem.setValue(report);
   // 연동 사이트면 마지막 작성 시각 기록 ('갱신 필요' 표시 기준)

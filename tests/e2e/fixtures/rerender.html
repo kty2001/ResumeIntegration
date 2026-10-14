@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>폼 다시 그리기 fixture</title>
+</head>
+<body>
+  <!-- 사람인형 (docs/reports/07_site_dom_survey.md 6.1): 학력구분 select change(같은 값 포함) 때 학력 입력 폼 전체를 새 id로 다시 그림 -->
+  <form onsubmit="return false">
+    <p><label for="nm">이름</label> <input id="nm" name="nm"></p>
+    <h2>학력</h2>
+    <div id="edu"></div>
+  </form>
+  <script>
+    const edu = document.getElementById('edu');
+    let renders = 0;
+    function render(type) {
+      renders++;
+      const s = Date.now() + renders;
+      const fields = type
+        ? `
+          <label for="schoolGb_${s}">대학구분</label>
+          <select id="schoolGb_${s}" name="school_gb[]">
+            <option value="">대학구분 *</option><option value="2">대학(2,3년)</option><option value="4">대학교(4년)</option>
+          </select>
+          <label for="schoolNm_${s}">학교명 *</label> <input id="schoolNm_${s}" name="school_nm[]">
+          <label for="schoolMajor_${s}">전공 *</label> <input id="schoolMajor_${s}" name="school_major[]">
+          <select id="schoolGraduationGb_${s}" name="school_graduation_gb[]">
+            <option value="">졸업여부 *</option><option value="graduate">졸업</option><option value="attend">재학중</option>
+          </select>
+          <label for="schoolEntranceDt_${s}">입학년월</label>
+          <input id="schoolEntranceDt_${s}" name="school_entrance_dt[]" placeholder="YYYYMM" maxlength="6">`
+        : '';
+      edu.innerHTML = `
+        <label for="schoolType_${s}">학력구분</label>
+        <select id="schoolType_${s}" name="school_type">
+          <option value="">학력 구분 선택 *</option><option value="high">고등학교 졸업</option>
+          <option value="university">대학ㆍ대학원 이상 졸업</option>
+        </select>${fields}`;
+      const select = edu.querySelector('select[name=school_type]');
+      select.value = type;
+      select.addEventListener('change', () => render(select.value));
+      edu.dataset.renders = String(renders);
+    }
+    render('');
+  </script>
+</body>
+</html>

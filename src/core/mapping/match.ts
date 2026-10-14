@@ -229,15 +229,29 @@ export function assignKeys(fields: FieldDescriptor[], learned?: Map<string, Lear
   );
   const runOf = splitRuns(fields, matches);
   // 반복 항목 키('education.*.school.ko')는 페이지 등장 순서대로 인덱스 부여 (분리 입력 묶음은 하나로)
+  // 바로 앞 입력란과 같은 반복 키인 선택형 입력란은 같은 블록으로 (사람인 학력구분 + 대학구분 select)
   const counts = new Map<string, number>();
   const keys: (string | undefined)[] = [];
-  fields.forEach((_, i) => {
+  fields.forEach((field, i) => {
     const run = runOf.get(i);
     if (run && run[0] !== i) {
       keys[i] = keys[run[0]!];
       return;
     }
     let schemaKey = (run ? runMatch(matches, run) : matches[i])?.schemaKey;
+    const prev = fields[i - 1];
+    if (
+      schemaKey?.includes('*') &&
+      !run &&
+      prev &&
+      matches[i - 1]?.schemaKey === schemaKey &&
+      !runOf.has(i - 1) &&
+      isChoiceWidget(field.widget) &&
+      isChoiceWidget(prev.widget)
+    ) {
+      keys[i] = keys[i - 1];
+      return;
+    }
     if (schemaKey?.includes('*')) {
       const index = counts.get(schemaKey) ?? 0;
       counts.set(schemaKey, index + 1);

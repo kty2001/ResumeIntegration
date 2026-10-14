@@ -141,6 +141,8 @@ export async function pickSuggestion(el: HTMLInputElement, value: string): Promi
 }
 
 export async function fillCombobox(el: HTMLElement, value: string): Promise<boolean> {
+  // 이미 선택된 값이면 다시 고르지 않음 (선택 시 폼을 다시 그리는 위젯 대비)
+  if (value && readCombobox(el) === value) return true;
   const target = (await open(el)).find((o) => textOf(o) === value);
   if (!target) {
     close(el);

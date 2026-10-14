@@ -122,12 +122,13 @@ export function parseImport(
 ): Pick<ImportDraft, 'items' | 'coverLetters'> {
   const items: ImportedItem[] = [];
   const coverLetters: ImportDraft['coverLetters'] = [];
-  const seen = new Set<string>();
   const push = (schemaKey: string, raw: string, value: ImportValue | undefined) => {
-    // 같은 키 입력란이 여럿이면 첫 값
-    if (seen.has(schemaKey)) return;
-    seen.add(schemaKey);
-    items.push(value === undefined ? { schemaKey, raw } : { schemaKey, value, raw });
+    const item: ImportedItem = value === undefined ? { schemaKey, raw } : { schemaKey, value, raw };
+    // 같은 키 입력란이 여럿이면 첫 값. 단 첫 값이 저장 형식으로 변환되지 않았으면 변환된 값으로 교체
+    // (사람인 학력구분 '대학ㆍ대학원 이상 졸업' 대신 대학구분 '대학교(4년)')
+    const index = items.findIndex((i) => i.schemaKey === schemaKey);
+    if (index < 0) items.push(item);
+    else if (!('value' in items[index]!) && value !== undefined) items[index] = item;
   };
 
   fields.forEach((field, i) => {

@@ -1,4 +1,4 @@
-import type { BrowserContext, Worker } from '@playwright/test';
+import type { BrowserContext, Page, Worker } from '@playwright/test';
 import type { Resume } from '@/core/schema/resume';
 import { expect, FIXTURE_ORIGIN, resume, test } from './extension';
 
@@ -591,6 +591,42 @@ test('라벨 보완: 전화번호·휴대폰 공존 시 자택 전화, 라벨 �
   await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
   await expect(panel.getByText('대학구분 * → 학력 1 학력 구분')).toBeVisible();
   await expect(panel.getByText(/사이트의 저장 버튼\(섹션별 저장 포함\)을 눌러야 반영/)).toBeVisible();
+});
+
+test('폼 다시 그리기: 학력구분 선택으로 입력란이 새로 생기거나 사라지면 다시 수집해 입력, 같은 값은 다시 고르지 않음', async ({ context, worker, extensionId }) => {
+  const data: Resume = {
+    ...resume,
+    education: [
+      { id: 'e1', level: 'university', school: { ko: '한국대학교' }, major: { ko: '컴퓨터공학' }, status: 'graduated', startDate: '2014-03' },
+    ],
+  };
+  const summary = '입력 완료 7개 · 입력 실패 0개 · 해당 없음 0개';
+  const check = async (page: Page) => {
+    await expect(page.locator('[name=school_type]')).toHaveValue('university');
+    await expect(page.locator('[name="school_gb[]"]')).toHaveValue('4');
+    await expect(page.locator('[name="school_nm[]"]')).toHaveValue('한국대학교');
+    await expect(page.locator('[name="school_major[]"]')).toHaveValue('컴퓨터공학');
+    await expect(page.locator('[name="school_graduation_gb[]"]')).toHaveValue('graduate');
+    await expect(page.locator('[name="school_entrance_dt[]"]')).toHaveValue('201403');
+  };
+
+  // 학력구분만 있는 빈 블록: 선택 후 생긴 입력란을 다시 수집해 입력 (학력구분은 한 번만 다시 그림)
+  const { page, popup } = await runFill(context, worker, extensionId, 'rerender.html', summary, data);
+  await check(page);
+  await expect(page.locator('#edu')).toHaveAttribute('data-renders', '2');
+
+  // 다른 학력구분이 선택된 블록: 입력 중 입력란이 사라지면 다시 수집해 입력
+  await page.locator('[name=school_type]').selectOption('high');
+  await expect(page.locator('#edu')).toHaveAttribute('data-renders', '3');
+  await page.bringToFront();
+  await popup.getByRole('button', { name: '작성' }).click();
+  await expect(popup.getByText(summary)).toBeVisible();
+  await check(page);
+  await expect(page.locator('#edu')).toHaveAttribute('data-renders', '4');
+
+  const panel = await context.newPage();
+  await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+  await expect(panel.getByText('대학구분 → 학력 1 학력 구분')).toBeVisible();
 });
 
 test('검색형 콤보박스: 입력 후 일치 후보(정확히 같음 → 포함 후보 하나) 확정', async ({ context, worker, extensionId }) => {
