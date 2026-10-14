@@ -77,6 +77,17 @@ test('작성 → 페이지 입력 + 사이드 패널 결과·복사·재실행 �
   await expect(panel.getByLabel('입력 완료 10 · 확인 필요 0 · 해당 없음 1')).toBeVisible();
 });
 
+// 'Unchecked runtime.lastError'는 Playwright 서비스 워커 콘솔에 잡히지 않아 chrome://extensions 오류 목록에서 수동 확인
+test('작성 후 페이지 이동: filler 없는 탭으로 highlight 전송 시 오류 안내만 표시', async ({ context, worker, extensionId }) => {
+  const { page } = await runFill(context, worker, extensionId);
+  // filler가 없는 페이지로 이동 → 사이드 패널이 여는 즉시·위치 보기에서 highlight 전송
+  await page.goto(`${FIXTURE_ORIGIN}/labels.html`);
+  const panel = await context.newPage();
+  await panel.goto(`chrome-extension://${extensionId}/sidepanel.html`);
+  await panel.getByRole('button', { name: '입력 항목 위치 보기' }).click();
+  await expect(panel.getByRole('status')).toBeVisible();
+});
+
 test('연동 사이트: 팝업 모두 열기 버튼 + 작성 성공 시 마지막 작성 시각 기록', async ({ context, worker, extensionId }) => {
   const site = { id: 's1', name: '기본', url: `${FIXTURE_ORIGIN}/basics.html` };
   await worker.evaluate((value) => chrome.storage.local.set({ linkedSites: value }), [site]);

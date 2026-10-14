@@ -1,4 +1,5 @@
-import { defineExtensionMessaging } from '@webext-core/messaging';
+import { defineExtensionMessaging, type SendMessageOptions } from '@webext-core/messaging';
+import { browser } from 'wxt/browser';
 
 // 메시지 규격: docs/design/architecture.md 5·6장
 // 현재 범위: 최상위 프레임 + 주입 가능한(같은 출처) iframe의 text·textarea·date 입력란, 기본 select, radio 그룹, 단일 checkbox, checkbox 그룹, ARIA 콤보박스, 파일
@@ -149,4 +150,24 @@ interface ProtocolMap {
   userEdit(data: { fieldId: string; value: string }): void;
 }
 
-export const { sendMessage, onMessage } = defineExtensionMessaging<ProtocolMap>();
+const messaging = defineExtensionMessaging<ProtocolMap>();
+export const { onMessage } = messaging;
+
+let nextId = Math.floor(Math.random() * 10000);
+
+/**
+ * 탭 대상 전송은 프로미스형 tabs.sendMessage로 직접 (메시지·응답 형식은 라이브러리와 동일)
+ * @webext-core/messaging 4.0.0은 tabs.sendMessage 콜백에서 runtime.lastError를 확인하지 않아,
+ * filler가 없는 탭·프레임(페이지 이동 후 highlight 등)으로 보내면 'Unchecked runtime.lastError: Receiving end does not exist'가 기록됨
+ */
+export const sendMessage = (async (type: string, data?: unknown, target?: number | SendMessageOptions) => {
+  if (target == null) return (messaging.sendMessage as (type: string, data?: unknown) => Promise<unknown>)(type, data);
+  const { tabId, frameId } = typeof target === 'number' ? { tabId: target, frameId: undefined } : target;
+  const message = { id: nextId++, type, data, timestamp: Date.now() };
+  const response = (await browser.tabs.sendMessage(tabId, message, frameId == null ? undefined : { frameId })) as
+    | { res?: unknown; err?: { message?: string } }
+    | undefined;
+  if (!response) throw new Error('No response');
+  if (response.err != null) throw new Error(response.err.message ?? String(response.err));
+  return response.res;
+}) as typeof messaging.sendMessage;
