@@ -1,0 +1,100 @@
+{
+  "app": "resume-integration",
+  "backupVersion": 1,
+  "exportedAt": "2026-10-14T00:00:00.000Z",
+  "resume": {
+    "meta": { "schemaVersion": 1, "updatedAt": "2026-10-14T00:00:00.000Z" },
+    "basics": {
+      "name": { "ko": "홍길동", "en": "Gildong Hong" },
+      "birthDate": "1995-03-15",
+      "gender": "male",
+      "email": "gildong@example.com",
+      "phone": { "mobile": "010-1234-5678", "home": "02-123-4567" },
+      "address": { "postalCode": "06236", "line1": "서울특별시 강남구 테헤란로 1", "line2": "101호" },
+      "urls": [{ "label": "GitHub", "url": "https://github.com/example" }],
+      "summary": "백엔드 개발자"
+    },
+    "education": [
+      {
+        "id": "edu-1",
+        "level": "university",
+        "school": { "ko": "서울대학교", "en": "Seoul National University" },
+        "location": "domestic",
+        "startDate": "2014-03",
+        "endDate": "2018-02",
+        "status": "graduated",
+        "major": { "ko": "컴퓨터공학", "en": "Computer Science" },
+        "gpa": { "value": 3.8, "max": 4.5 },
+        "transfer": false
+      }
+    ],
+    "work": [
+      {
+        "id": "work-1",
+        "company": { "ko": "가나다전자", "en": "Ganada Electronics" },
+        "employmentType": "full_time",
+        "department": "플랫폼개발팀",
+        "rank": "대리",
+        "title": "팀원",
+        "role": { "ko": "백엔드 개발", "en": "Backend Engineer" },
+        "startDate": "2018-03",
+        "endDate": "2022-12",
+        "current": false,
+        "salary": 4500,
+        "leaveReason": "이직",
+        "description": "주문·결제 API 개발 및 운영"
+      }
+    ],
+    "military": { "status": "served", "branch": "army", "rank": "병장", "startDate": "2015-03", "endDate": "2016-12", "dischargeType": "expiration" },
+    "languageTests": [
+      { "id": "lang-1", "language": "en", "exam": "TOEIC", "score": "900", "date": "2023-05-20" }
+    ],
+    "languages": [{ "language": "en", "fluency": "business" }],
+    "certificates": [
+      { "id": "cert-1", "name": "정보처리기사", "issuer": "한국산업인력공단", "date": "2017-11-24", "number": "17201234567X" }
+    ],
+    "awards": [
+      { "id": "award-1", "title": "교내 소프트웨어 경진대회 대상", "awarder": "서울대학교", "date": "2017-10", "description": "일정 관리 앱 개발" }
+    ],
+    "activities": [
+      { "id": "act-1", "type": "club", "name": "오픈소스 개발 동아리", "organization": "서울대학교", "startDate": "2015-03", "endDate": "2017-12", "description": "오픈소스 기여 활동" }
+    ],
+    "projects": [
+      { "id": "proj-1", "name": "주문 시스템 개편", "organization": "가나다전자", "startDate": "2021-01", "endDate": "2021-12", "url": "https://example.com/project", "description": "모놀리스를 서비스 단위로 분리", "keywords": ["Java", "Spring", "Kafka"] }
+    ],
+    "skills": [{ "name": "Java" }, { "name": "Spring Boot" }, { "name": "MySQL" }],
+    "desired": {
+      "salary": { "amount": 5000, "companyPolicy": false },
+      "locations": ["서울"],
+      "jobs": ["백엔드 개발"],
+      "employmentTypes": ["full_time"],
+      "availableNote": "협의 가능"
+    },
+    "attachments": []
+  },
+  "coverLetters": [
+    {
+      "id": "cl-1",
+      "question": "지원 동기",
+      "tags": ["motivation"],
+      "answer": "데이터로 문제를 푸는 개발자로서 귀사의 서비스 개선에 기여하고자 지원했습니다.",
+      "usages": [],
+      "createdAt": "2026-10-01T00:00:00.000Z",
+      "updatedAt": "2026-10-05T00:00:00.000Z"
+    },
+    {
+      "id": "cl-2",
+      "question": "성장 과정",
+      "tags": ["growth"],
+      "answer": "작은 것도 끝까지 파고드는 습관으로 성장해 왔습니다.",
+      "usages": [],
+      "createdAt": "2026-10-01T00:00:00.000Z",
+      "updatedAt": "2026-10-01T00:00:00.000Z"
+    }
+  ],
+  "learnedRules": [],
+  "linkedSites": [
+    { "id": "site-1", "name": "사람인", "url": "https://www.saramin.co.kr/zf_user/resume/resume-manage" },
+    { "id": "site-2", "name": "잡코리아", "url": "https://www.jobkorea.co.kr/User/ResumeMng" }
+  ]
+}
