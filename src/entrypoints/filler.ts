@@ -101,7 +101,7 @@ export default defineUnlistedScript(() => {
     };
     const observer = new MutationObserver(check);
     observer.observe(document.body, { childList: true, subtree: true });
-    for (const { fieldId, value } of plan.items) {
+    for (const { fieldId, value, schemaKey } of plan.items) {
       const el = getElement(fieldId);
       if (!el || !el.isConnected) {
         result.failed.push({ fieldId, reason: 'not-found' });
@@ -109,7 +109,7 @@ export default defineUnlistedScript(() => {
         result.failed.push({ fieldId, reason: 'too-long' });
       } else {
         saveSnapshot(el);
-        if (await fillElement(el, value)) result.filled.push({ fieldId, strategy: strategyOf(el) });
+        if (await fillElement(el, value, schemaKey)) result.filled.push({ fieldId, strategy: strategyOf(el) });
         else result.failed.push({ fieldId, reason: 'not-applied' });
       }
     }

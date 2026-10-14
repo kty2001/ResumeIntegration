@@ -5,10 +5,14 @@ import { isVisible } from '../collect';
 // 선택지 value는 표시 텍스트 (ARIA option에는 value가 없음)
 // 검색형 콤보박스(자동완성 입력란, 2.3)는 텍스트 입력 후 후보 목록에서 일치 항목 클릭 (pickSuggestion)
 // ARIA 미준수 커스텀 드롭다운(2.4, docs/reports/07_site_dom_survey.md 3.2)도 같은 흐름: 목록은 형제 ul·ol, 값은 형제 숨은 input
+// ARIA 없는 자동완성(07 6장)은 입력 후 새로 보인 ul·ol의 li 클릭 (pickListSuggestion)
 
 const OPEN_TIMEOUT_MS = 1000;
 const SELECT_TIMEOUT_MS = 500;
 const SUGGEST_TIMEOUT_MS = 800;
+// ARIA 없는 자동완성: 키 입력에 주변 DOM이 반응하면 서버 검색 지연까지 목록 대기, 반응이 없으면 짧게 (대상 입력란만, widgets/index.ts)
+const LIST_SUGGEST_TIMEOUT_MS = 1500;
+const REACT_TIMEOUT_MS = 300;
 
 const textOf = (el: Element) => el.textContent?.replace(/\s+/g, ' ').trim() ?? '';
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -138,6 +142,62 @@ export async function pickSuggestion(el: HTMLInputElement, value: string): Promi
   const option = await waitFor(choose, SUGGEST_TIMEOUT_MS);
   if (option) press(option);
   return !!option;
+}
+
+/** 보이는 목록(ul·ol) — ARIA 없는 자동완성의 입력 전 상태 기록용 */
+export function visibleLists(): Set<Element> {
+  return new Set([...document.querySelectorAll('ul, ol')].filter(isVisible));
+}
+
+/** 입력 후 새로 보인 목록: 입력란 가까운 조상(4단계) 안을 우선, 없으면 문서의 마지막 목록 (portal) */
+function newListNear(el: HTMLElement, before: Set<Element>): Element | undefined {
+  const lists = [...document.querySelectorAll('ul, ol')].filter((l) => !before.has(l) && isVisible(l) && l.querySelector('li'));
+  let ancestor = el.parentElement;
+  for (let depth = 0; ancestor && depth < 4; depth++, ancestor = ancestor.parentElement) {
+    const near = lists.find((l) => ancestor!.contains(l));
+    if (near) return near;
+  }
+  return lists.at(-1);
+}
+
+/**
+ * ARIA 없는 자동완성(사람인·잡코리아 학교명·전공명, docs/reports/07_site_dom_survey.md 6장): 텍스트 입력 후 새로 보인 목록에서
+ * 같은 텍스트 → 포함 후보 하나 → 검색어로 시작하는 첫 후보('서울대학교 (관악)') 클릭
+ * 목록이 안 뜨면 입력값 유지(true), 목록이 떴는데 맞는 후보가 없으면 false — 사이트가 고르지 않은 값을 지우므로 확인 필요로 보고
+ * before: 입력 전 보이던 목록 (visibleLists)
+ */
+export async function pickListSuggestion(el: HTMLInputElement, value: string, before: Set<Element>): Promise<boolean> {
+  const target = normalize(value);
+  // 입력란 주변이 바로 바뀌지 않으면(자동완성 아님) 목록을 기다리지 않음 — 잡코리아는 수 ms 안에 바뀌고 목록은 약 0.2초 뒤 표시
+  let scope: HTMLElement = el;
+  for (let depth = 0; depth < 4 && scope.parentElement; depth++) scope = scope.parentElement;
+  let reacted = false;
+  const observer = new MutationObserver(() => (reacted = true));
+  observer.observe(scope, { subtree: true, childList: true, attributes: true });
+  // 키 입력에 반응하는 자동완성 대비 (값은 fillText가 이미 설정)
+  el.focus();
+  const key = { key: value.at(-1) ?? '', bubbles: true };
+  el.dispatchEvent(new KeyboardEvent('keydown', key));
+  el.dispatchEvent(new KeyboardEvent('keyup', key));
+  const start = Date.now();
+  const choose = () => {
+    const list = newListNear(el, before);
+    if (!list) return !reacted && Date.now() - start > REACT_TIMEOUT_MS ? false : undefined;
+    const items = [...list.querySelectorAll<HTMLElement>(':scope > li')].filter(isVisible);
+    const text = (li: HTMLElement) => normalize(textOf(li));
+    const contains = items.filter((li) => text(li).includes(target));
+    return (
+      items.find((li) => text(li) === target) ??
+      (contains.length === 1 ? contains[0] : items.find((li) => text(li).startsWith(target))) ??
+      null
+    );
+  };
+  // 후보 요소 → 클릭, null → 맞는 후보 없음, false·undefined → 목록 없음 (반응 없음·시간 초과)
+  const item = await waitFor(choose, LIST_SUGGEST_TIMEOUT_MS);
+  observer.disconnect();
+  if (item) press(item.querySelector<HTMLElement>('a, button') ?? item);
+  el.blur();
+  return item !== null;
 }
 
 export async function fillCombobox(el: HTMLElement, value: string): Promise<boolean> {

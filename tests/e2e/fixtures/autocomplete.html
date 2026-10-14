@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>ARIA 없는 자동완성 fixture</title>
+  <style>.hidden { display: none; }</style>
+</head>
+<body>
+  <!-- 사람인·잡코리아형 (docs/reports/07_site_dom_survey.md 6장): keyup에 근처 ul > li > a 목록 표시, ARIA 없음.
+       후보를 고르지 않은 채 바깥을 클릭하면 입력값을 지우고, 고르면 숨은 코드 설정 -->
+  <form onsubmit="return false">
+    <h2>학력</h2>
+    <div class="row">
+      <label for="school">학교명 *</label>
+      <div class="box">
+        <input id="school" autocomplete="off">
+        <input type="hidden" id="school-code" name="school_cd">
+      </div>
+      <ul class="list_auto_search hidden"></ul>
+    </div>
+    <div class="row">
+      <label for="major">전공 *</label>
+      <div class="box">
+        <input id="major" autocomplete="off">
+        <input type="hidden" id="major-code" name="major_cd">
+      </div>
+      <ul class="list_auto_search hidden"></ul>
+    </div>
+  </form>
+  <script>
+    function autocomplete(input, list, code, items) {
+      let picking = false;
+      input.addEventListener('keyup', () => {
+        const query = input.value.trim();
+        picking = !!query;
+        list.replaceChildren();
+        // 첫 글자가 같은 후보 표시 (검색 결과가 검색어와 정확히 같지 않은 경우 포함)
+        for (const [text, value] of items) {
+          if (!query || text[0] !== query[0]) continue;
+          const li = document.createElement('li');
+          li.className = 'auto_list';
+          const a = document.createElement('a');
+          a.href = 'javascript:void(0)';
+          a.textContent = text;
+          a.addEventListener('click', () => {
+            input.value = text;
+            code.value = value;
+            picking = false;
+            list.classList.add('hidden');
+          });
+          li.append(a);
+          list.append(li);
+        }
+        // 서버 검색처럼 늦게 표시
+        setTimeout(() => list.classList.toggle('hidden', list.children.length === 0), 200);
+      });
+      // 후보를 고르지 않은 채 다른 곳 클릭 → 입력값 삭제
+      document.addEventListener('click', (e) => {
+        if (!picking || input.contains(e.target) || list.contains(e.target)) return;
+        input.value = '';
+        picking = false;
+        list.classList.add('hidden');
+      });
+    }
+    const $ = (id) => document.getElementById(id);
+    const listOf = (input) => input.closest('.row').querySelector('ul');
+    autocomplete($('school'), listOf($('school')), $('school-code'), [['남한국대학교', 'N1'], ['한국대학교 (서울)', 'K1'], ['한국대학교 (세종)', 'K2']]);
+    autocomplete($('major'), listOf($('major')), $('major-code'), [['컴퓨터과학과', 'C1'], ['컴퓨터소프트웨어학과', 'C2']]);
+  </script>
+</body>
+</html>

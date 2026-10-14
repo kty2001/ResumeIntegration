@@ -642,6 +642,21 @@ test('검색형 콤보박스: 입력 후 일치 후보(정확히 같음 → 포�
   await expect(page.locator('#school-list')).toBeHidden();
 });
 
+test('ARIA 없는 자동완성: 새로 뜬 목록에서 검색어로 시작하는 후보 선택, 맞는 후보가 없으면 확인 필요', async ({ context, worker, extensionId }) => {
+  const data: Resume = {
+    ...resume,
+    education: [{ id: 'e1', level: 'university', school: { ko: '한국대학교' }, status: 'graduated', major: { ko: '컴퓨터공학' } }],
+  };
+  const { page } = await runFill(context, worker, extensionId, 'autocomplete.html', '입력 완료 1개 · 입력 실패 1개 · 해당 없음 0개', data);
+  await expect(page.locator('#school')).toHaveValue('한국대학교 (서울)');
+  await expect(page.locator('#school-code')).toHaveValue('K1');
+  await expect(page.locator('#major-code')).toHaveValue('');
+  // 고르지 않은 전공은 사이트가 바깥 클릭 때 지움, 고른 학교명은 유지
+  await page.locator('h2').click();
+  await expect(page.locator('#major')).toHaveValue('');
+  await expect(page.locator('#school')).toHaveValue('한국대학교 (서울)');
+});
+
 test('파일 업로드: accept에 맞는 첨부 파일 입력, 본문 없음은 확인 필요', async ({ context, worker, extensionId }) => {
   // 첨부 파일 본문은 확장 프로그램 출처 IndexedDB (storage/files.ts와 같은 DB·저장소)
   const ext = await context.newPage();
