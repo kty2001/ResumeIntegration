@@ -44,9 +44,12 @@ function optionsIn(listbox: Element | undefined): HTMLElement[] {
   return [...listbox.querySelectorAll<HTMLElement>('[role=option]')].filter((o) => o.getAttribute('aria-disabled') !== 'true');
 }
 
-/** 커스텀 드롭다운의 값 보관 input: 트리거의 형제 input[type=hidden][name] */
+/** 커스텀 드롭다운의 값 보관 input: 트리거의 형제 input[type=hidden][name] → 형제(목록 컨테이너)의 직계 자식 (잡코리아 학교구분 `div.list > ul + input`) */
 function hiddenInputOf(el: HTMLElement): HTMLInputElement | undefined {
-  return [...(el.parentElement?.children ?? [])].find((c): c is HTMLInputElement => c !== el && c.matches('input[type=hidden][name]'));
+  const HIDDEN = 'input[type=hidden][name]';
+  const siblings = [...(el.parentElement?.children ?? [])].filter((c) => c !== el);
+  return (siblings.find((c) => c.matches(HIDDEN)) ??
+    siblings.map((c) => c.querySelector(`:scope > ${HIDDEN}`)).find((c) => c)) as HTMLInputElement | undefined;
 }
 
 /**
