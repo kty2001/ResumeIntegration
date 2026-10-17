@@ -147,6 +147,24 @@ input:hover:not(:disabled), select:hover:not(:disabled), textarea:hover:not(:dis
 input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); box-shadow: var(--focus); }
 input:disabled, select:disabled, textarea:disabled { background: var(--surface-2); color: var(--text-mute); }
 input[type='checkbox'], input[type='radio'] { width: 16px; height: 16px; margin: 0; flex: none; accent-color: var(--primary); }
+/* 파일 입력의 내장 버튼: .btn과 같은 모양 */
+input[type='file']:focus { box-shadow: none; }
+input[type='file']::file-selector-button {
+  height: 32px;
+  padding: 0 12px;
+  margin-right: 8px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--fs-md);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--ease), border-color var(--ease);
+}
+input[type='file']:hover:not(:disabled)::file-selector-button { background: var(--surface-2); }
+input[type='file']:focus-visible::file-selector-button { border-color: var(--primary); box-shadow: var(--focus); }
+input[type='file']:disabled::file-selector-button { opacity: 0.45; cursor: default; }
 
 .field { display: block; min-width: 0; }
 .field-label {
