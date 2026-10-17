@@ -3,10 +3,10 @@ import { COVER_LETTER_KEY, countLength, detectLimit, recentAnswers, recommendAns
 import { isSensitiveKey } from '@/core/mapping/dictionary';
 import { isChoiceWidget, resolveValue } from '@/core/mapping/match';
 import { skipField } from '@/core/mapping/report';
-import type { CoverLetterEntry, Resume } from '@/core/schema/resume';
+import type { CoverLetterEntry, Resume, ResumeEntry } from '@/core/schema/resume';
 import { groupKeyOptions, LENGTH_UNIT_LABELS, schemaKeyLabel, schemaKeyOptions } from '@/core/schema/labels';
 import { describeStartFill, sendMessage, type ActionResponse, type FillReport, type ReportField } from '@/messaging/protocol';
-import { copyOnlyItem, coverLettersItem, fillReportItem, resumeItem, settingsItem, type Settings } from '@/storage/items';
+import { activeResumeItem, copyOnlyItem, coverLettersItem, fillReportItem, settingsItem, type Settings } from '@/storage/items';
 
 // 화면 설계: docs/design/screens.md 3장 (현재: 입력 결과 목록·복사·직접 입력·선택지 직접 선택·이동·건너뛰기·다시 작성·되돌리기·위치 표시·자기소개서 추천·복사 전용 모드)
 
@@ -181,13 +181,14 @@ export default function App() {
   const [copyOnly, setCopyOnly] = useState<{ tabId: number; url: string } | null>(null);
 
   useEffect(() => {
-    resumeItem.getValue().then(setResume);
+    const onResume = (e: ResumeEntry | null) => setResume(e?.resume ?? null);
+    activeResumeItem.getValue().then(onResume);
     fillReportItem.getValue().then(setReport);
     coverLettersItem.getValue().then(setCoverLetters);
     const onSettings = (s: Settings) => setSensitive(!!s.sensitiveAutofill);
     settingsItem.getValue().then(onSettings);
     copyOnlyItem.getValue().then(setCopyOnly);
-    const unwatchResume = resumeItem.watch(setResume);
+    const unwatchResume = activeResumeItem.watch(onResume);
     const unwatchReport = fillReportItem.watch(setReport);
     const unwatchCoverLetters = coverLettersItem.watch(setCoverLetters);
     const unwatchSettings = settingsItem.watch(onSettings);

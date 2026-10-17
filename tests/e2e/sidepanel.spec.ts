@@ -1,6 +1,6 @@
 import type { BrowserContext, Page, Worker } from '@playwright/test';
 import type { Resume } from '@/core/schema/resume';
-import { expect, FIXTURE_ORIGIN, resume, test } from './extension';
+import { expect, FIXTURE_ORIGIN, resume, seedResume, storedResume, test } from './extension';
 
 // 자동 입력 → 사이드 패널 결과 표시 E2E (확장 로드·fixture 응답은 extension.ts)
 // - 사이드 패널은 탭으로 열어 확인 (Playwright로 브라우저 사이드 패널 UI 조작 불가)
@@ -19,7 +19,7 @@ async function runFill(
   summary: string | RegExp = BASICS_SUMMARY,
   data = resume,
 ) {
-  await worker.evaluate((value) => chrome.storage.local.set({ resume: value, resume$: { v: 1 } }), data);
+  await seedResume(worker, data);
 
   const page = await context.newPage();
   await page.goto(`${FIXTURE_ORIGIN}/${fixture}`);
@@ -78,6 +78,32 @@ test('작성 → 페이지 입력 + 사이드 패널 결과·복사·재실행 �
 });
 
 // 'Unchecked runtime.lastError'는 Playwright 서비스 워커 콘솔에 잡히지 않아 chrome://extensions 오류 목록에서 수동 확인
+test('팝업에서 고른 이력서로 작성', async ({ context, worker, extensionId }) => {
+  const other = { ...resume, basics: { ...resume.basics, name: { ...resume.basics.name, ko: '김철수' } } };
+  await worker.evaluate(
+    ({ a, b }) =>
+      chrome.storage.local.set({
+        resumes: [{ id: 'r1', title: '기본 이력서', resume: a }, { id: 'r2', title: 'IT 직무용', resume: b }],
+        resumes$: { v: 1 },
+        activeResumeId: 'r1',
+      }),
+    { a: resume, b: other },
+  );
+  const page = await context.newPage();
+  await page.goto(`${FIXTURE_ORIGIN}/basics.html`);
+  await page.bringToFront();
+  const popupOpened = context.waitForEvent('page');
+  await worker.evaluate((url) => chrome.tabs.create({ url, active: false }), `chrome-extension://${extensionId}/popup.html`);
+  const popup = await popupOpened;
+
+  await expect(popup.locator('.profile b')).toHaveText('홍길동');
+  await popup.getByLabel('이력서 선택').selectOption({ label: 'IT 직무용' });
+  await expect(popup.locator('.profile b')).toHaveText('김철수');
+  await popup.getByRole('button', { name: '작성' }).click();
+  await expect(popup.getByText(BASICS_SUMMARY)).toBeVisible();
+  await expect(page.locator('#nm')).toHaveValue('김철수');
+});
+
 test('작성 후 페이지 이동: filler 없는 탭으로 highlight 전송 시 오류 안내만 표시', async ({ context, worker, extensionId }) => {
   const { page } = await runFill(context, worker, extensionId);
   // filler가 없는 페이지로 이동 → 사이드 패널이 여는 즉시·위치 보기에서 highlight 전송
@@ -109,7 +135,7 @@ test('연동 사이트: 팝업 모두 열기 버튼 + 작성 성공 시 마지�
   await expect(row).toContainText('갱신 필요');
   // 자동 저장(디바운스) 후 팝업 다시 열기
   await expect
-    .poll(() => worker.evaluate(async () => ((await chrome.storage.local.get('resume')).resume as Resume).basics.name.hanja))
+    .poll(async () => (await storedResume(worker))?.basics.name.hanja)
     .toBe('洪吉童');
   await popup.reload();
   await expect(popup.getByRole('button', { name: '연동 사이트 모두 열기 (갱신 필요 1)' })).toBeVisible();
@@ -152,7 +178,7 @@ test('사이드 패널 직접 입력·입력란 이동·위치 표시·되돌리
 
 test('설정에서 제외한 사이트: 작성 비활성, 복사 전용 모드', async ({ context, worker, extensionId }) => {
   await worker.evaluate(() => chrome.storage.local.set({ settings: { excludedSites: ['localhost'] } }));
-  await worker.evaluate((value) => chrome.storage.local.set({ resume: value, resume$: { v: 1 } }), resume);
+  await seedResume(worker, resume);
   const page = await context.newPage();
   await page.goto(`${FIXTURE_ORIGIN}/basics.html`);
   await page.bringToFront();

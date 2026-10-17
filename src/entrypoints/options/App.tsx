@@ -2,6 +2,7 @@ import { useEffect, useState, type ComponentType } from 'react';
 import { CONSENT_VERSION, consentItem } from '@/storage/items';
 import { ConsentModal } from './ConsentModal';
 import type { SectionProps } from './fields';
+import { ResumeSwitcher } from './ResumeSwitcher';
 import { ActivitySection } from './sections/ActivitySection';
 import { AttachmentSection } from './sections/AttachmentSection';
 import { BackupSection } from './sections/BackupSection';
@@ -42,7 +43,7 @@ const SECTIONS: { id: string; title: string; component: ComponentType<SectionPro
 const initialSection = () => SECTIONS.find((s) => `#${s.id}` === location.hash)?.id ?? SECTIONS[0]!.id;
 
 export default function App() {
-  const { resume, update, status } = useResume();
+  const { entry, resume, update, updateEntry, status, flush } = useResume();
   const [current, setCurrent] = useState(initialSection);
   const section = SECTIONS.find((s) => s.id === current) ?? SECTIONS[0]!;
   const Section = section.component;
@@ -60,6 +61,7 @@ export default function App() {
     <>
       <header className="top" inert={consented === false}>
         <b>이력서 자동 입력 · 이력서 편집</b>
+        {entry && <ResumeSwitcher entry={entry} updateEntry={updateEntry} flush={flush} />}
         <small className={status === 'error' ? 'error' : undefined}>{statusText(status, resume?.meta.updatedAt)}</small>
       </header>
       <div className="wrap" inert={consented === false}>

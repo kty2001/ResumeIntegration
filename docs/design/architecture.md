@@ -122,7 +122,7 @@ tests/
 
 - 메시지 정의는 `messaging/protocol.ts`에 타입으로 일원화 (`@webext-core/messaging`)
 - 사이드 패널 동작의 대상 탭은 `FillReport.tabId`, 프레임별 메시지는 background가 `frameId`로 나눠 중계
-- 입력 결과는 메시지 대신 `session:fillReport`에 저장, 사이드 패널이 `watch`로 표시 → 사이드 패널 로드 전·팝업 닫힘 시에도 결과 유실 없음. 이력서 값은 미포함 (사이드 패널이 `local:resume`에서 직접 조회)
+- 입력 결과는 메시지 대신 `session:fillReport`에 저장, 사이드 패널이 `watch`로 표시 → 사이드 패널 로드 전·팝업 닫힘 시에도 결과 유실 없음. 이력서 값은 미포함 (사이드 패널이 선택된 이력서(`local:resumes`·`local:activeResumeId`)를 직접 조회)
 
 ## 7. 주요 흐름
 
@@ -194,7 +194,7 @@ Popup '이 페이지에서 가져오기' 클릭 (activeTab 부여)
       같은 값 항목 제외, 빈 항목 기본 선택, 값이 다른 항목·변환 실패 기본 미선택
       반복 항목: 대표 항목(학교명·회사명·자격증명·시험명·수상명·활동명·프로젝트명)으로 기존 항목과 같은 항목 판별 → 갱신 / 추가
       자기소개서 후보: 같은 문항·답변이 라이브러리에 있으면 제외
- → '선택 항목 반영' applyImport → local:resume(자동 저장, meta.updatedAt 갱신)·local:coverLetters 저장, draft 삭제 / '취소' → draft 삭제
+ → '선택 항목 반영' applyImport → 선택된 이력서(local:resumes, 자동 저장, meta.updatedAt 갱신)·local:coverLetters 저장, draft 삭제 / '취소' → draft 삭제
 ```
 - 페이지 값은 로컬에서만 처리, 외부 전송 없음 (1장 로컬 우선 원칙 유지). 페이지 조작 없음 (읽기만)
 - 학습 규칙은 생성하지 않음 (매핑 확인 없이 읽은 값이므로)
@@ -222,7 +222,8 @@ Popup '이 페이지에서 가져오기' 클릭 (activeTab 부여)
 
 | 키 | 내용 | 비고 |
 |---|---|---|
-| `local:resume` | 이력서 데이터 (스키마 v1) | `version`·`migrations` 적용 |
+| `local:resumes` | 이력서 목록 `ResumeEntry[]` (`id`·`title`·`resume`: 스키마 v1) | `version`·`migrations` 적용. 첨부 파일 메타는 이력서별 |
+| `local:activeResumeId` | 선택된 이력서 id ('작성'·사이드 패널·가져오기·옵션 편집 대상, 없거나 지워졌으면 첫 이력서) | 팝업·옵션에서 변경 |
 | `local:coverLetters` | 자기소개서 문항-답변 라이브러리 | |
 | `local:learnedRules` | `LearnedRule[]` | 옵션 화면에서 조회·삭제 |
 | `local:consent` | 최초 실행 동의 (`version`·`acceptedAt`) | settings와 분리 (백업 '전체 삭제'·내보내기 대상 아님) |
@@ -236,7 +237,9 @@ Popup '이 페이지에서 가져오기' 클릭 (activeTab 부여)
 | `session:importDraft` | 반영 전 가져오기 결과 (`ImportDraft`, 7.4) | '반영'·'취소' 시 삭제 |
 
 - filler는 storage를 읽지 않고 메시지로 받은 값만 사용. `storage.setAccessLevel`로 content script 접근 차단은 미적용 (BYOK 키 도입 시 적용)
-- 백업 파일(옵션 '백업'): `resume`·`coverLetters`·`learnedRules`·`linkedSites`만 포함(이전 백업 파일의 `linkedSites` 누락은 빈 목록), `session:*`·첨부 파일 본문 제외 (`core/backup.ts`, 가져오기 시 `resume.meta.schemaVersion` 확인)
+- 선택된 이력서 접근은 `activeResumeItem`(storage/items.ts): 저장은 `ResumeEntry.id` 기준 교체 → 저장 대기 중 선택이 바뀌어도 다른 이력서를 덮어쓰지 않음
+- 이전 버전 `local:resume`(이력서 1개)은 background `onInstalled`에서 '기본 이력서' 항목으로 옮긴 뒤 삭제 (`migrateLegacyResume`)
+- 백업 파일(옵션 '백업', `backupVersion` 2): `resumes`·`activeResumeId`·`coverLetters`·`learnedRules`·`linkedSites`만 포함(이전 백업 파일의 `linkedSites` 누락은 빈 목록, v1의 `resume`은 '기본 이력서' 하나로 변환), `session:*`·첨부 파일 본문 제외 (`core/backup.ts`, 가져오기 시 이력서별 `meta.schemaVersion` 확인)
 
 ## 9. 사이트 정책
 - 기본 제외 목록: `linkedin.com` (이용약관상 확장 프로그램의 활동 자동화·화면 변경 금지, [05 보고서](../reports/05_privacy_and_policy.md) 4.1)

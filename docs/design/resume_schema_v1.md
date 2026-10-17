@@ -60,7 +60,7 @@ type AttachmentKind = 'photo' | 'resume' | 'portfolio' | 'transcript' | 'certifi
 type CoverLetterTag = 'motivation' | 'growth' | 'personality' | 'competency' | 'aspiration' | 'collaboration' | 'other';
 type LengthUnit = 'chars_with_space' | 'chars_without_space' | 'bytes';
 
-// ---- 이력서 (storage key: local:resume) ----
+// ---- 이력서 (storage key: local:resumes의 ResumeEntry.resume) ----
 interface Resume {
   meta: { schemaVersion: 1; updatedAt: IsoDateTime };
   basics: Basics;
@@ -476,7 +476,8 @@ interface CoverLetterEntry {
 
 | 저장 키 | 타입 | 비고 |
 |---|---|---|
-| `local:resume` | `Resume` | WXT `storage.defineItem`, `version: 1` |
+| `local:resumes` | `{ id: string; title: string; resume: Resume }[]` | 이력서 여러 개, WXT `storage.defineItem`, `version: 1` |
+| `local:activeResumeId` | `string \| null` | 선택된 이력서 id (없거나 지워졌으면 첫 이력서) |
 | `local:coverLetters` | `CoverLetterEntry[]` | 이력서와 독립 수정·검색 |
 | 첨부 파일 본문 | Blob | 메타데이터(`attachments[]`)와 분리 저장. 확장 프로그램 출처 IndexedDB `resume-files`의 `files` 저장소, 키 = 첨부 id (`src/storage/files.ts`) |
 
@@ -511,7 +512,7 @@ interface CoverLetterEntry {
 
 ## 9. 예시 데이터 (가상)
 
-`local:resume`
+`local:resumes[].resume`
 ```json
 {
   "meta": { "schemaVersion": 1, "updatedAt": "2026-10-07T09:00:00+09:00" },

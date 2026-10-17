@@ -2,16 +2,59 @@ import { storage } from 'wxt/utils/storage';
 import type { ImportDraft } from '@/core/import';
 import type { LinkedSite } from '@/core/linked-sites';
 import type { LearnedRule } from '@/core/mapping/learned';
-import { SCHEMA_VERSION, type CoverLetterEntry, type Resume } from '@/core/schema/resume';
+import { SCHEMA_VERSION, type CoverLetterEntry, type Resume, type ResumeEntry } from '@/core/schema/resume';
 import type { FillReport } from '@/messaging/protocol';
 
 // 저장 구조: docs/design/architecture.md 8장, docs/design/resume_schema_v1.md 6·7장
 // 스키마 변경 시 version을 올리고 migrations에 변환 함수 추가
 
-export const resumeItem = storage.defineItem<Resume | null>('local:resume', {
+export const resumesItem = storage.defineItem<ResumeEntry[]>('local:resumes', {
+  fallback: [],
+  version: SCHEMA_VERSION,
+});
+
+// 선택된 이력서 ('작성'·사이드 패널·가져오기 대상, 옵션 편집 대상). 없거나 지워졌으면 첫 이력서
+export const activeResumeIdItem = storage.defineItem<string | null>('local:activeResumeId', {
+  fallback: null,
+});
+
+const pickActive = (list: ResumeEntry[], id: string | null) => list.find((e) => e.id === id) ?? list[0] ?? null;
+
+/** 선택된 이력서 읽기·저장·감시 (setValue는 entry.id 기준 교체 → 저장 대기 중 선택이 바뀌어도 다른 이력서를 덮어쓰지 않음) */
+export const activeResumeItem = {
+  async getValue(): Promise<ResumeEntry | null> {
+    return pickActive(await resumesItem.getValue(), await activeResumeIdItem.getValue());
+  },
+  async setValue(entry: ResumeEntry | null): Promise<void> {
+    if (!entry) return;
+    const list = await resumesItem.getValue();
+    const exists = list.some((e) => e.id === entry.id);
+    await resumesItem.setValue(exists ? list.map((e) => (e.id === entry.id ? entry : e)) : [...list, entry]);
+    if (!exists && !list.length) await activeResumeIdItem.setValue(entry.id);
+  },
+  watch(callback: (entry: ResumeEntry | null) => void): () => void {
+    const emit = () => void activeResumeItem.getValue().then(callback);
+    const unwatch = [resumesItem.watch(emit), activeResumeIdItem.watch(emit)];
+    return () => unwatch.forEach((fn) => fn());
+  },
+};
+
+// 이전 버전(이력서 1개) 저장 키: background onInstalled에서 local:resumes로 옮긴 뒤 삭제
+const legacyResumeItem = storage.defineItem<Resume | null>('local:resume', {
   fallback: null,
   version: SCHEMA_VERSION,
 });
+
+export async function migrateLegacyResume(): Promise<void> {
+  const legacy = await legacyResumeItem.getValue();
+  if (!legacy) return;
+  if (!(await resumesItem.getValue()).length) {
+    const id = crypto.randomUUID();
+    await resumesItem.setValue([{ id, title: '기본 이력서', resume: legacy }]);
+    await activeResumeIdItem.setValue(id);
+  }
+  await legacyResumeItem.removeValue({ removeMeta: true });
+}
 
 export const coverLettersItem = storage.defineItem<CoverLetterEntry[]>('local:coverLetters', {
   fallback: [],

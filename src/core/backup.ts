@@ -1,16 +1,17 @@
 import type { LinkedSite } from '@/core/linked-sites';
 import type { LearnedRule } from '@/core/mapping/learned';
 import { createEmptyResume } from '@/core/schema/empty';
-import { SCHEMA_VERSION, type CoverLetterEntry, type Resume } from '@/core/schema/resume';
+import { SCHEMA_VERSION, type CoverLetterEntry, type Resume, type ResumeEntry } from '@/core/schema/resume';
 
 // 백업 파일(JSON) 생성·검증: docs/design/architecture.md 8장, resume_schema_v1.md 7장
 // 포함: 이력서·자기소개서·학습 규칙·연동 사이트 / 제외: 입력 결과(session), API 키
 
 export const BACKUP_APP = 'resume-integration';
-export const BACKUP_VERSION = 1;
+export const BACKUP_VERSION = 2; // 2: 이력서 여러 개 (resume → resumes·activeResumeId), 1도 가져오기 가능
 
 export interface BackupData {
-  resume: Resume | null;
+  resumes: ResumeEntry[];
+  activeResumeId: string | null;
   coverLetters: CoverLetterEntry[];
   learnedRules: LearnedRule[];
   linkedSites: LinkedSite[];
@@ -96,14 +97,26 @@ export function parseBackup(text: string): ParseResult {
   }
   if (!isObject(data) || data.app !== BACKUP_APP) return { ok: false, error: '이 확장 프로그램의 백업 파일이 아닙니다.' };
 
-  let resume: Resume | null = null;
-  if (isObject(data.resume)) {
-    const version = isObject(data.resume.meta) ? data.resume.meta.schemaVersion : undefined;
+  // 백업 v1은 이력서 하나(resume) → 항목 하나로 변환
+  const rawEntries = Array.isArray(data.resumes)
+    ? data.resumes.filter(isObject)
+    : isObject(data.resume)
+      ? [{ title: '기본 이력서', resume: data.resume }]
+      : [];
+  const resumes: ResumeEntry[] = [];
+  for (const raw of rawEntries) {
+    if (!isObject(raw.resume)) continue;
+    const version = isObject(raw.resume.meta) ? raw.resume.meta.schemaVersion : undefined;
     if (typeof version === 'number' && version > SCHEMA_VERSION)
       return { ok: false, error: '더 새로운 버전에서 만든 백업 파일입니다. 확장 프로그램을 업데이트해 주세요.' };
     // 스키마 v2부터 이 위치에서 마이그레이션 (resume_schema_v1.md 7장)
-    resume = normalizeResume(data.resume);
+    resumes.push({
+      id: typeof raw.id === 'string' && raw.id ? raw.id : crypto.randomUUID(),
+      title: typeof raw.title === 'string' ? raw.title : '',
+      resume: normalizeResume(raw.resume),
+    });
   }
+  const activeResumeId = resumes.find((e) => e.id === data.activeResumeId)?.id ?? resumes[0]?.id ?? null;
 
   return {
     ok: true,
@@ -111,7 +124,8 @@ export function parseBackup(text: string): ParseResult {
       app: BACKUP_APP,
       backupVersion: BACKUP_VERSION,
       exportedAt: typeof data.exportedAt === 'string' ? data.exportedAt : '',
-      resume,
+      resumes,
+      activeResumeId,
       coverLetters: normalizeCoverLetters(data.coverLetters),
       learnedRules: Array.isArray(data.learnedRules) ? data.learnedRules.filter(isRule) : [],
       linkedSites: Array.isArray(data.linkedSites) ? data.linkedSites.filter(isLinkedSite) : [],

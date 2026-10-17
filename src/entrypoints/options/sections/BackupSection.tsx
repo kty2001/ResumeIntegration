@@ -1,7 +1,15 @@
 import { useState, type ChangeEvent } from 'react';
 import { backupFileName, createBackup, parseBackup, type Backup } from '@/core/backup';
 import { clearFiles } from '@/storage/files';
-import { coverLettersItem, fillReportItem, learnedRulesItem, linkedSitesItem, resumeItem, settingsItem } from '@/storage/items';
+import {
+  activeResumeIdItem,
+  coverLettersItem,
+  fillReportItem,
+  learnedRulesItem,
+  linkedSitesItem,
+  resumesItem,
+  settingsItem,
+} from '@/storage/items';
 
 // 화면 설계: docs/design/screens.md 4장 '백업' (JSON 내보내기/가져오기, 전체 삭제)
 // 확인 단계는 window.confirm 대신 화면 내 버튼
@@ -25,7 +33,8 @@ export function BackupSection() {
 
   const exportBackup = async () => {
     const backup = createBackup({
-      resume: await resumeItem.getValue(),
+      resumes: await resumesItem.getValue(),
+      activeResumeId: await activeResumeIdItem.getValue(),
       coverLetters: await coverLettersItem.getValue(),
       learnedRules: await learnedRulesItem.getValue(),
       linkedSites: await linkedSitesItem.getValue(),
@@ -44,7 +53,8 @@ export function BackupSection() {
   };
 
   const applyBackup = async (backup: Backup) => {
-    await resumeItem.setValue(backup.resume);
+    await resumesItem.setValue(backup.resumes);
+    await activeResumeIdItem.setValue(backup.activeResumeId);
     await coverLettersItem.setValue(backup.coverLetters);
     await learnedRulesItem.setValue(backup.learnedRules);
     await linkedSitesItem.setValue(backup.linkedSites);
@@ -54,7 +64,8 @@ export function BackupSection() {
 
   const deleteAll = async () => {
     await Promise.all([
-      resumeItem.removeValue(),
+      resumesItem.removeValue(),
+      activeResumeIdItem.removeValue(),
       coverLettersItem.removeValue(),
       learnedRulesItem.removeValue(),
       linkedSitesItem.removeValue(),
@@ -93,10 +104,10 @@ export function BackupSection() {
         {preview ? (
           <>
             <p className="desc">
-              이름 {preview.resume?.basics.name.ko || '-'} · 이력서 수정 {formatDate(preview.resume?.meta.updatedAt)} · 학력{' '}
-              {preview.resume?.education.length ?? 0} · 경력 {preview.resume?.work.length ?? 0} · 학습 규칙 {preview.learnedRules.length} · 연동 사이트{' '}
-              {preview.linkedSites.length} ·
-              백업 {formatDate(preview.exportedAt)}
+              이력서 {preview.resumes.length}개
+              {preview.resumes.length > 0 &&
+                ` (${preview.resumes.map((e) => `${e.title || '이름 없음'}: ${e.resume.basics.name.ko || '-'}`).join(', ')})`}{' '}
+              · 학습 규칙 {preview.learnedRules.length} · 연동 사이트 {preview.linkedSites.length} · 백업 {formatDate(preview.exportedAt)}
             </p>
             <p className="desc">현재 데이터를 이 파일 내용으로 덮어씁니다.</p>
             <div className="card-actions">

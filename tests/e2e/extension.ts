@@ -15,6 +15,21 @@ const EXTENSION_PATH = path.resolve('.output/chrome-mv3-e2e');
 const FIXTURE_DIR = path.resolve('tests/e2e/fixtures');
 export const FIXTURE_ORIGIN = 'http://localhost';
 
+/** 이력서 하나를 저장하고 선택된 이력서로 지정 (local:resumes·local:activeResumeId) */
+export const seedResume = (worker: Worker, value: Resume) =>
+  worker.evaluate(
+    (resume) => chrome.storage.local.set({ resumes: [{ id: 'r1', title: '기본 이력서', resume }], resumes$: { v: 1 }, activeResumeId: 'r1' }),
+    value,
+  );
+
+/** 저장된 선택된 이력서 (선택 id가 없으면 첫 이력서) */
+export const storedResume = (worker: Worker) =>
+  worker.evaluate(async () => {
+    const { resumes, activeResumeId } = await chrome.storage.local.get(['resumes', 'activeResumeId']);
+    const list = (resumes as { id: string; resume: Resume }[] | undefined) ?? [];
+    return (list.find((e) => e.id === activeResumeId) ?? list[0])?.resume;
+  });
+
 export const resume: Resume = {
   meta: { schemaVersion: 1, updatedAt: '2026-10-09T00:00:00.000Z' },
   basics: {

@@ -25,14 +25,15 @@ import {
 import type { Resume } from '@/core/schema/resume';
 import { getFile } from '@/storage/files';
 import {
+  activeResumeItem,
   copyOnlyItem,
   coverLettersItem,
   fillReportItem,
   importDraftItem,
   learnedRulesItem,
   linkedSitesItem,
+  migrateLegacyResume,
   pendingPermissionItem,
-  resumeItem,
   settingsItem,
 } from '@/storage/items';
 
@@ -156,7 +157,7 @@ async function startFill(tabId: number, partial = false): Promise<StartFillRespo
     await fillReportItem.setValue(null);
     return { status: 'user-excluded' };
   }
-  const resume = await resumeItem.getValue();
+  const resume = (await activeResumeItem.getValue())?.resume;
   if (!resume) {
     await fillReportItem.setValue(null);
     return { status: 'no-resume' };
@@ -317,7 +318,7 @@ async function fillOne(fieldId: string, schemaKey: string, optionValue?: string)
   const report = await requireReport();
   const field = report.fields.find((f) => f.fieldId === fieldId);
   if (!field) throw new Error('입력란을 찾을 수 없음');
-  const resume = await resumeItem.getValue();
+  const resume = (await activeResumeItem.getValue())?.resume;
   let value: string | undefined;
   let option: LearnedRule['option'];
   if (optionValue !== undefined) {
@@ -348,7 +349,7 @@ async function userEdit(tabId: number | undefined, fieldId: string, value: strin
   const report = await fillReportItem.getValue();
   if (!report || report.tabId !== tabId) return;
   const field = report.fields.find((f) => f.fieldId === fieldId);
-  const resume = await resumeItem.getValue();
+  const resume = (await activeResumeItem.getValue())?.resume;
   if (!field || !resume || field.hint.widget === 'checkbox' || field.hint.widget === 'checkboxes') return;
   const schemaKey = keyForValue(resume, value, field.hint, (await settingsItem.getValue()).sensitiveAutofill ?? false);
   if (!schemaKey || (field.status === 'filled' && field.schemaKey === schemaKey)) return;
@@ -397,6 +398,8 @@ async function withErrors<T>(run: () => Promise<T>): Promise<T | ErrorResponse> 
 export default defineBackground(() => {
   browser.runtime.onInstalled.addListener(({ reason }) => {
     console.log('[resume-integration] installed:', reason);
+    // 이전 버전(이력서 1개) 저장값 → 이력서 목록
+    void migrateLegacyResume();
     // 최초 설치: 옵션 화면 동의 모달 표시 (E2E는 페이지 열림 대기와 겹치지 않도록 제외)
     if (reason === 'install' && import.meta.env.MODE !== 'e2e') void browser.runtime.openOptionsPage();
   });

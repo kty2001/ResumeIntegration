@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createEmptyResume } from '@/core/schema/empty';
-import type { Resume } from '@/core/schema/resume';
-import { resumeItem } from '@/storage/items';
+import type { Resume, ResumeEntry } from '@/core/schema/resume';
+import { activeResumeItem } from '@/storage/items';
 
 export type SaveStatus = 'loading' | 'idle' | 'saving' | 'saved' | 'error';
 
@@ -76,7 +76,7 @@ export function useAutoSave<S, T extends S>(item: StoredItem<S>, load: (saved: S
     };
   }, [flush]);
 
-  return { value, update, status };
+  return { value, update, status, flush };
 }
 
 /** 저장 상태 문구 (updatedAt: 저장됨 표시 시각) */
@@ -93,11 +93,29 @@ export function saveStatusText(status: SaveStatus, updatedAt?: string): string {
   }
 }
 
-const loadResume = (saved: Resume | null) => saved ?? createEmptyResume();
-const stampResume = (next: Resume): Resume => ({ ...next, meta: { ...next.meta, updatedAt: new Date().toISOString() } });
+/** 새 이력서 목록 항목 (빈 이력서) */
+export const newResumeEntry = (title: string, resume = createEmptyResume()): ResumeEntry => ({
+  id: crypto.randomUUID(),
+  title,
+  resume,
+});
 
-/** 이력서 로드 + 변경 시 디바운스 자동 저장 */
+// 저장된 이력서가 없으면 빈 이력서 (첫 편집 시 저장되며 선택된 이력서가 됨)
+const loadEntry = (saved: ResumeEntry | null) => saved ?? newResumeEntry('기본 이력서');
+const stampEntry = (next: ResumeEntry): ResumeEntry => ({
+  ...next,
+  resume: { ...next.resume, meta: { ...next.resume.meta, updatedAt: new Date().toISOString() } },
+});
+
+/**
+ * 선택된 이력서 로드 + 변경 시 디바운스 자동 저장
+ * update: 섹션용 이력서 수정, updateEntry: 제목 등 항목 수정, flush: 이력서 추가·삭제·전환 전 대기 중인 저장 실행
+ */
 export function useResume() {
-  const { value: resume, update, status } = useAutoSave(resumeItem, loadResume, stampResume);
-  return { resume, update, status };
+  const { value: entry, update: updateEntry, status, flush } = useAutoSave(activeResumeItem, loadEntry, stampEntry);
+  const update = useCallback(
+    (fn: (prev: Resume) => Resume) => updateEntry((e) => ({ ...e, resume: fn(e.resume) })),
+    [updateEntry],
+  );
+  return { entry, resume: entry?.resume ?? null, update, updateEntry, status, flush };
 }

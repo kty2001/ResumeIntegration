@@ -1,14 +1,25 @@
 import { useEffect, useState } from 'react';
 import { needsUpdate, type LinkedSite } from '@/core/linked-sites';
-import type { Resume } from '@/core/schema/resume';
+import type { ResumeEntry } from '@/core/schema/resume';
 import { isExcluded } from '@/core/site-policy';
 import { describeStartFill as describe, describeStartImport, sendMessage } from '@/messaging/protocol';
-import { CONSENT_VERSION, consentItem, copyOnlyItem, linkedSitesItem, resumeItem, settingsItem } from '@/storage/items';
+import {
+  activeResumeIdItem,
+  activeResumeItem,
+  CONSENT_VERSION,
+  consentItem,
+  copyOnlyItem,
+  linkedSitesItem,
+  resumesItem,
+  settingsItem,
+} from '@/storage/items';
 
 // 화면 설계: docs/design/screens.md 2장 (현재: 동의 전·작성 가능·이력서 미입력(JSON 가져오기 포함)·제외 사이트·권한 필요·가져오기 상태)
 
 export default function App() {
-  const [resume, setResume] = useState<Resume | null | undefined>(undefined);
+  // 선택된 이력서 (undefined: 조회 전), 이력서 2개 이상이면 선택 목록 표시
+  const [active, setActive] = useState<ResumeEntry | null>();
+  const [entries, setEntries] = useState<ResumeEntry[]>([]);
   const [consented, setConsented] = useState<boolean>();
   const [running, setRunning] = useState(false);
   const [message, setMessage] = useState<string>();
@@ -19,7 +30,8 @@ export default function App() {
   const [sites, setSites] = useState<LinkedSite[]>([]);
 
   useEffect(() => {
-    resumeItem.getValue().then(setResume, () => setResume(null));
+    activeResumeItem.getValue().then(setActive, () => setActive(null));
+    resumesItem.getValue().then(setEntries, () => {});
     linkedSitesItem.getValue().then(setSites, () => {});
     // 최초 실행 동의 전에는 옵션 화면 동의 모달로 안내 (screens.md 5장 ①)
     consentItem.getValue().then(
@@ -36,7 +48,8 @@ export default function App() {
       else if (isExcluded(tab.url, settings.excludedSites)) setExcluded('user-excluded');
     });
     // '작성' 성공 시 마지막 작성 시각이 바뀌므로 갱신 필요 개수 반영
-    return linkedSitesItem.watch(setSites);
+    const unwatch = [linkedSitesItem.watch(setSites), activeResumeItem.watch(setActive), resumesItem.watch(setEntries)];
+    return () => unwatch.forEach((fn) => fn());
   }, []);
 
   // 복사 전용 모드: 페이지 조작 없이 사이드 패널만 열기 (open을 먼저 호출해 사용자 제스처 유지)
@@ -50,7 +63,7 @@ export default function App() {
   const openBackup = () => void browser.tabs.create({ url: browser.runtime.getURL('/options.html#backup') });
   // 연동 사이트 일괄 열기: 새 창 (로그인·'작성'은 탭별로 사용자가 진행, architecture.md 7.5)
   const openSites = () => void browser.windows.create({ url: sites.map((s) => s.url) });
-  const outdated = sites.filter((s) => needsUpdate(s, resume?.meta.updatedAt)).length;
+  const outdated = sites.filter((s) => needsUpdate(s, active?.resume.meta.updatedAt)).length;
 
   /** partial: 권한 없는 교차 출처 iframe은 건너뜀 ('이 페이지 부분만 입력') */
   const fill = async (partial = false) => {
@@ -113,18 +126,27 @@ export default function App() {
         <h1>이력서 자동 입력</h1>
       </header>
       <div className="popup-body">
-        {resume === undefined || consented === undefined ? null : !consented ? (
+        {active === undefined || consented === undefined ? null : !consented ? (
           <>
             <p className="empty">시작하기 전에 데이터 처리 방식을 확인해 주세요.</p>
             <button className="btn primary lg" onClick={openOptions}>
               확인하러 가기
             </button>
           </>
-        ) : resume ? (
+        ) : active ? (
           <>
             <div className="card compact profile">
-              <b>{resume.basics.name.ko || '이름 없음'}</b>
-              <small>수정 {new Date(resume.meta.updatedAt).toLocaleDateString()}</small>
+              {entries.length > 1 && (
+                <select aria-label="이력서 선택" value={active.id} onChange={(e) => void activeResumeIdItem.setValue(e.target.value)} disabled={running}>
+                  {entries.map((e) => (
+                    <option key={e.id} value={e.id}>
+                      {e.title || '이름 없음'}
+                    </option>
+                  ))}
+                </select>
+              )}
+              <b>{active.resume.basics.name.ko || '이름 없음'}</b>
+              <small>수정 {new Date(active.resume.meta.updatedAt).toLocaleDateString()}</small>
             </div>
             {excluded && (
               <>

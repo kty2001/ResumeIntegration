@@ -31,7 +31,7 @@ export type AttachmentKind = 'photo' | 'resume' | 'portfolio' | 'transcript' | '
 export type CoverLetterTag = 'motivation' | 'growth' | 'personality' | 'competency' | 'aspiration' | 'collaboration' | 'other';
 export type LengthUnit = 'chars_with_space' | 'chars_without_space' | 'bytes';
 
-// ---- 이력서 (storage key: local:resume) ----
+// ---- 이력서 (storage key: local:resumes의 ResumeEntry.resume) ----
 export interface Resume {
   meta: { schemaVersion: 1; updatedAt: IsoDateTime };
   basics: Basics;
@@ -48,6 +48,13 @@ export interface Resume {
   skills: Skill[];
   desired?: Desired;
   attachments: AttachmentMeta[];
+}
+
+/** 저장된 이력서 하나 (title: 목록 표시용 이름, 예: '기본 이력서', 'IT 직무용') */
+export interface ResumeEntry {
+  id: string;
+  title: string;
+  resume: Resume;
 }
 
 export interface Basics {

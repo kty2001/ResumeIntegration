@@ -46,6 +46,7 @@
 - [x] 반복 항목 '추가' 버튼 클릭으로 입력 블록 늘리기 ([architecture](design/architecture.md) 7.1)
 - [x] 파일 업로드 (구분별 첨부 파일 → 파일 입력란)
 - [x] JSON 내보내기/가져오기
+- [x] 이력서 여러 개: `local:resumes`·`local:activeResumeId`, 옵션 상단 선택·이름 변경·새 이력서·복제·삭제, 팝업 선택, 백업 v2(v1 호환), 이전 `local:resume` 마이그레이션
 
 ## 구현 (가져오기·연동 사이트)
 ### 이력서 가져오기 ([architecture](design/architecture.md) 7.4)

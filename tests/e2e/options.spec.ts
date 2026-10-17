@@ -1,5 +1,5 @@
 import { readFile, writeFile } from 'node:fs/promises';
-import { expect, resume, test } from './extension';
+import { expect, resume, seedResume, storedResume, test } from './extension';
 
 // 옵션 화면 '백업' E2E: 내보내기 → 전체 삭제 → 가져오기, 팝업 'JSON 가져오기', 최초 실행 동의
 
@@ -9,19 +9,15 @@ const rule = { origin: 'http://localhost', fingerprint: '["text","","company","�
 const site = { id: 's1', name: '기본', url: 'http://localhost/basics.html', lastFilledAt: '2026-10-10T00:00:00.000Z' };
 
 test('백업 내보내기 → 전체 삭제 → 가져오기', async ({ context, worker, extensionId }) => {
-  await worker.evaluate(
-    ({ value, rules, sites }) => chrome.storage.local.set({ resume: value, resume$: { v: 1 }, learnedRules: rules, linkedSites: sites }),
-    { value: resume, rules: [rule], sites: [site] },
-  );
-  const stored = () =>
-    worker.evaluate(async () => {
-      const { resume: r, learnedRules, linkedSites } = await chrome.storage.local.get(['resume', 'learnedRules', 'linkedSites']);
-      return {
-        name: (r as typeof resume | undefined)?.basics.name.ko,
-        rules: (learnedRules as unknown[] | undefined)?.length ?? 0,
-        sites: (linkedSites as unknown[] | undefined)?.length ?? 0,
-      };
-    });
+  await seedResume(worker, resume);
+  await worker.evaluate(({ rules, sites }) => chrome.storage.local.set({ learnedRules: rules, linkedSites: sites }), { rules: [rule], sites: [site] });
+  const stored = async () => ({
+    name: (await storedResume(worker))?.basics.name.ko,
+    ...(await worker.evaluate(async () => {
+      const { learnedRules, linkedSites } = await chrome.storage.local.get(['learnedRules', 'linkedSites']);
+      return { rules: (learnedRules as unknown[] | undefined)?.length ?? 0, sites: (linkedSites as unknown[] | undefined)?.length ?? 0 };
+    })),
+  });
 
   const options = await context.newPage();
   await options.goto(`chrome-extension://${extensionId}/options.html`);
@@ -36,7 +32,7 @@ test('백업 내보내기 → 전체 삭제 → 가져오기', async ({ context,
   expect(download.suggestedFilename()).toMatch(/^resume-backup-\d{8}\.json$/);
   const file = await download.path();
   const backup = JSON.parse(await readFile(file, 'utf-8'));
-  expect(backup).toMatchObject({ app: 'resume-integration', backupVersion: 1, resume: { basics: { name: { ko: '홍길동' } } }, learnedRules: [rule], linkedSites: [site] });
+  expect(backup).toMatchObject({ app: 'resume-integration', backupVersion: 2, resumes: [{ title: '기본 이력서', resume: { basics: { name: { ko: '홍길동' } } } }], learnedRules: [rule], linkedSites: [site] });
 
   // 전체 삭제: 확인 단계 후 저장소·편집 화면 비움
   await options.getByRole('button', { name: '전체 삭제' }).click();
@@ -49,7 +45,7 @@ test('백업 내보내기 → 전체 삭제 → 가져오기', async ({ context,
   // 가져오기: 미리 보기 → 덮어쓰기 → 저장소·편집 화면 복원
   await options.getByRole('button', { name: '백업' }).click();
   await options.getByLabel('백업 파일 선택').setInputFiles(file);
-  await expect(options.getByText(/이름 홍길동 · .*학습 규칙 1 · 연동 사이트 1/)).toBeVisible();
+  await expect(options.getByText(/이력서 1개 \(기본 이력서: 홍길동\) · 학습 규칙 1 · 연동 사이트 1/)).toBeVisible();
   await options.getByRole('button', { name: '덮어쓰기' }).click();
   await expect(options.getByRole('status')).toHaveText('백업 파일을 가져왔습니다.');
   expect(await stored()).toEqual({ name: '홍길동', rules: 1, sites: 1 });
@@ -87,7 +83,7 @@ test('자기소개서 라이브러리: 추가·글자수·검색·복제·삭제
   ]);
 
   // 복제 → 두 번째 항목 문항 변경 → 검색·태그 필터
-  await options.getByRole('button', { name: '복제' }).click();
+  await options.getByRole('main').getByRole('button', { name: '복제' }).click();
   await options.getByLabel('문항 필수', { exact: true }).fill('성장 과정');
   await expect.poll(async () => (await stored()).map((e) => e.question)).toEqual(['지원 동기를 기술해 주십시오', '성장 과정']);
   const rows = options.getByRole('row').filter({ has: options.getByRole('button', { name: '편집' }) });
@@ -185,12 +181,12 @@ test('연동 사이트: 추가·형식 오류·중복·제외 사이트 안내·
 
 test('이력서 가져오기: 팝업 → 미리 보기(갱신·추가) → 선택 반영 → 자기소개서 추가', async ({ context, worker, extensionId }) => {
   // 기존 이력서: 이메일 다름(기본 미선택), 예시대학교는 같은 항목으로 갱신
-  const existing = {
+  const existing: typeof resume = {
     ...resume,
     basics: { ...resume.basics, email: 'old@example.com', phone: undefined, birthDate: undefined },
     education: [{ id: 'e1', level: 'university', school: { ko: '예시대학교' }, status: 'graduated' }],
   };
-  await worker.evaluate((value) => chrome.storage.local.set({ resume: value, resume$: { v: 1 } }), existing);
+  await seedResume(worker, existing);
 
   const page = await context.newPage();
   await page.goto('http://localhost/import.html');
@@ -222,19 +218,18 @@ test('이력서 가져오기: 팝업 → 미리 보기(갱신·추가) → 선�
   await options.getByRole('button', { name: /^선택 항목 반영/ }).click();
   await expect(options.getByRole('status')).toHaveText('선택한 항목을 이력서에 반영했습니다.');
 
-  const stored = () =>
-    worker.evaluate(async () => {
-      const { resume: r, coverLetters } = await chrome.storage.local.get(['resume', 'coverLetters']);
-      const value = r as typeof resume;
-      return {
-        email: value.basics.email,
-        mobile: value.basics.phone?.mobile,
-        birthDate: value.basics.birthDate,
-        gender: value.basics.gender,
-        education: value.education.map((e) => [e.school.ko, e.startDate]),
-        questions: ((coverLetters as { question: string }[] | undefined) ?? []).map((c) => c.question),
-      };
-    });
+  const stored = async () => {
+    const value = (await storedResume(worker))!;
+    const coverLetters = await worker.evaluate(async () => (await chrome.storage.local.get('coverLetters')).coverLetters);
+    return {
+      email: value.basics.email,
+      mobile: value.basics.phone?.mobile,
+      birthDate: value.basics.birthDate,
+      gender: value.basics.gender,
+      education: value.education.map((e) => [e.school.ko, e.startDate]),
+      questions: ((coverLetters as { question: string }[] | undefined) ?? []).map((c) => c.question),
+    };
+  };
   await expect.poll(stored).toEqual({
     email: 'new@example.com',
     mobile: '01098765432',
@@ -280,17 +275,15 @@ test('이력서 가져오기: 이력서 없음 → 취소 시 draft 삭제 → �
   await options.getByRole('button', { name: '선택 항목 반영 (12)' }).click();
   await expect(options.getByRole('status')).toHaveText('선택한 항목을 이력서에 반영했습니다.');
   await expect
-    .poll(() =>
-      worker.evaluate(async () => {
-        const r = (await chrome.storage.local.get('resume')).resume as typeof resume | undefined;
-        return r && { name: r.basics.name.ko, mobile: r.basics.phone?.mobile, education: r.education.map((e) => [e.school.ko, e.status]) };
-      }),
-    )
+    .poll(async () => {
+      const r = await storedResume(worker);
+      return r && { name: r.basics.name.ko, mobile: r.basics.phone?.mobile, education: r.education.map((e) => [e.school.ko, e.status]) };
+    })
     .toEqual({ name: '홍길동', mobile: '01098765432', education: [['예시대학교', 'graduated'], ['예시고등학교', 'graduated']] });
 });
 
 test('이력서 가져오기: ARIA 미준수 커스텀 드롭다운 선택값 읽기, 미선택(숨은 input 빈 값)은 제외', async ({ context, worker, extensionId }) => {
-  await worker.evaluate((value) => chrome.storage.local.set({ resume: value, resume$: { v: 1 } }), resume);
+  await seedResume(worker, resume);
   const page = await context.newPage();
   await page.goto('http://localhost/custom-dropdown.html');
   await page.locator('#gender button.choose').click();
@@ -310,11 +303,10 @@ test('이력서 가져오기: ARIA 미준수 커스텀 드롭다운 선택값 �
 });
 
 test('첨부 파일: 구분 선택 후 추가·증명사진 연결·삭제', async ({ context, worker, extensionId }, testInfo) => {
-  const stored = () =>
-    worker.evaluate(async () => {
-      const r = (await chrome.storage.local.get('resume')).resume as typeof resume | undefined;
-      return { files: r?.attachments.map((a) => [a.kind, a.fileName, a.size]) ?? [], photo: !!r?.basics.photo };
-    });
+  const stored = async () => {
+    const r = await storedResume(worker);
+    return { files: r?.attachments.map((a) => [a.kind, a.fileName, a.size]) ?? [], photo: !!r?.basics.photo };
+  };
   const pdf = testInfo.outputPath('resume.pdf');
   const jpg = testInfo.outputPath('photo.jpg');
   await writeFile(pdf, '%PDF-1.4 test');
@@ -332,6 +324,48 @@ test('첨부 파일: 구분 선택 후 추가·증명사진 연결·삭제', asy
 
   await options.getByRole('row').filter({ hasText: 'photo.jpg' }).getByRole('button', { name: '삭제' }).click();
   await expect.poll(stored).toEqual({ files: [['resume', 'resume.pdf', 13]], photo: false });
+});
+
+test('이력서 여러 개: 복제·이름 변경·새 이력서·전환·삭제', async ({ context, worker, extensionId }) => {
+  await seedResume(worker, resume);
+  const stored = () =>
+    worker.evaluate(async () => {
+      const { resumes, activeResumeId } = await chrome.storage.local.get(['resumes', 'activeResumeId']);
+      const list = (resumes as { id: string; title: string; resume: typeof resume }[] | undefined) ?? [];
+      return { list: list.map((e) => [e.title, e.resume.basics.name.ko]), active: list.find((e) => e.id === activeResumeId)?.title };
+    });
+
+  const options = await context.newPage();
+  await options.goto(`chrome-extension://${extensionId}/options.html`);
+  const nameField = options.getByLabel('이름(한글)');
+  const select = options.getByLabel('이력서 선택');
+  const title = options.getByLabel('이력서 이름');
+  await expect(nameField).toHaveValue('홍길동');
+
+  // 복제: 같은 내용, 이름 '… 복사본' → 이름 변경
+  await options.getByRole('button', { name: '이력서 복제' }).click();
+  await expect(title).toHaveValue('기본 이력서 복사본');
+  await expect(nameField).toHaveValue('홍길동');
+  await title.fill('IT 직무용');
+
+  // 새 이력서: 빈 이력서로 시작
+  await options.getByRole('button', { name: '새 이력서' }).click();
+  await expect(title).toHaveValue('이력서 3');
+  await expect(nameField).toHaveValue('');
+  await nameField.fill('김철수');
+  await expect
+    .poll(stored)
+    .toEqual({ list: [['기본 이력서', '홍길동'], ['IT 직무용', '홍길동'], ['이력서 3', '김철수']], active: '이력서 3' });
+
+  // 전환 후 삭제 → 남은 첫 이력서 선택
+  await select.selectOption({ label: 'IT 직무용' });
+  await expect(title).toHaveValue('IT 직무용');
+  await select.selectOption({ label: '기본 이력서' });
+  await expect(title).toHaveValue('기본 이력서');
+  await options.getByRole('button', { name: '이력서 삭제' }).click();
+  await options.getByRole('button', { name: '정말 삭제' }).click();
+  await expect(title).toHaveValue('IT 직무용');
+  await expect.poll(stored).toEqual({ list: [['IT 직무용', '홍길동'], ['이력서 3', '김철수']], active: 'IT 직무용' });
 });
 
 test('팝업 이력서 없음 → JSON 가져오기 → 옵션 백업 화면', async ({ context, extensionId }) => {
