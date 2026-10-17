@@ -209,6 +209,15 @@ test('이력서 가져오기: 팝업 → 미리 보기(갱신·추가) → 선�
   await expect(options.getByLabel('기본 정보 생년월일 반영')).toBeChecked();
   await expect(options.getByLabel('기본 정보 성별 반영')).toBeChecked();
   await expect(basics).not.toContainText('secret');
+  // 모두 선택: 기본 미선택 항목까지 선택 후 비활성 (반영 검증을 위해 이메일 외 선택은 되돌림)
+  const unchecked = await options
+    .locator('table input[type=checkbox]:not(:checked):not([disabled])')
+    .evaluateAll((els) => els.map((el) => el.getAttribute('aria-label')!));
+  expect(unchecked.length).toBeGreaterThan(0);
+  await options.getByRole('button', { name: '모두 선택' }).click();
+  for (const box of await options.locator('input[type=checkbox]:not([disabled])').all()) await expect(box).toBeChecked();
+  await expect(options.getByRole('button', { name: '모두 선택' })).toBeDisabled();
+  for (const label of unchecked) await options.getByLabel(label, { exact: true }).uncheck();
   // 학력: 기존 항목 갱신 + 새 항목 추가
   await expect(options.getByText('학력 · 예시대학교 (갱신)')).toBeVisible();
   await expect(options.getByText('학력 · 예시고등학교 (추가)')).toBeVisible();
@@ -272,6 +281,7 @@ test('이력서 가져오기: 이력서 없음 → 취소 시 draft 삭제 → �
   const boxes = options.locator('table input[type=checkbox]:not([disabled])');
   await expect(boxes).toHaveCount(11);
   for (const box of await boxes.all()) await expect(box).toBeChecked();
+  await expect(options.getByRole('button', { name: '모두 선택' })).toBeDisabled();
   await options.getByRole('button', { name: '선택 항목 반영 (12)' }).click();
   await expect(options.getByRole('status')).toHaveText('선택한 항목을 이력서에 반영했습니다.');
   await expect
@@ -341,6 +351,11 @@ test('이력서 여러 개: 복제·이름 변경·새 이력서·전환·삭제
   const select = options.getByLabel('이력서 선택');
   const title = options.getByLabel('이력서 이름');
   await expect(nameField).toHaveValue('홍길동');
+  // 상단 바: 이름 입력란은 좁게, 버튼·저장 상태는 화면 안
+  expect((await title.boundingBox())!.width).toBeLessThanOrEqual(180);
+  for (const el of [options.getByRole('button', { name: '이력서 삭제' }), options.locator('header.top small')]) {
+    await expect(el).toBeInViewport({ ratio: 1 });
+  }
 
   // 복제: 같은 내용, 이름 '… 복사본' → 이름 변경
   await options.getByRole('button', { name: '이력서 복제' }).click();

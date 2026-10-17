@@ -80,6 +80,12 @@ export function ImportSection({ resume, update }: SectionProps) {
   const indexOf = (c: ImportDraft['coverLetters'][number]) => draft.coverLetters.indexOf(c);
   const count = groups.reduce((n, g) => n + g.rows.filter((r) => selected.has(r.id)).length, 0) +
     candidates.filter((c) => selected.has(`cover:${indexOf(c)}`)).length;
+  // '확인 필요'(역변환 실패) 항목은 선택 불가라 제외
+  const selectable = [
+    ...groups.flatMap((g) => g.rows.filter((r) => r.value !== undefined).map((r) => r.id)),
+    ...candidates.map((c) => `cover:${indexOf(c)}`),
+  ];
+  const selectAll = () => setSelected((prev) => new Set([...prev, ...selectable]));
 
   return (
     <>
@@ -149,6 +155,9 @@ export function ImportSection({ resume, update }: SectionProps) {
       <div className="card-actions">
         <button type="button" className="btn primary" disabled={count === 0} onClick={() => void apply()}>
           선택 항목 반영 ({count})
+        </button>
+        <button type="button" className="btn" disabled={selectable.every((id) => selected.has(id))} onClick={selectAll}>
+          모두 선택
         </button>
         <button type="button" className="btn" onClick={() => void cancel()}>
           취소

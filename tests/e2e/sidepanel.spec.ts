@@ -29,6 +29,8 @@ async function runFill(
   const popupOpened = context.waitForEvent('page');
   await worker.evaluate((url) => chrome.tabs.create({ url, active: false }), `chrome-extension://${extensionId}/popup.html`);
   const popup = await popupOpened;
+  // 이력서가 하나여도 선택 목록 표시
+  await expect(popup.getByLabel('이력서 선택')).toHaveValue('r1');
   await popup.getByRole('button', { name: '작성' }).click();
   await expect(popup.getByText(summary)).toBeVisible();
   return { page, popup };
@@ -97,6 +99,7 @@ test('팝업에서 고른 이력서로 작성', async ({ context, worker, extens
   const popup = await popupOpened;
 
   await expect(popup.locator('.profile b')).toHaveText('홍길동');
+  await expect(popup.getByLabel('이력서 선택').locator('option')).toHaveText(['기본 이력서', 'IT 직무용']);
   await popup.getByLabel('이력서 선택').selectOption({ label: 'IT 직무용' });
   await expect(popup.locator('.profile b')).toHaveText('김철수');
   await popup.getByRole('button', { name: '작성' }).click();

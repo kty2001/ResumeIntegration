@@ -15,8 +15,11 @@
 }
 .top b { font-size: var(--fs-lg); font-weight: 700; }
 .top small.error { color: var(--err-text); }
-.resume-switcher { display: flex; flex: 1; align-items: center; gap: 8px; margin: 0 24px; }
-.resume-switcher select, .resume-switcher input { width: 180px; flex: none; }
+/* 이력서 선택 바: 전역 입력란 width: 100%보다 flex-basis가 우선 → 좁으면 입력란만 줄고 버튼·저장 상태는 유지 */
+.resume-switcher { display: flex; flex: 1; min-width: 0; align-items: center; gap: 8px; margin: 0 24px; }
+.resume-switcher select, .resume-switcher input { flex: 0 1 180px; min-width: 0; }
+.resume-switcher .btn { flex: none; }
+.top b, .top small { flex: none; white-space: nowrap; }
 
 .wrap { display: flex; gap: 8px; max-width: 1100px; margin: 0 auto; }
 nav { display: flex; flex-direction: column; gap: 2px; width: 208px; flex: none; padding: 24px 0 24px 16px; }

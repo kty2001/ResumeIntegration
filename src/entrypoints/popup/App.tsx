@@ -17,7 +17,7 @@ import {
 // 화면 설계: docs/design/screens.md 2장 (현재: 동의 전·작성 가능·이력서 미입력(JSON 가져오기 포함)·제외 사이트·권한 필요·가져오기 상태)
 
 export default function App() {
-  // 선택된 이력서 (undefined: 조회 전), 이력서 2개 이상이면 선택 목록 표시
+  // 선택된 이력서 (undefined: 조회 전), 선택 목록에서 '작성' 대상 변경
   const [active, setActive] = useState<ResumeEntry | null>();
   const [entries, setEntries] = useState<ResumeEntry[]>([]);
   const [consented, setConsented] = useState<boolean>();
@@ -136,15 +136,13 @@ export default function App() {
         ) : active ? (
           <>
             <div className="card compact profile">
-              {entries.length > 1 && (
-                <select aria-label="이력서 선택" value={active.id} onChange={(e) => void activeResumeIdItem.setValue(e.target.value)} disabled={running}>
-                  {entries.map((e) => (
-                    <option key={e.id} value={e.id}>
-                      {e.title || '이름 없음'}
-                    </option>
-                  ))}
-                </select>
-              )}
+              <select aria-label="이력서 선택" value={active.id} onChange={(e) => void activeResumeIdItem.setValue(e.target.value)} disabled={running}>
+                {entries.map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.title || '이름 없음'}
+                  </option>
+                ))}
+              </select>
               <b>{active.resume.basics.name.ko || '이름 없음'}</b>
               <small>수정 {new Date(active.resume.meta.updatedAt).toLocaleDateString()}</small>
             </div>
